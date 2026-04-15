@@ -1,0 +1,63 @@
+{
+  "expo": {
+    "name": "MasterBook",
+    "slug": "masterbook",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "masterbook",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#13131A"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.masterbook.app",
+      "buildNumber": "1"
+    },
+    "android": {
+      "package": "com.masterbook.app",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#7C5DFA"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Приложение использует доступ к фото для добавления фотографий работ"
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#7C5DFA"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "a8d2581b-5a73-49a8-aabf-d2d046224247"
+      },
+      "router": {}
+    }
+  }
+}
