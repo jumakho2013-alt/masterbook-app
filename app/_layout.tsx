@@ -11,9 +11,21 @@ import {
 } from '@expo-google-fonts/manrope';
 import { ThemeProvider, useTheme } from '@/src/theme';
 import { ToastProvider } from '@/src/components/ui';
+import { BiometricGate } from '@/src/components/BiometricGate';
+import { RouterErrorBoundary } from '@/src/components/ErrorScreen';
+import { seedDevDataIfNeeded } from '@/src/lib/devSeed';
 import 'react-native-reanimated';
 
-export { ErrorBoundary } from 'expo-router';
+// expo-router распознаёт `ErrorBoundary` экспорт и подсовывает его в качестве
+// fallback при необработанной ошибке в любом роуте. Оборачиваем в тему —
+// RouterErrorBoundary использует useTheme внутри.
+export function ErrorBoundary({ error, retry }: { error: Error; retry: () => void }) {
+  return (
+    <ThemeProvider>
+      <RouterErrorBoundary error={error} retry={retry} />
+    </ThemeProvider>
+  );
+}
 
 SplashScreen.preventAutoHideAsync();
 
@@ -41,6 +53,7 @@ function RootInner() {
         <Stack.Screen name="appointment/[id]" />
         <Stack.Screen name="services/manage" />
         <Stack.Screen name="settings/work-hours" />
+        <Stack.Screen name="settings/account" />
       </Stack>
     </>
   );
@@ -56,6 +69,9 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (fontsLoaded) {
+      // Сначала засеиваем (no-op в production или если сторы непустые),
+      // потом прячем сплэш — первый render уже с данными.
+      seedDevDataIfNeeded();
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded]);
@@ -65,7 +81,9 @@ export default function RootLayout() {
   return (
     <ThemeProvider>
       <ToastProvider>
-        <RootInner />
+        <BiometricGate>
+          <RootInner />
+        </BiometricGate>
       </ToastProvider>
     </ThemeProvider>
   );

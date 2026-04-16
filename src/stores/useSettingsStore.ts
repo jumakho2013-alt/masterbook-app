@@ -13,6 +13,8 @@ interface SettingsState {
   bufferMinutes: number; // 0, 15, 30
   fieldConfig: FieldConfig;
   masterName: string;
+  /** Блокировка приложения биометрией (Face ID / Touch ID). */
+  biometricLock: boolean;
 
   setTheme: (theme: ThemeSetting) => void;
   setWorkHours: (start: string, end: string) => void;
@@ -22,6 +24,7 @@ interface SettingsState {
   setFieldConfig: (config: FieldConfig) => void;
   updateFieldConfig: (updates: Partial<FieldConfig>) => void;
   setMasterName: (name: string) => void;
+  setBiometricLock: (enabled: boolean) => void;
 }
 
 const defaultFieldConfig: FieldConfig = {
@@ -43,6 +46,7 @@ export const useSettingsStore = create<SettingsState>()(
       bufferMinutes: 15,
       fieldConfig: defaultFieldConfig,
       masterName: '',
+      biometricLock: false,
 
       setTheme: (theme) => set({ theme }),
       setWorkHours: (start, end) => set({ workHours: { start, end } }),
@@ -53,6 +57,7 @@ export const useSettingsStore = create<SettingsState>()(
       updateFieldConfig: (updates) =>
         set((s) => ({ fieldConfig: { ...s.fieldConfig, ...updates } })),
       setMasterName: (name) => set({ masterName: name }),
+      setBiometricLock: (enabled) => set({ biometricLock: enabled }),
     }),
     {
       name: 'masterbook-settings',

@@ -1,9 +1,15 @@
+import { useEffect } from 'react';
 import { Tabs } from 'expo-router';
-import { useTheme } from '@/src/theme';
 import { GlassTabBar } from '@/src/components/GlassTabBar';
+import { registerForPushNotifications } from '@/src/lib/notifications';
 
 export default function TabLayout() {
-  const { colors } = useTheme();
+  // Ask for notification permission once, when the user first reaches the
+  // main app. Errors are swallowed — the feature is optional and must not
+  // block the UI.
+  useEffect(() => {
+    registerForPushNotifications().catch(() => {});
+  }, []);
 
   return (
     <Tabs

@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInRight } from 'react-native-reanimated';
-import { X, Check, ArrowLeft, Scissors } from 'lucide-react-native';
+import { X, ArrowLeft, Scissors } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/src/theme';
 import { Button, IconButton, SearchBar, GlassCard, CustomAlert, EmptyState } from '@/src/components/ui';
@@ -14,8 +14,10 @@ import { useClientStore } from '@/src/stores/useClientStore';
 import { useServiceStore } from '@/src/stores/useServiceStore';
 import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
-import { toDateKey } from '@/src/utils/date';
+import { toDateKey, formatDate } from '@/src/utils/date';
 import { formatCurrency } from '@/src/utils/currency';
+import { scheduleAppointmentReminder } from '@/src/lib/notifications';
+import { appointmentSchema } from '@/src/lib/validation';
 import type { Client, Service } from '@/src/types';
 
 type Step = 'client' | 'service' | 'time' | 'confirm';
@@ -27,6 +29,8 @@ const STEP_TITLES: Record<Step, string> = {
   time: 'Дата и время',
   confirm: 'Подтверждение',
 };
+
+const DATE_RANGE_DAYS = 30;
 
 function generateTimeSlots(start: string, end: string, stepMin: number): string[] {
   const slots: string[] = [];
@@ -56,55 +60,94 @@ function addMinutes(time: string, minutes: number): string {
   return `${String(nh).padStart(2, '0')}:${String(nm).padStart(2, '0')}`;
 }
 
+function nowHourMinutes(): number {
+  const d = new Date();
+  return d.getHours() * 60 + d.getMinutes();
+}
+
 export default function NewAppointmentScreen() {
   const router = useRouter();
-  const { colors, typography: typo, spacing: sp } = useTheme();
+  const { colors, typography: typo, spacing: sp, borderRadius: br } = useTheme();
 
   const [step, setStep] = useState<Step>('client');
   const [search, setSearch] = useState('');
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
-  const [selectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
 
   const searchClients = useClientStore((s) => s.searchClients);
   const services = useServiceStore((s) => s.services);
   const addAppointment = useAppointmentStore((s) => s.addAppointment);
+  const updateAppointment = useAppointmentStore((s) => s.updateAppointment);
   const allAppointments = useAppointmentStore((s) => s.appointments);
   const workHours = useSettingsStore((s) => s.workHours);
+  const workDays = useSettingsStore((s) => s.workDays);
   const breakTime = useSettingsStore((s) => s.breakTime);
+  const bufferMinutes = useSettingsStore((s) => s.bufferMinutes);
 
   const { alertConfig, error: showError } = useAlert();
 
   const stepIndex = STEPS.indexOf(step);
-  const rawTimeSlots = generateTimeSlots(workHours.start, workHours.end, 30);
+  const selectedDateKey = toDateKey(selectedDate);
+  const isToday = selectedDateKey === toDateKey(new Date());
 
-  // Filter out break time slots
-  const timeSlots = rawTimeSlots.filter((t) => {
-    if (!breakTime.enabled) return true;
-    const mins = timeToMinutes(t);
-    const breakStart = timeToMinutes(breakTime.start);
-    const breakEnd = timeToMinutes(breakTime.end);
-    return mins < breakStart || mins >= breakEnd;
-  });
+  // Date strip: next N days
+  const dateStrip = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return Array.from({ length: DATE_RANGE_DAYS }, (_, i) => {
+      const d = new Date(today);
+      d.setDate(d.getDate() + i);
+      return d;
+    });
+  }, []);
 
-  // Overlap detection for selected date
-  const existingAppts = allAppointments.filter(
-    (a) => a.date === toDateKey(selectedDate) && a.status === 'scheduled',
+  const rawTimeSlots = useMemo(
+    () => generateTimeSlots(workHours.start, workHours.end, 30),
+    [workHours.start, workHours.end],
   );
-  const isSlotTaken = (time: string) => {
+
+  const timeSlots = useMemo(
+    () =>
+      rawTimeSlots.filter((t) => {
+        if (!breakTime.enabled) return true;
+        const mins = timeToMinutes(t);
+        const breakStart = timeToMinutes(breakTime.start);
+        const breakEnd = timeToMinutes(breakTime.end);
+        return mins < breakStart || mins >= breakEnd;
+      }),
+    [rawTimeSlots, breakTime],
+  );
+
+  const existingAppts = useMemo(
+    () => allAppointments.filter((a) => a.date === selectedDateKey && a.status === 'scheduled'),
+    [allAppointments, selectedDateKey],
+  );
+
+  const nowMin = nowHourMinutes();
+
+  const isSlotTaken = (time: string): boolean => {
     const slotStart = timeToMinutes(time);
     const slotEnd = slotStart + (selectedService?.duration ?? 30);
     return existingAppts.some((a) => {
-      const aStart = timeToMinutes(a.startTime);
-      const aEnd = timeToMinutes(a.endTime);
+      const aStart = timeToMinutes(a.startTime) - bufferMinutes;
+      const aEnd = timeToMinutes(a.endTime) + bufferMinutes;
       return slotStart < aEnd && slotEnd > aStart;
     });
   };
 
+  const isSlotPast = (time: string): boolean =>
+    isToday && timeToMinutes(time) <= nowMin;
+
+  const isDayOff = (d: Date) => !workDays.includes(d.getDay());
+
   const next = () => {
     const i = STEPS.indexOf(step);
-    if (i < STEPS.length - 1) setStep(STEPS[i + 1]);
+    if (i < STEPS.length - 1) {
+      Haptics.selectionAsync();
+      setStep(STEPS[i + 1]);
+    }
   };
 
   const back = () => {
@@ -117,27 +160,62 @@ export default function NewAppointmentScreen() {
     if (!selectedClient) { showError('Выберите клиента'); return; }
     if (!selectedService) { showError('Выберите услугу'); return; }
     if (!selectedTime) { showError('Выберите время'); return; }
+
+    const endTime = addMinutes(selectedTime, selectedService.duration);
+
+    // Final Zod validation
+    const parsed = appointmentSchema.safeParse({
+      clientId: selectedClient.id,
+      serviceId: selectedService.id,
+      date: selectedDateKey,
+      startTime: selectedTime,
+      endTime,
+      price: selectedService.price,
+    });
+    if (!parsed.success) {
+      showError(parsed.error.errors[0]?.message ?? 'Некорректные данные');
+      return;
+    }
+
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const appt = addAppointment({
       clientId: selectedClient.id,
       serviceId: selectedService.id,
-      date: toDateKey(selectedDate),
+      date: selectedDateKey,
       startTime: selectedTime,
-      endTime: addMinutes(selectedTime, selectedService.duration),
+      endTime,
       status: 'scheduled',
       price: selectedService.price,
     });
+
+    // Auto-schedule reminder 60 min before the appointment (fire-and-forget).
+    scheduleAppointmentReminder(
+      appt.id,
+      selectedClient.name,
+      selectedService.name,
+      selectedDateKey,
+      selectedTime,
+      60,
+    )
+      .then((notifId) => {
+        if (notifId) updateAppointment(appt.id, { reminderNotificationId: notifId } as never);
+      })
+      .catch(() => {
+        // User might have declined notifications — don't fail the booking.
+      });
+
     router.back();
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['bottom']}>
       {/* Header */}
       <View style={styles.topBar}>
         <IconButton
           icon={stepIndex > 0 ? <ArrowLeft size={22} color={colors.text} /> : <X size={22} color={colors.text} />}
           onPress={back}
           variant="ghost"
+          accessibilityLabel={stepIndex > 0 ? 'Назад' : 'Закрыть'}
         />
         <Text style={[typo.h3, { color: colors.text }]}>{STEP_TITLES[step]}</Text>
         <View style={{ width: 44 }} />
@@ -165,6 +243,13 @@ export default function NewAppointmentScreen() {
           <FlatList
             data={searchClients(search)}
             keyExtractor={(item) => item.id}
+            ListEmptyComponent={
+              <EmptyState
+                icon={<Scissors size={48} color={colors.textTertiary} />}
+                title={search ? 'Никого не нашли' : 'Нет клиентов'}
+                subtitle={search ? 'Попробуйте другой запрос' : 'Сначала добавьте клиента в разделе «Клиенты»'}
+              />
+            }
             renderItem={({ item }) => (
               <ClientRow
                 client={item}
@@ -205,34 +290,101 @@ export default function NewAppointmentScreen() {
 
       {step === 'time' && (
         <Animated.View entering={FadeInRight.duration(300)} style={{ flex: 1 }}>
+          {/* Date strip */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.dateStrip}
+          >
+            {dateStrip.map((d) => {
+              const key = toDateKey(d);
+              const active = key === selectedDateKey;
+              const off = isDayOff(d);
+              return (
+                <Pressable
+                  key={key}
+                  onPress={() => {
+                    if (!off) {
+                      Haptics.selectionAsync();
+                      setSelectedDate(d);
+                      setSelectedTime(null);
+                    }
+                  }}
+                  disabled={off}
+                  accessibilityRole="button"
+                  accessibilityLabel={formatDate(d)}
+                  accessibilityState={{ selected: active, disabled: off }}
+                  style={[
+                    styles.dateChip,
+                    {
+                      backgroundColor: active
+                        ? colors.primary
+                        : off
+                          ? 'transparent'
+                          : colors.surfaceElevated,
+                      borderRadius: br.md,
+                      opacity: off ? 0.35 : 1,
+                      borderColor: off ? colors.border : 'transparent',
+                      borderWidth: off ? 1 : 0,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      typo.small,
+                      {
+                        color: active ? colors.white : colors.textSecondary,
+                        textTransform: 'uppercase',
+                      },
+                    ]}
+                  >
+                    {d.toLocaleDateString('ru-RU', { weekday: 'short' }).slice(0, 2)}
+                  </Text>
+                  <Text
+                    style={[
+                      typo.h3,
+                      { color: active ? colors.white : colors.text, marginTop: 2 },
+                    ]}
+                  >
+                    {d.getDate()}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+
+          {/* Time slots */}
           <ScrollView contentContainerStyle={styles.timeGrid}>
             {timeSlots.map((t) => {
               const taken = isSlotTaken(t);
+              const past = isSlotPast(t);
+              const disabled = taken || past;
+              const active = selectedTime === t;
               return (
                 <TouchableOpacity
                   key={t}
                   onPress={() => {
-                    if (!taken) {
+                    if (!disabled) {
+                      Haptics.selectionAsync();
                       setSelectedTime(t);
                       next();
                     }
                   }}
-                  disabled={taken}
+                  disabled={disabled}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${t}${taken ? ', занято' : past ? ', прошло' : ''}`}
+                  accessibilityState={{ selected: active, disabled }}
                   style={[
                     styles.timeSlot,
                     {
-                      backgroundColor: taken
-                        ? colors.border
-                        : selectedTime === t
-                          ? colors.primary
+                      backgroundColor: active
+                        ? colors.primary
+                        : disabled
+                          ? colors.surfaceElevated
                           : colors.surface,
-                      borderColor: taken
-                        ? colors.border
-                        : selectedTime === t
-                          ? colors.primary
-                          : colors.border,
-                      borderRadius: 10,
-                      opacity: taken ? 0.4 : 1,
+                      borderColor: active ? colors.primary : colors.border,
+                      borderRadius: 12,
+                      opacity: disabled ? 0.4 : 1,
                     },
                   ]}
                 >
@@ -240,9 +392,9 @@ export default function NewAppointmentScreen() {
                     style={[
                       typo.body,
                       {
-                        color: taken
+                        color: disabled
                           ? colors.textTertiary
-                          : selectedTime === t
+                          : active
                             ? colors.white
                             : colors.text,
                       },
@@ -262,7 +414,7 @@ export default function NewAppointmentScreen() {
           <GlassCard style={styles.confirmCard}>
             <Row label="Клиент" value={selectedClient?.name ?? ''} colors={colors} typo={typo} />
             <Row label="Услуга" value={selectedService?.name ?? ''} colors={colors} typo={typo} />
-            <Row label="Дата" value={toDateKey(selectedDate)} colors={colors} typo={typo} />
+            <Row label="Дата" value={formatDate(selectedDate)} colors={colors} typo={typo} />
             <Row
               label="Время"
               value={selectedTime ? `${selectedTime} — ${addMinutes(selectedTime, selectedService?.duration ?? 0)}` : ''}
@@ -314,6 +466,18 @@ const styles = StyleSheet.create({
     height: 3,
     borderRadius: 2,
   },
+  dateStrip: {
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+    gap: 8,
+    flexDirection: 'row',
+  },
+  dateChip: {
+    width: 56,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   timeGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -321,9 +485,11 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   timeSlot: {
+    minWidth: 84,
     paddingVertical: 12,
-    paddingHorizontal: 20,
+    paddingHorizontal: 18,
     borderWidth: 1,
+    alignItems: 'center',
   },
   confirmWrap: {
     flex: 1,

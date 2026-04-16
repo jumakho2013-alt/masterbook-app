@@ -10,6 +10,7 @@ import { useFinanceStore } from '@/src/stores/useFinanceStore';
 import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useClientStore } from '@/src/stores/useClientStore';
 import { useServiceStore } from '@/src/stores/useServiceStore';
+import { useTabBarOffset } from '@/src/hooks/useTabBarOffset';
 import { formatCurrency } from '@/src/utils/currency';
 import { toDateKey, formatDate } from '@/src/utils/date';
 
@@ -57,6 +58,7 @@ const periodLabels: Record<Period, string> = {
 
 export default function FinancesScreen() {
   const { colors, typography: typo, spacing: sp, borderRadius: br } = useTheme();
+  const bottomOffset = useTabBarOffset(0);
   const [period, setPeriod] = useState<Period>('month');
   const [refreshing, setRefreshing] = useState(false);
   const allEntries = useFinanceStore((s) => s.entries);
@@ -140,7 +142,7 @@ export default function FinancesScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: bottomOffset + 24 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />

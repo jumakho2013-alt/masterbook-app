@@ -1,14 +1,15 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, Platform, TouchableOpacity, RefreshControl, Pressable, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, Pressable, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Plus, Users, Moon, ArrowUpDown } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
-import { SearchBar, EmptyState, Divider, GlassCard, Badge } from '@/src/components/ui';
+import { SearchBar, EmptyState, Divider, GlassCard, Badge, LiquidGlass } from '@/src/components/ui';
 import { ClientRow } from '@/src/components/ClientRow';
 import { useClientStore } from '@/src/stores/useClientStore';
 import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
+import { useTabBarOffset } from '@/src/hooks/useTabBarOffset';
 
 const SLEEPING_DAYS = 30;
 
@@ -24,6 +25,7 @@ const SORT_LABELS: Record<SortBy, string> = {
 export default function ClientsScreen() {
   const router = useRouter();
   const { colors, typography: typo, spacing: sp, borderRadius: br } = useTheme();
+  const fabOffset = useTabBarOffset(16);
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<SortBy>('recent');
   const [refreshing, setRefreshing] = useState(false);
@@ -148,7 +150,7 @@ export default function ClientsScreen() {
       <FlatList
         data={clients}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingBottom: 90 }}
+        contentContainerStyle={{ paddingBottom: fabOffset + 72 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -209,10 +211,20 @@ export default function ClientsScreen() {
 
       <TouchableOpacity
         onPress={() => router.push('/client/new')}
-        activeOpacity={0.8}
-        style={[styles.fab, { backgroundColor: colors.primary }]}
+        activeOpacity={0.85}
+        accessibilityRole="button"
+        accessibilityLabel="Новый клиент"
+        style={[styles.fabWrap, { bottom: fabOffset }]}
       >
-        <Plus size={28} color={colors.white} />
+        <LiquidGlass
+          variant="floating"
+          tint={colors.primary}
+          tintStrength={0.72}
+          radius={20}
+          style={styles.fab}
+        >
+          <Plus size={28} color={colors.white} />
+        </LiquidGlass>
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -255,19 +267,19 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderBottomWidth: 0.5,
   },
-  fab: {
+  fabWrap: {
     position: 'absolute',
     right: 20,
-    bottom: Platform.OS === 'ios' ? 90 : 80,
+    shadowColor: '#7C5DFA',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  fab: {
     width: 56,
     height: 56,
-    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 6,
   },
 });

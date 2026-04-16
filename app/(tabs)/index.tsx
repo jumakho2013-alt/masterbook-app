@@ -1,15 +1,16 @@
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Platform, Pressable, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Pressable, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Plus, CalendarCheck, TrendingUp, Calendar } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
-import { EmptyState, GlassCard, CountUp } from '@/src/components/ui';
+import { EmptyState, GlassCard, CountUp, LiquidGlass } from '@/src/components/ui';
 import { AppointmentCard } from '@/src/components/AppointmentCard';
 import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useClientStore } from '@/src/stores/useClientStore';
 import { useServiceStore } from '@/src/stores/useServiceStore';
+import { useTabBarOffset } from '@/src/hooks/useTabBarOffset';
 import { formatDateFull, toDateKey } from '@/src/utils/date';
 import { formatCurrency } from '@/src/utils/currency';
 
@@ -29,6 +30,7 @@ function timeToMinutes(time: string): number {
 export default function TodayScreen() {
   const router = useRouter();
   const { colors, typography: typo, spacing: sp, borderRadius: br } = useTheme();
+  const fabOffset = useTabBarOffset(16);
   const [filter, setFilter] = useState<Filter>('upcoming');
   const [refreshing, setRefreshing] = useState(false);
   const [nowMinutes, setNowMinutes] = useState(() => {
@@ -112,7 +114,7 @@ export default function TodayScreen() {
       <FlatList
         data={todayAppointments}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 90 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: fabOffset + 72 }}
         ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />
@@ -147,26 +149,36 @@ export default function TodayScreen() {
               </GlassCard>
             </Animated.View>
 
-            {/* "Сейчас" indicator */}
+            {/* "Сейчас" indicator — branded liquid glass with primary tint */}
             {currentAppointment && currentClient && currentService && (
               <Animated.View entering={FadeInDown.delay(50)} style={{ marginBottom: sp.md }}>
-                <Pressable onPress={() => router.push(`/appointment/${currentAppointment.id}`)}>
-                  <View style={[styles.nowCard, { backgroundColor: colors.primary, borderRadius: br.lg }]}>
+                <Pressable
+                  onPress={() => router.push(`/appointment/${currentAppointment.id}`)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Сейчас идёт: ${currentClient.name}, ${currentService.name}`}
+                >
+                  <LiquidGlass
+                    variant="floating"
+                    tint={colors.primary}
+                    tintStrength={0.7}
+                    radius={br.lg}
+                    style={styles.nowCard}
+                  >
                     <View style={styles.pulseDot}>
                       <View style={[styles.pulseDotInner, { backgroundColor: colors.white }]} />
                     </View>
                     <View style={{ flex: 1, marginLeft: 12 }}>
-                      <Text style={[typo.small, { color: colors.white, opacity: 0.8, textTransform: 'uppercase', letterSpacing: 0.5 }]}>
+                      <Text style={[typo.small, { color: colors.white, opacity: 0.85, textTransform: 'uppercase', letterSpacing: 0.5 }]}>
                         Сейчас идёт
                       </Text>
                       <Text style={[typo.bodyBold, { color: colors.white, marginTop: 2 }]}>
                         {currentClient.name} — {currentService.name}
                       </Text>
-                      <Text style={[typo.caption, { color: colors.white, opacity: 0.8 }]}>
+                      <Text style={[typo.caption, { color: colors.white, opacity: 0.85 }]}>
                         {currentAppointment.startTime} — {currentAppointment.endTime}
                       </Text>
                     </View>
-                  </View>
+                  </LiquidGlass>
                 </Pressable>
               </Animated.View>
             )}
@@ -228,10 +240,20 @@ export default function TodayScreen() {
 
       <TouchableOpacity
         onPress={() => router.push('/appointment/new')}
-        activeOpacity={0.8}
-        style={[styles.fab, { backgroundColor: colors.primary }]}
+        activeOpacity={0.85}
+        accessibilityRole="button"
+        accessibilityLabel="Новая запись"
+        style={[styles.fabWrap, { bottom: fabOffset }]}
       >
-        <Plus size={28} color={colors.white} />
+        <LiquidGlass
+          variant="floating"
+          tint={colors.primary}
+          tintStrength={0.72}
+          radius={20}
+          style={styles.fab}
+        >
+          <Plus size={28} color={colors.white} />
+        </LiquidGlass>
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -267,19 +289,21 @@ const styles = StyleSheet.create({
   },
   filterRow: { flexDirection: 'row', gap: 8 },
   filterChip: { paddingHorizontal: 14, paddingVertical: 8, alignItems: 'center', justifyContent: 'center' },
-  fab: {
+  fabWrap: {
     position: 'absolute',
     right: 20,
-    bottom: Platform.OS === 'ios' ? 90 : 80,
+    // Coloured drop-shadow matching the primary tint — gives the liquid
+    // glass surface a branded glow that anchors it to the theme.
+    shadowColor: '#7C5DFA',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  fab: {
     width: 56,
     height: 56,
-    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 6,
   },
 });

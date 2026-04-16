@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Appointment, AppointmentStatus } from '@/src/types';
 import { generateId } from '@/src/utils/helpers';
 import { toDateKey } from '@/src/utils/date';
+import { cancelNotification } from '@/src/lib/notifications';
 
 interface AppointmentState {
   appointments: Appointment[];
@@ -15,6 +16,13 @@ interface AppointmentState {
   getTodayAppointments: () => Appointment[];
   getByDate: (date: string) => Appointment[];
   getByClient: (clientId: string) => Appointment[];
+}
+
+function cancelReminderSafely(id?: string) {
+  if (!id) return;
+  // fire-and-forget; silently swallow errors — the notification simply
+  // won't be found if already delivered or the system denied permission.
+  cancelNotification(id).catch(() => {});
 }
 
 export const useAppointmentStore = create<AppointmentState>()(
@@ -35,17 +43,34 @@ export const useAppointmentStore = create<AppointmentState>()(
           ),
         })),
 
-      setStatus: (id, status) =>
+      setStatus: (id, status) => {
+        const prev = get().appointments.find((a) => a.id === id);
+        // When the appointment leaves the "scheduled" state the pending
+        // reminder becomes noise — cancel it.
+        if (prev && status !== 'scheduled') {
+          cancelReminderSafely(prev.reminderNotificationId);
+        }
         set((s) => ({
           appointments: s.appointments.map((a) =>
-            a.id === id ? { ...a, status } : a,
+            a.id === id
+              ? {
+                  ...a,
+                  status,
+                  reminderNotificationId:
+                    status === 'scheduled' ? a.reminderNotificationId : undefined,
+                }
+              : a,
           ),
-        })),
+        }));
+      },
 
-      deleteAppointment: (id) =>
+      deleteAppointment: (id) => {
+        const prev = get().appointments.find((a) => a.id === id);
+        cancelReminderSafely(prev?.reminderNotificationId);
         set((s) => ({
           appointments: s.appointments.filter((a) => a.id !== id),
-        })),
+        }));
+      },
 
       getTodayAppointments: () => {
         const todayKey = toDateKey(new Date());

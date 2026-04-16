@@ -7,6 +7,7 @@ import { useTheme } from '@/src/theme';
 import { Button, Input, IconButton, CustomAlert } from '@/src/components/ui';
 import { useAlert } from '@/src/hooks/useAlert';
 import { useClientStore } from '@/src/stores/useClientStore';
+import { clientSchema } from '@/src/lib/validation';
 
 export default function NewClientScreen() {
   const router = useRouter();
@@ -24,12 +25,21 @@ export default function NewClientScreen() {
 
   const onSubmit = () => {
     Keyboard.dismiss();
-    const newErrors: { name?: string; phone?: string } = {};
-    if (!name.trim()) newErrors.name = 'Введите имя';
-    if (!phone.trim() || phone.trim().length < 5) newErrors.phone = 'Введите телефон';
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
+    const parsed = clientSchema.safeParse({
+      name,
+      phone,
+      notes,
+      address: address.trim() || undefined,
+    });
+    if (!parsed.success) {
+      const fieldErrors: { name?: string; phone?: string } = {};
+      for (const issue of parsed.error.errors) {
+        const field = issue.path[0];
+        if (field === 'name' || field === 'phone') {
+          fieldErrors[field] = issue.message;
+        }
+      }
+      setErrors(fieldErrors);
       return;
     }
 
@@ -39,10 +49,10 @@ export default function NewClientScreen() {
     }
 
     addClient({
-      name: name.trim(),
-      phone: phone.trim(),
-      notes: notes.trim(),
-      address: address.trim() || undefined,
+      name: parsed.data.name,
+      phone: parsed.data.phone,
+      notes: parsed.data.notes ?? '',
+      address: parsed.data.address,
       tags: ['new'],
     });
     router.back();
