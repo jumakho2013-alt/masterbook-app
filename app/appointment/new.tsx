@@ -16,6 +16,13 @@ import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { toDateKey, formatDate } from '@/src/utils/date';
 import { formatCurrency } from '@/src/utils/currency';
+import {
+  addMinutes,
+  generateTimeSlots,
+  nowMinutesOfDay,
+  timeRangesOverlap,
+  timeToMinutes,
+} from '@/src/utils/time';
 import { scheduleAppointmentReminder } from '@/src/lib/notifications';
 import { appointmentSchema } from '@/src/lib/validation';
 import type { Client, Service } from '@/src/types';
@@ -31,39 +38,6 @@ const STEP_TITLES: Record<Step, string> = {
 };
 
 const DATE_RANGE_DAYS = 30;
-
-function generateTimeSlots(start: string, end: string, stepMin: number): string[] {
-  const slots: string[] = [];
-  const [sh, sm] = start.split(':').map(Number);
-  const [eh, em] = end.split(':').map(Number);
-  let current = sh * 60 + sm;
-  const endMin = eh * 60 + em;
-  while (current < endMin) {
-    const h = Math.floor(current / 60);
-    const m = current % 60;
-    slots.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
-    current += stepMin;
-  }
-  return slots;
-}
-
-function timeToMinutes(time: string): number {
-  const [h, m] = time.split(':').map(Number);
-  return h * 60 + m;
-}
-
-function addMinutes(time: string, minutes: number): string {
-  const [h, m] = time.split(':').map(Number);
-  const total = h * 60 + m + minutes;
-  const nh = Math.floor(total / 60);
-  const nm = total % 60;
-  return `${String(nh).padStart(2, '0')}:${String(nm).padStart(2, '0')}`;
-}
-
-function nowHourMinutes(): number {
-  const d = new Date();
-  return d.getHours() * 60 + d.getMinutes();
-}
 
 export default function NewAppointmentScreen() {
   const router = useRouter();
@@ -125,16 +99,21 @@ export default function NewAppointmentScreen() {
     [allAppointments, selectedDateKey],
   );
 
-  const nowMin = nowHourMinutes();
+  const nowMin = nowMinutesOfDay();
 
   const isSlotTaken = (time: string): boolean => {
-    const slotStart = timeToMinutes(time);
-    const slotEnd = slotStart + (selectedService?.duration ?? 30);
-    return existingAppts.some((a) => {
-      const aStart = timeToMinutes(a.startTime) - bufferMinutes;
-      const aEnd = timeToMinutes(a.endTime) + bufferMinutes;
-      return slotStart < aEnd && slotEnd > aStart;
-    });
+    const duration = selectedService?.duration ?? 30;
+    const slotEnd = addMinutes(time, duration);
+    return existingAppts.some((a) =>
+      // Буфер расширяет занятые интервалы в обе стороны — между записями
+      // остаётся «воздух», чтобы мастер успел перехватить клиента.
+      timeRangesOverlap(
+        time,
+        slotEnd,
+        addMinutes(a.startTime, -bufferMinutes),
+        addMinutes(a.endTime, bufferMinutes),
+      ),
+    );
   };
 
   const isSlotPast = (time: string): boolean =>
@@ -412,16 +391,14 @@ export default function NewAppointmentScreen() {
       {step === 'confirm' && (
         <Animated.View entering={FadeInRight.duration(300)} style={styles.confirmWrap}>
           <GlassCard style={styles.confirmCard}>
-            <Row label="Клиент" value={selectedClient?.name ?? ''} colors={colors} typo={typo} />
-            <Row label="Услуга" value={selectedService?.name ?? ''} colors={colors} typo={typo} />
-            <Row label="Дата" value={formatDate(selectedDate)} colors={colors} typo={typo} />
+            <Row label="Клиент" value={selectedClient?.name ?? ''} />
+            <Row label="Услуга" value={selectedService?.name ?? ''} />
+            <Row label="Дата" value={formatDate(selectedDate)} />
             <Row
               label="Время"
               value={selectedTime ? `${selectedTime} — ${addMinutes(selectedTime, selectedService?.duration ?? 0)}` : ''}
-              colors={colors}
-              typo={typo}
             />
-            <Row label="Стоимость" value={formatCurrency(selectedService?.price ?? 0)} colors={colors} typo={typo} />
+            <Row label="Стоимость" value={formatCurrency(selectedService?.price ?? 0)} />
           </GlassCard>
 
           <Button
@@ -437,7 +414,8 @@ export default function NewAppointmentScreen() {
   );
 }
 
-function Row({ label, value, colors, typo }: { label: string; value: string; colors: any; typo: any }) {
+function Row({ label, value }: { label: string; value: string }) {
+  const { colors, typography: typo } = useTheme();
   return (
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 }}>
       <Text style={[typo.body, { color: colors.textSecondary }]}>{label}</Text>

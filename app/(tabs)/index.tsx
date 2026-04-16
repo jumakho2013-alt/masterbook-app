@@ -11,8 +11,10 @@ import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useClientStore } from '@/src/stores/useClientStore';
 import { useServiceStore } from '@/src/stores/useServiceStore';
 import { useTabBarOffset } from '@/src/hooks/useTabBarOffset';
+import { useReduceMotion } from '@/src/hooks/useReduceMotion';
 import { formatDateFull, toDateKey } from '@/src/utils/date';
 import { formatCurrency } from '@/src/utils/currency';
+import { nowMinutesOfDay, timeToMinutes } from '@/src/utils/time';
 
 type Filter = 'upcoming' | 'completed' | 'all';
 
@@ -22,21 +24,14 @@ const FILTER_LABELS: Record<Filter, string> = {
   all: 'Все',
 };
 
-function timeToMinutes(time: string): number {
-  const [h, m] = time.split(':').map(Number);
-  return h * 60 + m;
-}
-
 export default function TodayScreen() {
   const router = useRouter();
   const { colors, typography: typo, spacing: sp, borderRadius: br } = useTheme();
   const fabOffset = useTabBarOffset(16);
+  const reduceMotion = useReduceMotion();
   const [filter, setFilter] = useState<Filter>('upcoming');
   const [refreshing, setRefreshing] = useState(false);
-  const [nowMinutes, setNowMinutes] = useState(() => {
-    const now = new Date();
-    return now.getHours() * 60 + now.getMinutes();
-  });
+  const [nowMinutes, setNowMinutes] = useState(() => nowMinutesOfDay());
 
   const appointments = useAppointmentStore((s) => s.appointments);
   const clients = useClientStore((s) => s.clients);
@@ -44,11 +39,10 @@ export default function TodayScreen() {
 
   const todayKey = toDateKey(new Date());
 
-  // Update "now" every minute
+  // Update "now" every minute — двигает индикатор «сейчас идёт».
   useEffect(() => {
     const interval = setInterval(() => {
-      const now = new Date();
-      setNowMinutes(now.getHours() * 60 + now.getMinutes());
+      setNowMinutes(nowMinutesOfDay());
     }, 60 * 1000);
     return () => clearInterval(interval);
   }, []);
@@ -122,7 +116,7 @@ export default function TodayScreen() {
         ListHeaderComponent={
           <>
             {/* Forecast cards */}
-            <Animated.View entering={FadeInDown.duration(400)} style={[styles.forecastRow, { marginBottom: sp.md }]}>
+            <Animated.View entering={reduceMotion ? undefined : FadeInDown.duration(400)} style={[styles.forecastRow, { marginBottom: sp.md }]}>
               <GlassCard style={styles.forecastCard}>
                 <TrendingUp size={16} color={colors.success} />
                 <Text style={[typo.small, { color: colors.textSecondary, marginTop: 4 }]}>Сегодня</Text>
@@ -151,7 +145,7 @@ export default function TodayScreen() {
 
             {/* "Сейчас" indicator — branded liquid glass with primary tint */}
             {currentAppointment && currentClient && currentService && (
-              <Animated.View entering={FadeInDown.delay(50)} style={{ marginBottom: sp.md }}>
+              <Animated.View entering={reduceMotion ? undefined : FadeInDown.delay(50)} style={{ marginBottom: sp.md }}>
                 <Pressable
                   onPress={() => router.push(`/appointment/${currentAppointment.id}`)}
                   accessibilityRole="button"
@@ -191,6 +185,10 @@ export default function TodayScreen() {
                   <Pressable
                     key={key}
                     onPress={() => setFilter(key)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Фильтр: ${FILTER_LABELS[key]}`}
+                    accessibilityState={{ selected: active }}
+                    hitSlop={{ top: 6, bottom: 6 }}
                     style={[
                       styles.filterChip,
                       {
@@ -227,7 +225,7 @@ export default function TodayScreen() {
           />
         }
         renderItem={({ item, index }) => (
-          <Animated.View entering={FadeInDown.delay(100 + index * 50).duration(400)}>
+          <Animated.View entering={reduceMotion ? undefined : FadeInDown.delay(100 + index * 50).duration(400)}>
             <AppointmentCard
               appointment={item}
               client={getClient(item.clientId)}

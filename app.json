@@ -13,7 +13,9 @@
       "resizeMode": "contain",
       "backgroundColor": "#13131A"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.masterbook.app",
@@ -22,20 +24,27 @@
       "associatedDomains": [],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "UIBackgroundModes": ["remote-notification"],
+        "UIBackgroundModes": [
+          "remote-notification"
+        ],
         "NSPhotoLibraryUsageDescription": "Приложение использует доступ к фото для добавления фотографий работ клиентов",
         "NSCameraUsageDescription": "Приложение использует камеру для съёмки фотографий работ",
         "NSUserNotificationsUsageDescription": "Напоминания о предстоящих записях клиентов",
         "NSFaceIDUsageDescription": "Face ID защищает данные клиентов в приложении",
         "UIUserInterfaceStyle": "Automatic",
-        "CFBundleLocalizations": ["ru", "en"],
+        "CFBundleLocalizations": [
+          "ru",
+          "en"
+        ],
         "CFBundleDevelopmentRegion": "ru"
       },
       "privacyManifests": {
         "NSPrivacyAccessedAPITypes": [
           {
             "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
-            "NSPrivacyAccessedAPITypeReasons": ["CA92.1"]
+            "NSPrivacyAccessedAPITypeReasons": [
+              "CA92.1"
+            ]
           }
         ],
         "NSPrivacyCollectedDataTypes": [],
@@ -99,7 +108,8 @@
         {
           "faceIDPermission": "Приложение использует Face ID для защиты данных клиентов"
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true

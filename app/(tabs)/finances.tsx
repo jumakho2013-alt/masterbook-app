@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { TrendingUp, TrendingDown, Wallet, ArrowUp, ArrowDown, Trophy, Clock, Scissors } from 'lucide-react-native';
@@ -135,20 +135,13 @@ export default function FinancesScreen() {
     setTimeout(() => setRefreshing(false), 600);
   }, []);
 
-  return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <View style={styles.header}>
-        <Text style={[typo.h2, { color: colors.text }]}>Финансы</Text>
-      </View>
-
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: bottomOffset + 24 }}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />
-        }
-      >
-        {/* Period tabs */}
+  // Весь «верхний» layout (табы периода, summary, chart, top-clients,
+  // популярная услуга) — фиксирован и не зависит от количества транзакций.
+  // Выносим его в ListHeaderComponent и отдаём FlatList виртуализировать
+  // именно транзакции — их может быть сотни после пары месяцев работы.
+  const listHeader = (
+    <>
+      {/* Period tabs */}
         <View style={styles.periodRow}>
           {(['day', 'week', 'month'] as Period[]).map((p) => (
             <TouchableOpacity
@@ -305,38 +298,51 @@ export default function FinancesScreen() {
           </View>
         )}
 
-        {/* Transactions */}
-        <View style={{ paddingHorizontal: 16 }}>
-          {entries.length > 0 && (
-            <Text style={[typo.bodyBold, { color: colors.text, marginTop: sp.sm, marginBottom: sp.sm }]}>
-              Транзакции
-            </Text>
-          )}
-          {entries.map((item, i) => (
-            <View key={item.id}>
-              {i > 0 && <Divider style={{ marginVertical: 0 }} />}
-              <View style={styles.txRow}>
-                <View style={styles.txInfo}>
-                  <Text style={[typo.body, { color: colors.text }]} numberOfLines={1}>
-                    {item.description}
-                  </Text>
-                  <Text style={[typo.caption, { color: colors.textSecondary }]}>
-                    {formatDate(item.date)}
-                  </Text>
-                </View>
-                <Text
-                  style={[
-                    typo.bodyBold,
-                    { color: item.type === 'income' ? colors.success : colors.danger },
-                  ]}
-                >
-                  {item.type === 'income' ? '+' : '-'}{formatCurrency(item.amount)}
-                </Text>
-              </View>
+      {entries.length > 0 && (
+        <Text style={[typo.bodyBold, { color: colors.text, marginTop: sp.sm, marginBottom: sp.sm, paddingHorizontal: 16 }]}>
+          Транзакции
+        </Text>
+      )}
+    </>
+  );
+
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <View style={styles.header}>
+        <Text style={[typo.h2, { color: colors.text }]}>Финансы</Text>
+      </View>
+
+      <FlatList
+        data={entries}
+        keyExtractor={(item) => item.id}
+        ListHeaderComponent={listHeader}
+        ItemSeparatorComponent={() => <Divider style={{ marginVertical: 0 }} />}
+        contentContainerStyle={{ paddingBottom: bottomOffset + 24 }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />
+        }
+        renderItem={({ item }) => (
+          <View style={[styles.txRow, { paddingHorizontal: 16 }]}>
+            <View style={styles.txInfo}>
+              <Text style={[typo.body, { color: colors.text }]} numberOfLines={1}>
+                {item.description}
+              </Text>
+              <Text style={[typo.caption, { color: colors.textSecondary }]}>
+                {formatDate(item.date)}
+              </Text>
             </View>
-          ))}
-        </View>
-      </ScrollView>
+            <Text
+              style={[
+                typo.bodyBold,
+                { color: item.type === 'income' ? colors.success : colors.danger },
+              ]}
+            >
+              {item.type === 'income' ? '+' : '-'}{formatCurrency(item.amount)}
+            </Text>
+          </View>
+        )}
+      />
     </SafeAreaView>
   );
 }

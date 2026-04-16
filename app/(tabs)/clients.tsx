@@ -125,6 +125,12 @@ export default function ClientsScreen() {
             <Pressable
               key={key}
               onPress={() => setSortBy(key)}
+              accessibilityRole="button"
+              accessibilityLabel={`Сортировка: ${SORT_LABELS[key]}`}
+              accessibilityState={{ selected: active }}
+              // Chip визуально тонкий (32pt), но hitSlop расширяет touch-target
+              // до 44pt по вертикали — iOS Human Interface Guidelines minimum.
+              hitSlop={{ top: 6, bottom: 6, left: 0, right: 0 }}
               style={[
                 styles.sortChip,
                 {

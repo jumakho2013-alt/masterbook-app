@@ -28,6 +28,9 @@
       },
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_DEV_PREVIEW": "0"
       }
     },
     "production": {
@@ -43,7 +46,8 @@
         "autoIncrement": "versionCode"
       },
       "env": {
-        "NODE_ENV": "production"
+        "NODE_ENV": "production",
+        "EXPO_PUBLIC_DEV_PREVIEW": "0"
       }
     }
   },

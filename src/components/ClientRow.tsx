@@ -29,11 +29,23 @@ export const ClientRow = React.memo(function ClientRow({ client, lastVisitDate, 
     transform: [{ scale: scale.value }],
   }));
 
+  // Композитный a11y label — VoiceOver прочитает всё как одну кнопку.
+  const tagLabel = client.tags
+    .map((t) => tagLabels[t]?.label)
+    .filter(Boolean)
+    .join(', ');
+  const a11yLabel = [client.name, tagLabel, lastVisitDate && `последний визит ${lastVisitDate}`]
+    .filter(Boolean)
+    .join(', ');
+
   return (
     <AnimatedPressable
       onPress={onPress}
       onPressIn={() => { scale.value = withSpring(0.98, { damping: 15, stiffness: 400 }); }}
       onPressOut={() => { scale.value = withSpring(1, { damping: 15, stiffness: 400 }); }}
+      accessibilityRole="button"
+      accessibilityLabel={a11yLabel}
+      accessibilityHint="Открыть профиль клиента"
       style={[animStyle, styles.container]}
     >
       <Avatar name={client.name} photoUri={client.photoUri} />
