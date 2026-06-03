@@ -2,6 +2,7 @@ import React from 'react';
 import { Text, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { useTheme } from '@/src/theme';
+import { useReduceMotion } from '@/src/hooks/useReduceMotion';
 import * as LucideIcons from 'lucide-react-native';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -15,6 +16,7 @@ interface ProfessionCardProps {
 
 export function ProfessionCard({ name, icon, color, onPress }: ProfessionCardProps) {
   const { colors, typography: typo, spacing: sp, borderRadius: br, shadows: sh } = useTheme();
+  const reduceMotion = useReduceMotion();
   const scale = useSharedValue(1);
 
   const animStyle = useAnimatedStyle(() => ({
@@ -26,8 +28,16 @@ export function ProfessionCard({ name, icon, color, onPress }: ProfessionCardPro
   return (
     <AnimatedPressable
       onPress={onPress}
-      onPressIn={() => { scale.value = withSpring(0.95, { damping: 15, stiffness: 400 }); }}
-      onPressOut={() => { scale.value = withSpring(1, { damping: 15, stiffness: 400 }); }}
+      accessibilityRole="button"
+      accessibilityLabel={name}
+      onPressIn={() => {
+        if (reduceMotion) return;
+        scale.value = withSpring(0.95, { damping: 15, stiffness: 400 });
+      }}
+      onPressOut={() => {
+        if (reduceMotion) return;
+        scale.value = withSpring(1, { damping: 15, stiffness: 400 });
+      }}
       style={[
         animStyle,
         styles.card,

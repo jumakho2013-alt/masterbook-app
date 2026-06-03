@@ -36,9 +36,11 @@ export const typography = {
     letterSpacing: 0.1,
   },
   small: {
-    fontSize: 11,
+    // 12pt — комфортный минимум для low-vision. iOS HIG позволяет 11pt
+    // для footnote, но 12pt сильно лучше читается на компактных iPhone SE.
+    fontSize: 12,
     fontFamily: 'Manrope_500Medium',
-    lineHeight: 14,
+    lineHeight: 16,
     letterSpacing: 0.2,
   },
 } as const;

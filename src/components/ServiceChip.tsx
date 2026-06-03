@@ -2,6 +2,7 @@ import React from 'react';
 import { Text, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { useTheme } from '@/src/theme';
+import { useReduceMotion } from '@/src/hooks/useReduceMotion';
 import type { Service } from '@/src/types';
 import { formatCurrency } from '@/src/utils/currency';
 
@@ -15,6 +16,7 @@ interface ServiceChipProps {
 
 export function ServiceChip({ service, selected = false, onPress }: ServiceChipProps) {
   const { colors, typography: typo, borderRadius: br } = useTheme();
+  const reduceMotion = useReduceMotion();
   const scale = useSharedValue(1);
 
   const animStyle = useAnimatedStyle(() => ({
@@ -24,8 +26,17 @@ export function ServiceChip({ service, selected = false, onPress }: ServiceChipP
   return (
     <AnimatedPressable
       onPress={onPress}
-      onPressIn={() => { scale.value = withSpring(0.96, { damping: 15, stiffness: 400 }); }}
-      onPressOut={() => { scale.value = withSpring(1, { damping: 15, stiffness: 400 }); }}
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      accessibilityLabel={`${service.name}, ${formatCurrency(service.price)}, ${service.duration} минут`}
+      onPressIn={() => {
+        if (reduceMotion) return;
+        scale.value = withSpring(0.96, { damping: 15, stiffness: 400 });
+      }}
+      onPressOut={() => {
+        if (reduceMotion) return;
+        scale.value = withSpring(1, { damping: 15, stiffness: 400 });
+      }}
       style={[
         animStyle,
         styles.chip,

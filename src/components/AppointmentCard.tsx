@@ -4,6 +4,7 @@ import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-na
 import { Clock, ChevronRight } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
 import { Avatar } from '@/src/components/ui';
+import { useReduceMotion } from '@/src/hooks/useReduceMotion';
 import type { Appointment, Client, Service } from '@/src/types';
 import { formatTimeRange } from '@/src/utils/date';
 import { formatCurrency } from '@/src/utils/currency';
@@ -24,6 +25,7 @@ export const AppointmentCard = React.memo(function AppointmentCard({
   onPress,
 }: AppointmentCardProps) {
   const { colors, typography: typo, spacing: sp, borderRadius: br, shadows: sh } = useTheme();
+  const reduceMotion = useReduceMotion();
   const scale = useSharedValue(1);
 
   const animStyle = useAnimatedStyle(() => ({
@@ -42,8 +44,14 @@ export const AppointmentCard = React.memo(function AppointmentCard({
   return (
     <AnimatedPressable
       onPress={onPress}
-      onPressIn={() => { scale.value = withSpring(0.97, { damping: 15, stiffness: 400 }); }}
-      onPressOut={() => { scale.value = withSpring(1, { damping: 15, stiffness: 400 }); }}
+      onPressIn={() => {
+        if (reduceMotion) return;
+        scale.value = withSpring(0.97, { damping: 15, stiffness: 400 });
+      }}
+      onPressOut={() => {
+        if (reduceMotion) return;
+        scale.value = withSpring(1, { damping: 15, stiffness: 400 });
+      }}
       accessibilityRole="button"
       accessibilityLabel={a11yLabel}
       accessibilityHint="Открыть детали записи"

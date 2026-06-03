@@ -4,6 +4,7 @@ import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-na
 import { ChevronRight } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
 import { Avatar, Badge } from '@/src/components/ui';
+import { useReduceMotion } from '@/src/hooks/useReduceMotion';
 import type { Client } from '@/src/types';
 import { daysSince } from '@/src/utils/date';
 
@@ -23,6 +24,7 @@ interface ClientRowProps {
 
 export const ClientRow = React.memo(function ClientRow({ client, lastVisitDate, onPress }: ClientRowProps) {
   const { colors, typography: typo, spacing: sp } = useTheme();
+  const reduceMotion = useReduceMotion();
   const scale = useSharedValue(1);
 
   const animStyle = useAnimatedStyle(() => ({
@@ -41,8 +43,14 @@ export const ClientRow = React.memo(function ClientRow({ client, lastVisitDate, 
   return (
     <AnimatedPressable
       onPress={onPress}
-      onPressIn={() => { scale.value = withSpring(0.98, { damping: 15, stiffness: 400 }); }}
-      onPressOut={() => { scale.value = withSpring(1, { damping: 15, stiffness: 400 }); }}
+      onPressIn={() => {
+        if (reduceMotion) return;
+        scale.value = withSpring(0.98, { damping: 15, stiffness: 400 });
+      }}
+      onPressOut={() => {
+        if (reduceMotion) return;
+        scale.value = withSpring(1, { damping: 15, stiffness: 400 });
+      }}
       accessibilityRole="button"
       accessibilityLabel={a11yLabel}
       accessibilityHint="Открыть профиль клиента"
