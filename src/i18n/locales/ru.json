@@ -48,7 +48,17 @@
     "title": "Клиенты",
     "addFirst": "Добавьте первого клиента",
     "noneFound": "Никого не нашли",
-    "searchPlaceholder": "Имя или телефон..."
+    "searchPlaceholder": "Имя или телефон...",
+    "emptyTitle": "Нет клиентов",
+    "sleepingTitle": "Давно не были",
+    "andMore": "и ещё %{count}...",
+    "daysShort": "%{count} дн.",
+    "newClient": "Новый клиент",
+    "sortName": "По имени",
+    "sortRecent": "Новые",
+    "sortVisit": "Визит",
+    "sortDebt": "Долг",
+    "sortA11y": "Сортировка: %{label}"
   },
   "finances": {
     "title": "Финансы",

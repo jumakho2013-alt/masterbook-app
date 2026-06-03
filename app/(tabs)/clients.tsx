@@ -14,16 +14,18 @@ import { useTabBarOffset } from '@/src/hooks/useTabBarOffset';
 import { findSleepingClients } from '@/src/lib/sleepingClients';
 import { toDateKey } from '@/src/utils/date';
 import { useProfessionPack } from '@/src/hooks/useProfessionPack';
+import { useT } from '@/src/hooks/useT';
 
 const SLEEPING_DAYS = 45;
 
 type SortBy = 'name' | 'recent' | 'lastVisit' | 'debt';
 
-const SORT_LABELS: Record<SortBy, string> = {
-  name: 'По имени',
-  recent: 'Новые',
-  lastVisit: 'Визит',
-  debt: 'Долг',
+// i18n-ключи лейблов сортировки (резолвятся в рендере через useT).
+const SORT_KEYS: Record<SortBy, string> = {
+  name: 'clients.sortName',
+  recent: 'clients.sortRecent',
+  lastVisit: 'clients.sortVisit',
+  debt: 'clients.sortDebt',
 };
 
 function ClientsScreen() {
@@ -37,6 +39,7 @@ function ClientsScreen() {
   const allAppointments = useAppointmentStore((s) => s.appointments);
   const services = useServiceStore((s) => s.services);
   const { t, pack } = useProfessionPack();
+  const tr = useT();
 
   // Last visit per client
   const lastVisitMap = useMemo(() => {
@@ -125,7 +128,7 @@ function ClientsScreen() {
       </View>
 
       <View style={{ paddingHorizontal: 16, marginBottom: 10 }}>
-        <SearchBar value={search} onChangeText={setSearch} placeholder="Имя или телефон..." />
+        <SearchBar value={search} onChangeText={setSearch} placeholder={tr('clients.searchPlaceholder')} />
       </View>
 
       {/* Sort chips */}
@@ -138,14 +141,14 @@ function ClientsScreen() {
           <View style={[styles.sortIcon, { backgroundColor: colors.surfaceElevated, borderRadius: br.sm }]}>
             <ArrowUpDown size={14} color={colors.textSecondary} />
           </View>
-        {(Object.keys(SORT_LABELS) as SortBy[]).map((key) => {
+        {(Object.keys(SORT_KEYS) as SortBy[]).map((key) => {
           const active = sortBy === key;
           return (
             <Pressable
               key={key}
               onPress={() => setSortBy(key)}
               accessibilityRole="button"
-              accessibilityLabel={`Сортировка: ${SORT_LABELS[key]}`}
+              accessibilityLabel={tr('clients.sortA11y', { label: tr(SORT_KEYS[key]) })}
               accessibilityState={{ selected: active }}
               // Chip визуально тонкий (32pt), но hitSlop расширяет touch-target
               // до 44pt по вертикали — iOS Human Interface Guidelines minimum.
@@ -164,7 +167,7 @@ function ClientsScreen() {
                   { color: active ? colors.white : colors.textSecondary },
                 ]}
               >
-                {SORT_LABELS[key]}
+                {tr(SORT_KEYS[key])}
               </Text>
             </Pressable>
           );
@@ -190,7 +193,7 @@ function ClientsScreen() {
               <GlassCard style={{ padding: 16 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                   <Moon size={16} color={colors.warning} />
-                  <Text style={[typo.bodyBold, { color: colors.text }]}>Давно не были</Text>
+                  <Text style={[typo.bodyBold, { color: colors.text }]}>{tr('clients.sleepingTitle')}</Text>
                   <Badge label={`${sleepingClients.length}`} color={colors.warning} />
                 </View>
                 {sleeping.slice(0, 3).map((s) => (
@@ -204,13 +207,13 @@ function ClientsScreen() {
                       {s.client.name}
                     </Text>
                     <Text style={[typo.caption, { color: colors.warning }]}>
-                      {s.daysSince} дн.
+                      {tr('clients.daysShort', { count: s.daysSince })}
                     </Text>
                   </TouchableOpacity>
                 ))}
                 {sleepingClients.length > 3 && (
                   <Text style={[typo.caption, { color: colors.textTertiary, marginTop: 8, textAlign: 'center' }]}>
-                    и ещё {sleepingClients.length - 3}...
+                    {tr('clients.andMore', { count: sleepingClients.length - 3 })}
                   </Text>
                 )}
               </GlassCard>
@@ -221,11 +224,11 @@ function ClientsScreen() {
         ListEmptyComponent={
           <EmptyState
             icon={<Users size={48} color={colors.textTertiary} />}
-            title={pack.emptyStates.clients?.title ?? 'Нет клиентов'}
+            title={pack.emptyStates.clients?.title ?? tr('clients.emptyTitle')}
             subtitle={
               search
-                ? 'Никого не нашли'
-                : pack.emptyStates.clients?.subtitle ?? 'Добавьте первого клиента'
+                ? tr('clients.noneFound')
+                : pack.emptyStates.clients?.subtitle ?? tr('clients.addFirst')
             }
           />
         }
@@ -242,7 +245,7 @@ function ClientsScreen() {
         onPress={() => router.push('/client/new')}
         activeOpacity={0.85}
         accessibilityRole="button"
-        accessibilityLabel="Новый клиент"
+        accessibilityLabel={tr('clients.newClient')}
         style={[styles.fabWrap, { bottom: fabOffset }]}
       >
         <LiquidGlass

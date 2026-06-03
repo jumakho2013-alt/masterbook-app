@@ -48,7 +48,17 @@
     "title": "Clients",
     "addFirst": "Add your first client",
     "noneFound": "Nobody found",
-    "searchPlaceholder": "Name or phone..."
+    "searchPlaceholder": "Name or phone...",
+    "emptyTitle": "No clients yet",
+    "sleepingTitle": "Haven't visited in a while",
+    "andMore": "and %{count} more...",
+    "daysShort": "%{count}d",
+    "newClient": "New client",
+    "sortName": "By name",
+    "sortRecent": "Newest",
+    "sortVisit": "Visit",
+    "sortDebt": "Debt",
+    "sortA11y": "Sort: %{label}"
   },
   "finances": {
     "title": "Finances",
