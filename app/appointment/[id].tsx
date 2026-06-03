@@ -53,7 +53,7 @@ export default function AppointmentDetailScreen() {
   const services = useServiceStore((s) => s.services);
   const workHours = useSettingsStore((s) => s.workHours);
 
-  const { alertConfig, success, confirm, error: showError } = useAlert();
+  const { alertConfig, success, confirm, error: showError, show } = useAlert();
   const toast = useToast();
 
   const appointment = allAppointments.find((a) => a.id === id);
@@ -88,7 +88,40 @@ export default function AppointmentDetailScreen() {
       });
     }
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    success('Готово!', 'Запись завершена, доход записан', () => router.back());
+
+    // Если у мастера есть review-link — предложим попросить отзыв.
+    // Иначе обычный success-alert.
+    const reviewLink = useSettingsStore.getState().reviewLinkUrl;
+    if (reviewLink && client?.phone) {
+      show(
+        'Готово!',
+        'Запись завершена, доход записан.\n\nПопросить отзыв у клиента?',
+        [
+          { text: 'Позже', style: 'cancel' },
+          {
+            text: 'Попросить',
+            style: 'default',
+            onPress: () => askForReview(reviewLink),
+          },
+        ],
+        'success',
+      );
+    } else {
+      success('Готово!', 'Запись завершена, доход записан', () => router.back());
+    }
+  };
+
+  /** Открывает WhatsApp с готовым текстом «спасибо + ссылка на отзыв».
+   *  Если WhatsApp не установлен — fallback на wa.me web. */
+  const askForReview = async (reviewLink: string) => {
+    if (!client) return;
+    const firstName = client.name.split(' ')[0] || client.name;
+    const sig = useSettingsStore.getState().masterName
+      ? `\n\n— ${useSettingsStore.getState().masterName}`
+      : '';
+    const msg = `${firstName}, спасибо что пришла! 🌸\n\nЕсли понравилось — буду рада короткому отзыву:\n${reviewLink}${sig}`;
+    await openOutreach('whatsapp', client.phone, msg);
+    router.back();
   };
 
   const handleCancel = () => {

@@ -18,6 +18,7 @@ import {
   LogOut,
   ShieldCheck,
   Banknote,
+  Star,
 } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
 import { GlassCard, Avatar, Divider, CustomAlert } from '@/src/components/ui';
@@ -203,6 +204,13 @@ function ProfileScreen() {
               label="Валюта"
               subtitle={currencyMeta ? `${currencyMeta.name} (${currencyMeta.symbol})` : currency}
               onPress={() => router.push('/settings/currency')}
+            />
+            <Divider style={{ marginVertical: 0, marginLeft: 52 }} />
+            <MenuItem
+              icon={<Star size={20} color={colors.primary} />}
+              label="Ссылка для отзывов"
+              subtitle="После визита — попросить отзыв"
+              onPress={() => router.push('/settings/review-link')}
             />
           </GlassCard>
         </View>

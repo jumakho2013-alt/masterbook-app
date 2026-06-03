@@ -30,6 +30,9 @@ interface SettingsState {
   firstUseAt: string | null;
   /** Если пользователь явно закрыл «Старт недели» — больше не показывать. */
   checklistDismissedAt: string | null;
+  /** URL для запроса отзыва: Yandex Maps / Google Maps / 2GIS / Instagram.
+   *  null = пусто, фича «попросить отзыв» неактивна. */
+  reviewLinkUrl: string | null;
 
   setTheme: (theme: ThemeSetting) => void;
   setWorkHours: (start: string, end: string) => void;
@@ -44,6 +47,7 @@ interface SettingsState {
   setDemoDataSeededAt: (iso: string | null) => void;
   setFirstUseAt: (iso: string | null) => void;
   dismissChecklist: () => void;
+  setReviewLinkUrl: (url: string | null) => void;
   /** Полный сброс к дефолтам (используется при signOut / deleteAccount).
    *  Сохраняет тему (UI preference) — это про устройство, не про аккаунт.
    *  Валюту тоже сохраняем — она привязана к региону, не к юзеру. */
@@ -77,6 +81,7 @@ export const useSettingsStore = create<SettingsState>()(
       demoDataSeededAt: null,
       firstUseAt: null,
       checklistDismissedAt: null,
+      reviewLinkUrl: null,
       ...defaultSettingsForAccount,
 
       setTheme: (theme) => set({ theme }),
@@ -93,6 +98,7 @@ export const useSettingsStore = create<SettingsState>()(
       setDemoDataSeededAt: (iso) => set({ demoDataSeededAt: iso }),
       setFirstUseAt: (iso) => set({ firstUseAt: iso }),
       dismissChecklist: () => set({ checklistDismissedAt: new Date().toISOString() }),
+      setReviewLinkUrl: (url) => set({ reviewLinkUrl: url }),
 
       reset: () =>
         set({
@@ -100,6 +106,7 @@ export const useSettingsStore = create<SettingsState>()(
           demoDataSeededAt: null,
           firstUseAt: null,
           checklistDismissedAt: null,
+          reviewLinkUrl: null,
         }),
     }),
     {
