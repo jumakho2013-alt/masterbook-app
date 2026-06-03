@@ -54,6 +54,7 @@ function RootInner() {
         <Stack.Screen name="services/manage" />
         <Stack.Screen name="settings/work-hours" />
         <Stack.Screen name="settings/account" />
+        <Stack.Screen name="settings/currency" />
       </Stack>
     </>
   );

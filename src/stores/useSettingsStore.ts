@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { FieldConfig } from '@/src/types';
+import type { CurrencyCode } from '@/src/utils/currency.types';
 
 type ThemeSetting = 'light' | 'dark' | 'system';
 
@@ -15,6 +16,10 @@ interface SettingsState {
   masterName: string;
   /** Блокировка приложения биометрией (Face ID / Touch ID). */
   biometricLock: boolean;
+  /** Валюта для отображения цен / дохода. Default RUB (СНГ-first).
+   *  При смене все компоненты что зовут formatCurrency() перерисуются
+   *  благодаря подписке через useSettingsStore. */
+  currency: CurrencyCode;
 
   setTheme: (theme: ThemeSetting) => void;
   setWorkHours: (start: string, end: string) => void;
@@ -25,8 +30,10 @@ interface SettingsState {
   updateFieldConfig: (updates: Partial<FieldConfig>) => void;
   setMasterName: (name: string) => void;
   setBiometricLock: (enabled: boolean) => void;
+  setCurrency: (currency: CurrencyCode) => void;
   /** Полный сброс к дефолтам (используется при signOut / deleteAccount).
-   *  Сохраняет тему (UI preference) — это про устройство, не про аккаунт. */
+   *  Сохраняет тему (UI preference) — это про устройство, не про аккаунт.
+   *  Валюту тоже сохраняем — она привязана к региону, не к юзеру. */
   reset: () => void;
 }
 
@@ -53,6 +60,7 @@ export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
       theme: 'system',
+      currency: 'RUB' as CurrencyCode,
       ...defaultSettingsForAccount,
 
       setTheme: (theme) => set({ theme }),
@@ -65,6 +73,7 @@ export const useSettingsStore = create<SettingsState>()(
         set((s) => ({ fieldConfig: { ...s.fieldConfig, ...updates } })),
       setMasterName: (name) => set({ masterName: name }),
       setBiometricLock: (enabled) => set({ biometricLock: enabled }),
+      setCurrency: (currency) => set({ currency }),
 
       reset: () => set(defaultSettingsForAccount),
     }),

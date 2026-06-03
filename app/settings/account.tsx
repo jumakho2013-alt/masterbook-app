@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Switch, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Fingerprint, Download, Trash2, ShieldAlert } from 'lucide-react-native';
+import { ArrowLeft, Fingerprint, Download, FileText, Trash2, ShieldAlert } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/src/theme';
 import { GlassCard, Divider, IconButton, CustomAlert, Button } from '@/src/components/ui';
@@ -10,6 +10,7 @@ import { useAlert } from '@/src/hooks/useAlert';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { authenticate, biometricLabel, getBiometricKind, type BiometricKind } from '@/src/lib/biometric';
 import { exportDataToFile } from '@/src/lib/exportData';
+import { generateAndShareTaxReport, currentMonthRange } from '@/src/lib/taxReportPdf';
 import { deleteAccount } from '@/src/lib/deleteAccount';
 
 export default function AccountSettingsScreen() {
@@ -22,6 +23,7 @@ export default function AccountSettingsScreen() {
 
   const [kind, setKind] = useState<BiometricKind>('unknown');
   const [exporting, setExporting] = useState(false);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
@@ -57,6 +59,15 @@ export default function AccountSettingsScreen() {
       }
       setBiometricLock(true);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+  };
+
+  const onTaxReport = async () => {
+    setGeneratingPdf(true);
+    const res = await generateAndShareTaxReport(currentMonthRange());
+    setGeneratingPdf(false);
+    if (!res.ok) {
+      showError('Не удалось сформировать отчёт', res.error);
     }
   };
 
@@ -147,6 +158,22 @@ export default function AccountSettingsScreen() {
               trackColor={{ false: colors.surfaceElevated, true: colors.primary }}
             />
           </View>
+        </GlassCard>
+
+        {/* Tax PDF report — CIS-specific feature, моат против Booksy/Fresha */}
+        <GlassCard style={styles.section}>
+          <TouchableOpacity onPress={onTaxReport} disabled={generatingPdf} activeOpacity={0.7} style={styles.row}>
+            <View style={styles.rowIcon}>
+              <FileText size={22} color={colors.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[typo.bodyBold, { color: colors.text }]}>Отчёт о доходах (PDF)</Text>
+              <Text style={[typo.caption, { color: colors.textSecondary, marginTop: 2 }]}>
+                За текущий месяц — для личного учёта самозанятого
+              </Text>
+            </View>
+            {generatingPdf ? <ActivityIndicator color={colors.primary} /> : null}
+          </TouchableOpacity>
         </GlassCard>
 
         {/* Export */}

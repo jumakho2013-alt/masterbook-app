@@ -17,12 +17,14 @@ import {
   RefreshCw,
   LogOut,
   ShieldCheck,
+  Banknote,
 } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
 import { GlassCard, Avatar, Divider, CustomAlert } from '@/src/components/ui';
 import { useAlert } from '@/src/hooks/useAlert';
 import { useAuthStore } from '@/src/stores/useAuthStore';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
+import { SUPPORTED_CURRENCIES } from '@/src/utils/currency';
 import { useClientStore } from '@/src/stores/useClientStore';
 import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useFinanceStore } from '@/src/stores/useFinanceStore';
@@ -61,6 +63,8 @@ export default function ProfileScreen() {
   const specializationId = useAuthStore((s) => s.specializationId);
   const theme = useSettingsStore((s) => s.theme);
   const setTheme = useSettingsStore((s) => s.setTheme);
+  const currency = useSettingsStore((s) => s.currency);
+  const currencyMeta = SUPPORTED_CURRENCIES.find((c) => c.code === currency);
   const reset = useAuthStore((s) => s.reset);
   const signOut = useAuthStore((s) => s.signOut);
 
@@ -192,6 +196,13 @@ export default function ProfileScreen() {
               label="Онлайн-запись"
               subtitle="Скоро"
               onPress={() => info('Скоро', 'Онлайн-запись будет доступна в следующем обновлении')}
+            />
+            <Divider style={{ marginVertical: 0, marginLeft: 52 }} />
+            <MenuItem
+              icon={<Banknote size={20} color={colors.primary} />}
+              label="Валюта"
+              subtitle={currencyMeta ? `${currencyMeta.name} (${currencyMeta.symbol})` : currency}
+              onPress={() => router.push('/settings/currency')}
             />
             <Divider style={{ marginVertical: 0, marginLeft: 52 }} />
             <MenuItem
