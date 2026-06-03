@@ -59,11 +59,31 @@ function TabItem({
       accessibilityState={{ selected: focused }}
     >
       <Animated.View style={[styles.tabInner, animStyle]}>
-        {focused && (
-          <View style={[styles.activeDot, { backgroundColor: colors.primary }]} />
-        )}
-        <Icon size={22} color={color} />
-        <Text style={[typo.small, { color, marginTop: 3 }]}>{label}</Text>
+        {/* Активная вкладка: pill-фон под иконкой (визуально жирнее
+            маленькой точки сверху) + label жирнее. Старый dot был слабым
+            сигналом, юзер не сразу понимал где он. */}
+        <View
+          style={[
+            styles.iconBubble,
+            focused && {
+              backgroundColor: colors.primarySoft,
+            },
+          ]}
+        >
+          <Icon size={22} color={color} strokeWidth={focused ? 2.4 : 2} />
+        </View>
+        <Text
+          style={[
+            typo.small,
+            {
+              color,
+              marginTop: 2,
+              fontFamily: focused ? typo.bodyBold.fontFamily : typo.small.fontFamily,
+            },
+          ]}
+        >
+          {label}
+        </Text>
       </Animated.View>
     </Pressable>
   );
@@ -157,11 +177,11 @@ const styles = StyleSheet.create({
   tabInner: {
     alignItems: 'center',
   },
-  activeDot: {
-    position: 'absolute',
-    top: -8,
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
+  iconBubble: {
+    width: 48,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
