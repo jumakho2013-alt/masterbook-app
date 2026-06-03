@@ -49,22 +49,25 @@ export type DeleteAccountResult =
  */
 export async function deleteAccount(): Promise<DeleteAccountResult> {
   let serverError: string | null = null;
+  const isLocalOnly = useAuthStore.getState().localOnlyMode;
 
   try {
     // 1. Уведомления
     await cancelAllNotifications().catch(() => {});
 
-    // 2. Удаление на сервере. RPC `delete_user` определена в
-    //    supabase-schema.sql; если проект её не применил — вернётся ошибка,
-    //    которую мы пробрасываем наверх (но локальный wipe всё равно делаем).
-    const { error: rpcError } = await supabase.rpc('delete_user');
-    if (rpcError) {
-      serverError = rpcError.message;
-    }
+    // 2. Удаление на сервере — только если есть серверный аккаунт.
+    //    В local-only mode (юзер выбрал «Начать без аккаунта») нечего
+    //    удалять — нет ни пользователя в auth.users, ни строк в БД.
+    if (!isLocalOnly) {
+      const { error: rpcError } = await supabase.rpc('delete_user');
+      if (rpcError) {
+        serverError = rpcError.message;
+      }
 
-    // 3. Sign out (чистит локальную секрет-сессию). Не падаем если уже
-    //    разлогинены / нет сети.
-    await supabase.auth.signOut().catch(() => {});
+      // 3. Sign out (чистит локальную секрет-сессию). Не падаем если уже
+      //    разлогинены / нет сети.
+      await supabase.auth.signOut().catch(() => {});
+    }
 
     // 4. In-memory reset всех сторов (auth + бизнес). Делаем ДО
     //    AsyncStorage.clear() чтобы любые активные подписки/listener'ы

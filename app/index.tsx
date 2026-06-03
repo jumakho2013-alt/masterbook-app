@@ -10,6 +10,7 @@ export default function Index() {
   const session = useAuthStore((s) => s.session);
   const loading = useAuthStore((s) => s.loading);
   const onboarded = useAuthStore((s) => s.onboarded);
+  const localOnlyMode = useAuthStore((s) => s.localOnlyMode);
   const checkSession = useAuthStore((s) => s.checkSession);
   const setSession = useAuthStore((s) => s.setSession);
 
@@ -47,7 +48,14 @@ export default function Index() {
     return <Redirect href="/(tabs)" />;
   }
 
-  // No session → login
+  // Local-only mode: пользователь выбрал «Начать без аккаунта». Сессии
+  // нет, и не нужна — пускаем по onboarding пути дальше.
+  if (localOnlyMode) {
+    if (!onboarded) return <Redirect href="/(auth)/welcome" />;
+    return <Redirect href="/(tabs)" />;
+  }
+
+  // No session → login (там есть «Начать без аккаунта» опция)
   if (!session) {
     return <Redirect href="/(auth)/login" />;
   }

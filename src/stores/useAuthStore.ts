@@ -40,6 +40,11 @@ interface AuthState {
    *  null = согласие ещё не дано. Сохраняется в audit-целях — если
    *  Роскомнадзор запросит подтверждение, у нас есть дата. */
   dataConsentGivenAt: string | null;
+  /** Local-only режим: пользователь выбрал «Начать без аккаунта». Данные
+   *  живут на устройстве, Supabase не используется (даже для auth).
+   *  152-ФЗ автоматически OK — данные не покидают устройство.
+   *  Может быть переключено позже в setting'ах если юзер захочет sync. */
+  localOnlyMode: boolean;
 
   // Auth actions
   signUp: (email: string, password: string, name: string) => Promise<{ error?: string }>;
@@ -52,6 +57,9 @@ interface AuthState {
   setOnboarded: (value: boolean) => void;
   setProfession: (category: ProfessionCategory, specializationId: string) => void;
   setConsentGiven: (timestamp: string) => void;
+  /** Активирует local-only режим: устанавливает флаг + consent timestamp
+   *  (юзер согласился перед нажатием) и обходит signup. */
+  enableLocalOnly: () => void;
   reset: () => void;
 }
 
@@ -66,6 +74,7 @@ export const useAuthStore = create<AuthState>()(
       professionCategory: null,
       specializationId: null,
       dataConsentGivenAt: null,
+      localOnlyMode: false,
 
       signUp: async (email, password, name) => {
         const { data, error } = await supabase.auth.signUp({
@@ -106,16 +115,20 @@ export const useAuthStore = create<AuthState>()(
         // Делаем ДО signOut() чтобы listener supabase.auth не успел вызвать
         // checkSession и перерендерить экраны со старыми данными.
         wipeBusinessStores();
-        await supabase.auth.signOut().catch(() => {
-          // Если сетевая ошибка — токен всё равно невалидируется на следующий
-          // запрос. Не падаем; локальный wipe важнее.
-        });
+        // Local-only mode: сервер не задействован, скипаем supabase.signOut().
+        if (!get().localOnlyMode) {
+          await supabase.auth.signOut().catch(() => {
+            // Если сетевая ошибка — токен всё равно невалидируется на
+            // следующий запрос. Не падаем; локальный wipe важнее.
+          });
+        }
         set({
           user: null,
           session: null,
           onboarded: false,
           professionCategory: null,
           specializationId: null,
+          localOnlyMode: false,
         });
       },
 
@@ -144,12 +157,18 @@ export const useAuthStore = create<AuthState>()(
       setProfession: (category, specializationId) =>
         set({ professionCategory: category, specializationId }),
       setConsentGiven: (timestamp) => set({ dataConsentGivenAt: timestamp }),
+      enableLocalOnly: () =>
+        set({
+          localOnlyMode: true,
+          dataConsentGivenAt: new Date().toISOString(),
+        }),
       reset: () =>
         set({
           onboarded: false,
           professionCategory: null,
           specializationId: null,
           dataConsentGivenAt: null,
+          localOnlyMode: false,
         }),
     }),
     {
@@ -160,6 +179,7 @@ export const useAuthStore = create<AuthState>()(
         professionCategory: state.professionCategory,
         specializationId: state.specializationId,
         dataConsentGivenAt: state.dataConsentGivenAt,
+        localOnlyMode: state.localOnlyMode,
       }),
     },
   ),

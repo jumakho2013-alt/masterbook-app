@@ -27,6 +27,7 @@ export default function LoginScreen() {
   const signIn = useAuthStore((s) => s.signIn);
   const setConsentGiven = useAuthStore((s) => s.setConsentGiven);
   const dataConsentGivenAt = useAuthStore((s) => s.dataConsentGivenAt);
+  const enableLocalOnly = useAuthStore((s) => s.enableLocalOnly);
 
   const { alertConfig, error: showError, info } = useAlert();
 
@@ -172,6 +173,45 @@ export default function LoginScreen() {
           <Pressable onPress={() => router.push('/(auth)/register')}>
             <Text style={[typo.bodyBold, { color: colors.primary, marginLeft: 6 }]}>
               Зарегистрироваться
+            </Text>
+          </Pressable>
+        </Animated.View>
+
+        {/* Local-only путь: пользователь хочет без аккаунта, всё локально.
+            Для большинства CIS-мастеров это правильный дефолт — 152-ФЗ
+            автоматически OK, никаких регистраций, ничего на сервере. */}
+        <Animated.View entering={FadeInDown.delay(500).duration(600)} style={{ marginTop: 24 }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 12,
+              marginBottom: 16,
+            }}
+          >
+            <View style={{ flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: colors.border }} />
+            <Text style={[typo.small, { color: colors.textTertiary }]}>или</Text>
+            <View style={{ flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: colors.border }} />
+          </View>
+          <Pressable
+            onPress={() => {
+              enableLocalOnly();
+              router.replace('/(auth)/welcome');
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Начать без аккаунта"
+            style={{ alignSelf: 'center', paddingVertical: 6 }}
+          >
+            <Text style={[typo.bodyBold, { color: colors.text }]}>
+              Начать без аккаунта
+            </Text>
+            <Text
+              style={[
+                typo.small,
+                { color: colors.textTertiary, textAlign: 'center', marginTop: 4, lineHeight: 16 },
+              ]}
+            >
+              Данные хранятся только на телефоне.{'\n'}Можно подключить аккаунт позже.
             </Text>
           </Pressable>
         </Animated.View>

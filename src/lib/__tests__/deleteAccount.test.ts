@@ -40,9 +40,10 @@ jest.mock('@/src/lib/notifications', () => ({
 
 const resetAuthMock = jest.fn();
 const setAuthStateMock = jest.fn();
+let mockLocalOnly = false;
 jest.mock('@/src/stores/useAuthStore', () => ({
   useAuthStore: {
-    getState: () => ({ reset: resetAuthMock }),
+    getState: () => ({ reset: resetAuthMock, localOnlyMode: mockLocalOnly }),
     setState: (s: unknown) => setAuthStateMock(s),
   },
 }));
@@ -85,6 +86,7 @@ describe('deleteAccount', () => {
     resetFinanceMock.mockClear();
     resetServiceMock.mockClear();
     resetSettingsMock.mockClear();
+    mockLocalOnly = false; // Default: cloud-account path
   });
 
   it('returns ok on happy path and calls all steps in order', async () => {
@@ -162,5 +164,18 @@ describe('deleteAccount', () => {
     expect(resetFinanceMock).toHaveBeenCalledTimes(1);
     expect(resetServiceMock).toHaveBeenCalledTimes(1);
     expect(resetSettingsMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('local-only mode: skips Supabase RPC + signOut entirely', async () => {
+    mockLocalOnly = true;
+    const result = await deleteAccount();
+    expect(result).toEqual({ ok: true, serverDeleteFailed: false });
+    // Никаких серверных вызовов — нечего удалять/разлогинивать
+    expect(rpcMock).not.toHaveBeenCalled();
+    expect(signOutMock).not.toHaveBeenCalled();
+    // Но локально всё стёрто
+    expect(asyncStorageClearMock).toHaveBeenCalled();
+    expect(resetClientMock).toHaveBeenCalled();
+    expect(resetAuthMock).toHaveBeenCalled();
   });
 });
