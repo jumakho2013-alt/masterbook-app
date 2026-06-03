@@ -3,18 +3,19 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { ChevronRight } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
-import { Avatar, Badge } from '@/src/components/ui';
+import { Avatar } from '@/src/components/ui';
 import { useReduceMotion } from '@/src/hooks/useReduceMotion';
+import { formatCurrency } from '@/src/utils/currency';
 import type { Client } from '@/src/types';
 import { daysSince } from '@/src/utils/date';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-const tagLabels: Record<string, { label: string; color: string }> = {
-  vip: { label: 'VIP', color: '#FFA502' },
-  problematic: { label: '!', color: '#FF4757' },
-  new: { label: 'Новый', color: '#2ED573' },
-};
+// Визуальные сигналы по тегам:
+//   VIP → золотой ободок на avatar
+//   problematic → красная вертикальная полоса слева
+//   new → зелёный pulse-dot в углу avatar
+// Это устраняет проблему «все клиенты выглядят одинаково» из ревью Маши.
 
 interface ClientRowProps {
   client: Client;
@@ -27,16 +28,24 @@ export const ClientRow = React.memo(function ClientRow({ client, lastVisitDate, 
   const reduceMotion = useReduceMotion();
   const scale = useSharedValue(1);
 
+  const isVIP = client.tags.includes('vip');
+  const isProblematic = client.tags.includes('problematic');
+  const isNew = client.tags.includes('new');
+  const hasDebt = (client.debt ?? 0) > 0;
+
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }));
 
   // Композитный a11y label — VoiceOver прочитает всё как одну кнопку.
-  const tagLabel = client.tags
-    .map((t) => tagLabels[t]?.label)
-    .filter(Boolean)
-    .join(', ');
-  const a11yLabel = [client.name, tagLabel, lastVisitDate && `последний визит ${lastVisitDate}`]
+  const a11yLabel = [
+    client.name,
+    isVIP && 'VIP',
+    isProblematic && 'проблемный',
+    isNew && 'новый',
+    hasDebt && `долг ${formatCurrency(client.debt!)}`,
+    lastVisitDate && `последний визит ${lastVisitDate}`,
+  ]
     .filter(Boolean)
     .join(', ');
 
@@ -56,20 +65,51 @@ export const ClientRow = React.memo(function ClientRow({ client, lastVisitDate, 
       accessibilityHint="Открыть профиль клиента"
       style={[animStyle, styles.container]}
     >
-      <Avatar name={client.name} photoUri={client.photoUri} />
+      {/* Красная вертикальная полоса слева — для problematic клиентов.
+          Видно мгновенно при скролле, не нужно читать badges. */}
+      {isProblematic && (
+        <View style={[styles.problemBar, { backgroundColor: colors.danger }]} pointerEvents="none" />
+      )}
+
+      {/* Avatar с золотым ободком если VIP. Размер чуть больше чтобы рамка
+          смотрелась premium, не дешёво. */}
+      <View>
+        <View
+          style={[
+            styles.avatarRing,
+            isVIP && {
+              borderColor: '#FFA502',
+              borderWidth: 2,
+            },
+          ]}
+        >
+          <Avatar name={client.name} photoUri={client.photoUri} size={40} />
+        </View>
+        {isNew && (
+          <View style={[styles.newDot, { backgroundColor: colors.success, borderColor: colors.background }]} pointerEvents="none" />
+        )}
+      </View>
+
       <View style={[styles.info, { marginLeft: sp.md }]}>
         <View style={styles.nameRow}>
           <Text style={[typo.bodyBold, { color: colors.text, flex: 1 }]} numberOfLines={1}>
             {client.name}
           </Text>
-          {client.tags.map((tag) => {
-            const t = tagLabels[tag];
-            return t ? <Badge key={tag} label={t.label} color={t.color} /> : null;
-          })}
+          {/* Долг рядом с именем — красная сумма. Этот сигнал ВАЖНЕЕ имени
+              в моменты «надо отдать сегодня». */}
+          {hasDebt && (
+            <Text style={[typo.small, { color: colors.danger, fontFamily: typo.bodyBold.fontFamily }]}>
+              −{formatCurrency(client.debt!)}
+            </Text>
+          )}
         </View>
-        {lastVisitDate && (
+        {lastVisitDate ? (
           <Text style={[typo.caption, { color: colors.textSecondary, marginTop: 3 }]}>
             {daysSince(lastVisitDate)}
+          </Text>
+        ) : (
+          <Text style={[typo.caption, { color: colors.textTertiary, marginTop: 3 }]}>
+            ещё не приходил
           </Text>
         )}
       </View>
@@ -84,6 +124,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 14,
     paddingHorizontal: 20,
+    position: 'relative',
+  },
+  problemBar: {
+    position: 'absolute',
+    left: 0,
+    top: 8,
+    bottom: 8,
+    width: 3,
+    borderTopRightRadius: 2,
+    borderBottomRightRadius: 2,
+  },
+  avatarRing: {
+    borderRadius: 999,
+    padding: 0,
+  },
+  newDot: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 2,
   },
   info: {
     flex: 1,
