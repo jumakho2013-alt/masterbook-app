@@ -9,9 +9,13 @@ import { SearchBar, EmptyState, Divider, GlassCard, Badge, LiquidGlass } from '@
 import { ClientRow } from '@/src/components/ClientRow';
 import { useClientStore } from '@/src/stores/useClientStore';
 import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
+import { useServiceStore } from '@/src/stores/useServiceStore';
 import { useTabBarOffset } from '@/src/hooks/useTabBarOffset';
+import { findSleepingClients } from '@/src/lib/sleepingClients';
+import { toDateKey } from '@/src/utils/date';
+import { useProfessionPack } from '@/src/hooks/useProfessionPack';
 
-const SLEEPING_DAYS = 30;
+const SLEEPING_DAYS = 45;
 
 type SortBy = 'name' | 'recent' | 'lastVisit' | 'debt';
 
@@ -31,6 +35,8 @@ export default function ClientsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const allClients = useClientStore((s) => s.clients);
   const allAppointments = useAppointmentStore((s) => s.appointments);
+  const services = useServiceStore((s) => s.services);
+  const { t, pack } = useProfessionPack();
 
   // Last visit per client
   const lastVisitMap = useMemo(() => {
@@ -46,11 +52,19 @@ export default function ClientsScreen() {
   }, [allAppointments]);
 
   const clients = useMemo(() => {
-    // Filter
+    // Filter — расширенный поиск: имя, телефон, заметки, предпочтения,
+    // адрес. Без fuzzy matching пока что: simple includes() работает быстро
+    // на N<1000 и достаточно для основного UX (пользователь обычно ищет
+    // по началу имени или фрагменту телефона).
     const q = search.toLowerCase().trim();
     let list = q
       ? allClients.filter(
-          (c) => c.name.toLowerCase().includes(q) || c.phone.includes(q) || c.notes.toLowerCase().includes(q),
+          (c) =>
+            c.name.toLowerCase().includes(q) ||
+            c.phone.includes(q) ||
+            c.notes.toLowerCase().includes(q) ||
+            (c.preferences?.toLowerCase().includes(q) ?? false) ||
+            (c.address?.toLowerCase().includes(q) ?? false),
         )
       : [...allClients];
 
@@ -77,19 +91,22 @@ export default function ClientsScreen() {
     return list;
   }, [allClients, search, sortBy, lastVisitMap]);
 
-  // Sleeping clients
-  const sleepingClients = useMemo(() => {
+  // Sleeping clients — используем shared логику из src/lib/sleepingClients
+  // чтобы behavior был консистентен с виджетом на Today screen (исключение
+  // problematic-тегов, upcoming appointments).
+  const sleeping = useMemo(() => {
     if (search) return [];
-    const now = new Date();
-    const cutoff = new Date(now);
-    cutoff.setDate(cutoff.getDate() - SLEEPING_DAYS);
-    const cutoffStr = cutoff.toISOString().slice(0, 10);
-
-    return allClients.filter((c) => {
-      const last = lastVisitMap[c.id];
-      return last && last < cutoffStr;
+    return findSleepingClients({
+      clients: allClients,
+      appointments: allAppointments,
+      todayKey: toDateKey(new Date()),
+      thresholdDays: SLEEPING_DAYS,
+      serviceNameById: (sid) => services.find((s) => s.id === sid)?.name,
     });
-  }, [allClients, lastVisitMap, search]);
+  }, [allClients, allAppointments, services, search]);
+
+  // Для legacy markup ниже — массив сами клиенты.
+  const sleepingClients = useMemo(() => sleeping.map((s) => s.client), [sleeping]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -99,9 +116,11 @@ export default function ClientsScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <View style={styles.header}>
-        <Text style={[typo.h2, { color: colors.text }]}>Клиенты</Text>
+        <Text style={[typo.h2, { color: colors.text, textTransform: 'capitalize' }]}>
+          {t('client.plural', 'Клиенты')}
+        </Text>
         <Text style={[typo.caption, { color: colors.textSecondary, marginTop: 2 }]}>
-          {allClients.length} клиентов
+          {allClients.length} {t('client.plural', 'клиентов')}
         </Text>
       </View>
 
@@ -174,18 +193,18 @@ export default function ClientsScreen() {
                   <Text style={[typo.bodyBold, { color: colors.text }]}>Давно не были</Text>
                   <Badge label={`${sleepingClients.length}`} color={colors.warning} />
                 </View>
-                {sleepingClients.slice(0, 3).map((c) => (
+                {sleeping.slice(0, 3).map((s) => (
                   <TouchableOpacity
-                    key={c.id}
-                    onPress={() => router.push(`/client/${c.id}`)}
+                    key={s.client.id}
+                    onPress={() => router.push(`/client/${s.client.id}`)}
                     activeOpacity={0.7}
                     style={[styles.sleepingRow, { borderColor: colors.border }]}
                   >
                     <Text style={[typo.body, { color: colors.text, flex: 1 }]} numberOfLines={1}>
-                      {c.name}
+                      {s.client.name}
                     </Text>
                     <Text style={[typo.caption, { color: colors.warning }]}>
-                      {getDaysAgo(lastVisitMap[c.id])} дн.
+                      {s.daysSince} дн.
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -202,8 +221,12 @@ export default function ClientsScreen() {
         ListEmptyComponent={
           <EmptyState
             icon={<Users size={48} color={colors.textTertiary} />}
-            title="Нет клиентов"
-            subtitle={search ? 'Никого не нашли' : 'Добавьте первого клиента'}
+            title={pack.emptyStates.clients?.title ?? 'Нет клиентов'}
+            subtitle={
+              search
+                ? 'Никого не нашли'
+                : pack.emptyStates.clients?.subtitle ?? 'Добавьте первого клиента'
+            }
           />
         }
         renderItem={({ item }) => (
@@ -234,13 +257,6 @@ export default function ClientsScreen() {
       </TouchableOpacity>
     </SafeAreaView>
   );
-}
-
-function getDaysAgo(dateStr?: string): number {
-  if (!dateStr) return 0;
-  const now = new Date();
-  const d = new Date(dateStr);
-  return Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
 }
 
 const styles = StyleSheet.create({

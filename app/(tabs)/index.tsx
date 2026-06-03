@@ -5,16 +5,19 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Plus, CalendarCheck, TrendingUp, Calendar } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
-import { EmptyState, GlassCard, CountUp, LiquidGlass } from '@/src/components/ui';
+import { EmptyState, GlassCard, CountUp, LiquidGlass, Button, useToast } from '@/src/components/ui';
 import { AppointmentCard } from '@/src/components/AppointmentCard';
+import { SleepingClientsCard } from '@/src/components/SleepingClientsCard';
 import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useClientStore } from '@/src/stores/useClientStore';
 import { useServiceStore } from '@/src/stores/useServiceStore';
+import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { useTabBarOffset } from '@/src/hooks/useTabBarOffset';
 import { useReduceMotion } from '@/src/hooks/useReduceMotion';
 import { formatDateFull, toDateKey } from '@/src/utils/date';
 import { formatCurrency } from '@/src/utils/currency';
 import { nowMinutesOfDay, timeToMinutes } from '@/src/utils/time';
+import { seedSampleData } from '@/src/lib/sampleData';
 
 type Filter = 'upcoming' | 'completed' | 'all';
 
@@ -36,6 +39,19 @@ export default function TodayScreen() {
   const appointments = useAppointmentStore((s) => s.appointments);
   const clients = useClientStore((s) => s.clients);
   const services = useServiceStore((s) => s.services);
+  const demoDataSeededAt = useSettingsStore((s) => s.demoDataSeededAt);
+  const toast = useToast();
+
+  // Полностью пустое состояние: ни клиентов, ни услуг, ни записей — самый
+  // первый запуск после онбординга, либо user только что почистил всё.
+  const isCompletelyEmpty =
+    clients.length === 0 && services.length === 0 && appointments.length === 0;
+
+  const onTrySample = useCallback(() => {
+    const ok = seedSampleData();
+    if (ok) toast.success('Пример загружен — потом можно очистить в настройках');
+    else toast.error('Похоже у тебя уже есть данные');
+  }, [toast]);
 
   const todayKey = toDateKey(new Date());
 
@@ -209,20 +225,52 @@ export default function TodayScreen() {
                 );
               })}
             </View>
+
+            {/* Спящие клиенты — nudge-блок. Возвращает null если все
+                клиенты активны, поэтому не съедает место без причины. */}
+            <SleepingClientsCard />
           </>
         }
         ListEmptyComponent={
-          <EmptyState
-            icon={<CalendarCheck size={48} color={colors.textTertiary} />}
-            title="Нет записей"
-            subtitle={
-              filter === 'upcoming'
-                ? 'На сегодня записей нет. Нажмите + чтобы добавить.'
-                : filter === 'completed'
-                  ? 'Нет завершённых визитов за сегодня'
-                  : 'Пусто'
-            }
-          />
+          // Если у юзера вообще нет ни одного клиента/услуги/записи —
+          // показываем sample-data CTA. Это first-run путь когда онбординг
+          // прошёл но реальных данных ещё нет.
+          isCompletelyEmpty && !demoDataSeededAt ? (
+            <View style={{ paddingHorizontal: 16 }}>
+              <EmptyState
+                icon={<CalendarCheck size={48} color={colors.textTertiary} />}
+                title="Здесь будет твой день"
+                subtitle="Добавь первого клиента и запись — или попробуй на примере."
+              />
+              <Button
+                title="Попробовать с примером"
+                variant="primary"
+                onPress={onTrySample}
+                fullWidth
+                style={{ marginTop: 8 }}
+              />
+              <Text
+                style={[
+                  typo.small,
+                  { color: colors.textTertiary, textAlign: 'center', marginTop: 8 },
+                ]}
+              >
+                5 клиентов, 3 предстоящие записи, доходы за месяц.{'\n'}Очистить можно одной кнопкой в настройках.
+              </Text>
+            </View>
+          ) : (
+            <EmptyState
+              icon={<CalendarCheck size={48} color={colors.textTertiary} />}
+              title="Нет записей"
+              subtitle={
+                filter === 'upcoming'
+                  ? 'На сегодня записей нет. Нажмите + чтобы добавить.'
+                  : filter === 'completed'
+                    ? 'Нет завершённых визитов за сегодня'
+                    : 'Пусто'
+              }
+            />
+          )
         }
         renderItem={({ item, index }) => (
           <Animated.View entering={reduceMotion ? undefined : FadeInDown.delay(100 + index * 50).duration(400)}>

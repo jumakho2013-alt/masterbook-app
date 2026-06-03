@@ -2,15 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Switch, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Fingerprint, Download, FileText, Trash2, ShieldAlert } from 'lucide-react-native';
+import { ArrowLeft, Fingerprint, Download, FileText, Eraser, Trash2, ShieldAlert } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/src/theme';
-import { GlassCard, Divider, IconButton, CustomAlert, Button } from '@/src/components/ui';
+import { GlassCard, Divider, IconButton, CustomAlert, Button, useToast } from '@/src/components/ui';
 import { useAlert } from '@/src/hooks/useAlert';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { authenticate, biometricLabel, getBiometricKind, type BiometricKind } from '@/src/lib/biometric';
 import { exportDataToFile } from '@/src/lib/exportData';
 import { generateAndShareTaxReport, currentMonthRange } from '@/src/lib/taxReportPdf';
+import { clearAllBusinessData } from '@/src/lib/sampleData';
 import { deleteAccount } from '@/src/lib/deleteAccount';
 
 export default function AccountSettingsScreen() {
@@ -18,6 +19,8 @@ export default function AccountSettingsScreen() {
   const { colors, typography: typo, spacing: sp } = useTheme();
   const biometricLock = useSettingsStore((s) => s.biometricLock);
   const setBiometricLock = useSettingsStore((s) => s.setBiometricLock);
+  const demoDataSeededAt = useSettingsStore((s) => s.demoDataSeededAt);
+  const toast = useToast();
 
   const { alertConfig, info, error: showError, confirm, show } = useAlert();
 
@@ -60,6 +63,20 @@ export default function AccountSettingsScreen() {
       setBiometricLock(true);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
+  };
+
+  const onClearDemo = () => {
+    confirm(
+      'Очистить демо?',
+      'Удалятся все клиенты, услуги, записи и финансы. Если ты добавлял свои данные поверх примера — они тоже удалятся. Действие необратимо.',
+      () => {
+        clearAllBusinessData();
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        toast.success('Данные очищены');
+      },
+      'Очистить',
+      true,
+    );
   };
 
   const onTaxReport = async () => {
@@ -159,6 +176,24 @@ export default function AccountSettingsScreen() {
             />
           </View>
         </GlassCard>
+
+        {/* Очистить демо — отображается ТОЛЬКО если демо-данные действительно
+            были засеяны через UI. Иначе пункт-призрак раздражал бы пользователя. */}
+        {demoDataSeededAt && (
+          <GlassCard style={styles.section}>
+            <TouchableOpacity onPress={onClearDemo} activeOpacity={0.7} style={styles.row}>
+              <View style={styles.rowIcon}>
+                <Eraser size={22} color={colors.warning} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[typo.bodyBold, { color: colors.text }]}>Очистить демо-данные</Text>
+                <Text style={[typo.caption, { color: colors.textSecondary, marginTop: 2 }]}>
+                  Удалит все клиенты, услуги, записи и финансы
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </GlassCard>
+        )}
 
         {/* Tax PDF report — CIS-specific feature, моат против Booksy/Fresha */}
         <GlassCard style={styles.section}>

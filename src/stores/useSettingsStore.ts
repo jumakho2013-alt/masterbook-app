@@ -20,6 +20,10 @@ interface SettingsState {
    *  При смене все компоненты что зовут formatCurrency() перерисуются
    *  благодаря подписке через useSettingsStore. */
   currency: CurrencyCode;
+  /** ISO timestamp когда пользователь засеял демо-данные (или null если
+   *  никогда не засевал / уже очистил). Используется чтобы показать в UI
+   *  кнопку «Очистить демо» только когда демо реально есть. */
+  demoDataSeededAt: string | null;
 
   setTheme: (theme: ThemeSetting) => void;
   setWorkHours: (start: string, end: string) => void;
@@ -31,6 +35,7 @@ interface SettingsState {
   setMasterName: (name: string) => void;
   setBiometricLock: (enabled: boolean) => void;
   setCurrency: (currency: CurrencyCode) => void;
+  setDemoDataSeededAt: (iso: string | null) => void;
   /** Полный сброс к дефолтам (используется при signOut / deleteAccount).
    *  Сохраняет тему (UI preference) — это про устройство, не про аккаунт.
    *  Валюту тоже сохраняем — она привязана к региону, не к юзеру. */
@@ -61,6 +66,7 @@ export const useSettingsStore = create<SettingsState>()(
     (set) => ({
       theme: 'system',
       currency: 'RUB' as CurrencyCode,
+      demoDataSeededAt: null,
       ...defaultSettingsForAccount,
 
       setTheme: (theme) => set({ theme }),
@@ -74,8 +80,9 @@ export const useSettingsStore = create<SettingsState>()(
       setMasterName: (name) => set({ masterName: name }),
       setBiometricLock: (enabled) => set({ biometricLock: enabled }),
       setCurrency: (currency) => set({ currency }),
+      setDemoDataSeededAt: (iso) => set({ demoDataSeededAt: iso }),
 
-      reset: () => set(defaultSettingsForAccount),
+      reset: () => set({ ...defaultSettingsForAccount, demoDataSeededAt: null }),
     }),
     {
       name: 'masterbook-settings',
