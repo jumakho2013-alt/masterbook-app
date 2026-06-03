@@ -101,11 +101,13 @@ export const darkColors: ColorScheme = {
   // Deep indigo-black. На OLED почти не отличим от чёрного, но даёт лёгкое
   // тёплое ощущение «глубины» вместо стерильного серого.
   background: '#0B0C16',
-  // Заметная ступень от background — карточки реально «приподняты».
-  surface: '#181A28',
-  surfaceGlass: 'rgba(24,26,40,0.78)',
+  // Заметная ступень от background — теперь сильнее (~21 пунктов яркости
+  // вместо 13). Это решает «карточки сливаются с фоном» жалобу — глаз
+  // чётко видит surface как elevated.
+  surface: '#1F2235',
+  surfaceGlass: 'rgba(31,34,53,0.88)',
   // Ещё ступень — для модалок/sheet'ов поверх surface.
-  surfaceElevated: '#22253A',
+  surfaceElevated: '#2A2E47',
 
   // Более насыщенный пастельный фиолетовый — viewer-friendly и premium.
   primary: '#A892FF',
@@ -122,9 +124,10 @@ export const darkColors: ColorScheme = {
   textTertiary: '#6E7388',
 
   // Borders с лёгким primary undertone — единство дизайн-системы.
-  // Чуть ярче чем было (0.08 → 0.10) — на dark глаз требует больше контраста.
-  border: 'rgba(168,146,255,0.10)',
-  borderLight: 'rgba(168,146,255,0.05)',
+  // На dark поднимаем ещё (0.10 → 0.16) чтобы карточки имели чёткую границу
+  // от фона + друг от друга.
+  border: 'rgba(168,146,255,0.16)',
+  borderLight: 'rgba(168,146,255,0.08)',
 
   // Emerald — не lime. Premium tone, не «зелёная Java-кнопка».
   success: '#34D399',

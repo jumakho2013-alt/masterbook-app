@@ -23,7 +23,8 @@ import {
   Languages,
 } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
-import { GlassCard, Avatar, Divider, CustomAlert } from '@/src/components/ui';
+import { GlassCard, Divider, CustomAlert } from '@/src/components/ui';
+import { MasterBookLogo } from '@/src/components/MasterBookLogo';
 import { useAlert } from '@/src/hooks/useAlert';
 import { useAuthStore } from '@/src/stores/useAuthStore';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
@@ -153,10 +154,12 @@ function ProfileScreen() {
           <Text style={[typo.h2, { color: colors.text }]}>Профиль</Text>
         </View>
 
-        {/* Profile card */}
+        {/* Profile card — MasterBook logo вместо случайного яркого аватара.
+            Аватары хороши для клиентов где много разных людей, но для
+            самого мастера brand-identity > random color. */}
         <Animated.View entering={FadeInDown.delay(50)} style={{ paddingHorizontal: 16, marginBottom: sp.md }}>
           <GlassCard elevated style={styles.profileCard}>
-            <Avatar name={masterName || 'Мастер'} size={64} />
+            <MasterBookLogo size={64} />
             <View style={{ marginLeft: sp.md, flex: 1 }}>
               <Text style={[typo.h3, { color: colors.text }]}>
                 {masterName || 'Мастер'}
