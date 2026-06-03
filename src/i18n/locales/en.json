@@ -42,7 +42,13 @@
   "calendar": {
     "title": "Calendar",
     "today": "Today",
-    "noAppointmentsThisDay": "No appointments this day"
+    "noAppointmentsThisDay": "No appointments this day",
+    "emptyTitle": "No appointments",
+    "goToTodayA11y": "Go to today",
+    "modeA11y": "View: %{mode}",
+    "modeDay": "day",
+    "modeWeek": "week",
+    "modeMonth": "month"
   },
   "clients": {
     "title": "Clients",

@@ -12,6 +12,7 @@ import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useClientStore } from '@/src/stores/useClientStore';
 import { useServiceStore } from '@/src/stores/useServiceStore';
 import { useTabBarOffset } from '@/src/hooks/useTabBarOffset';
+import { useT } from '@/src/hooks/useT';
 import { toDateKey, getDayOfWeekShort, getDayNumber, getMonthName } from '@/src/utils/date';
 
 type ViewMode = 'day' | 'week' | 'month';
@@ -62,6 +63,7 @@ function plural(n: number, one: string, few: string, many: string): string {
 function CalendarScreen() {
   const router = useRouter();
   const { colors, typography: typo, borderRadius: br, spacing: sp } = useTheme();
+  const tr = useT();
   const bottomOffset = useTabBarOffset(0);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('week');
@@ -127,7 +129,7 @@ function CalendarScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]} edges={['top']}>
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
-          <Text style={[typo.h2, { color: colors.text }]}>Календарь</Text>
+          <Text style={[typo.h2, { color: colors.text }]}>{tr('calendar.title')}</Text>
           <Text style={[typo.caption, { color: colors.textSecondary, marginTop: 2, textTransform: 'capitalize' }]}>
             {getMonthName(viewMode === 'month' ? monthCursor : selectedDate)}
           </Text>
@@ -136,7 +138,7 @@ function CalendarScreen() {
           <Pressable
             onPress={goToToday}
             accessibilityRole="button"
-            accessibilityLabel="Перейти к сегодня"
+            accessibilityLabel={tr('calendar.goToTodayA11y')}
             hitSlop={{ top: 8, bottom: 8 }}
             style={[
               styles.todayBtn,
@@ -147,7 +149,7 @@ function CalendarScreen() {
             ]}
           >
             <Text style={[typo.caption, { color: colors.white, fontFamily: typo.bodyBold.fontFamily }]}>
-              Сегодня
+              {tr('calendar.today')}
             </Text>
           </Pressable>
           <Pressable
@@ -156,7 +158,7 @@ function CalendarScreen() {
               setViewMode((m) => (m === 'day' ? 'week' : m === 'week' ? 'month' : 'day'));
             }}
             accessibilityRole="button"
-            accessibilityLabel={`Режим: ${viewMode === 'day' ? 'день' : viewMode === 'week' ? 'неделя' : 'месяц'}`}
+            accessibilityLabel={tr('calendar.modeA11y', { mode: viewMode === 'day' ? tr('calendar.modeDay') : viewMode === 'week' ? tr('calendar.modeWeek') : tr('calendar.modeMonth') })}
             style={[styles.modeBtn, { backgroundColor: colors.surfaceElevated, borderRadius: br.sm }]}
           >
             {viewMode === 'day' ? (
@@ -345,8 +347,8 @@ function CalendarScreen() {
         ListEmptyComponent={
           <EmptyState
             icon={<CalendarIcon size={48} color={colors.textTertiary} />}
-            title="Нет записей"
-            subtitle="На этот день записей нет"
+            title={tr('calendar.emptyTitle')}
+            subtitle={tr('calendar.noAppointmentsThisDay')}
           />
         }
         renderItem={({ item }) => (

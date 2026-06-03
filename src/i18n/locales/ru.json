@@ -42,7 +42,13 @@
   "calendar": {
     "title": "Календарь",
     "today": "Сегодня",
-    "noAppointmentsThisDay": "На этот день записей нет"
+    "noAppointmentsThisDay": "На этот день записей нет",
+    "emptyTitle": "Нет записей",
+    "goToTodayA11y": "Перейти к сегодня",
+    "modeA11y": "Режим: %{mode}",
+    "modeDay": "день",
+    "modeWeek": "неделя",
+    "modeMonth": "месяц"
   },
   "clients": {
     "title": "Клиенты",
