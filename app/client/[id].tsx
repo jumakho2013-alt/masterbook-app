@@ -111,16 +111,33 @@ export default function ClientDetailScreen() {
   };
 
   const pickPhoto = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      quality: 0.7,
-      allowsEditing: true,
-      aspect: [1, 1],
-    });
-    if (!result.canceled && result.assets[0]) {
-      updateClient(client.id, { photoUri: result.assets[0].uri });
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      toast.success('Фото обновлено');
+    // Permission check ДО открытия пикера. Иначе на denied launchImageLibrary
+    // молча возвращает canceled — пользователь думает «не работает».
+    const perm = await ImagePicker.getMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      const req = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!req.granted) {
+        showError(
+          'Нужен доступ к фото',
+          'Включи доступ к галерее в Настройках → MasterBook → Фото.',
+        );
+        return;
+      }
+    }
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        quality: 0.7,
+        allowsEditing: true,
+        aspect: [1, 1],
+      });
+      if (!result.canceled && result.assets[0]) {
+        updateClient(client.id, { photoUri: result.assets[0].uri });
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        toast.success('Фото обновлено');
+      }
+    } catch (err) {
+      showError('Не удалось открыть галерею', err instanceof Error ? err.message : String(err));
     }
   };
 

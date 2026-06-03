@@ -50,6 +50,8 @@ export default function LoginScreen() {
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
   const handleLogin = async () => {
+    // Guard от double-tap во время сетевого запроса.
+    if (loading) return;
     Keyboard.dismiss();
     const parsed = signInSchema.safeParse({ email, password });
     if (!parsed.success) {

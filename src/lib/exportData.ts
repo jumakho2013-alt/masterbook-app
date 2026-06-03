@@ -5,6 +5,7 @@ import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useServiceStore } from '@/src/stores/useServiceStore';
 import { useFinanceStore } from '@/src/stores/useFinanceStore';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
+import { captureException } from '@/src/lib/crashReporter';
 
 /**
  * Экспорт всех данных пользователя в единый JSON — требование GDPR
@@ -75,6 +76,7 @@ export async function exportDataToFile(): Promise<
     });
     return { ok: true, path: file.uri };
   } catch (err) {
+    captureException(err, { tag: 'exportData' });
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
 }

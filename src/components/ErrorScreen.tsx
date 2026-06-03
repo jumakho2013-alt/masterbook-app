@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Clipboard from 'expo-clipboard';
 import Constants from 'expo-constants';
 import { AlertTriangle, Copy, RotateCw } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
+import { captureException } from '@/src/lib/crashReporter';
 
 interface ErrorScreenProps {
   error: Error;
@@ -24,6 +25,14 @@ export function ErrorScreen({ error, retry }: ErrorScreenProps) {
   const { colors, typography: typo, spacing: sp, borderRadius: br } = useTheme();
   const version = Constants.expoConfig?.version ?? '—';
   const platform = `${Platform.OS} ${Platform.Version}`;
+
+  // Любая ошибка которая дошла до экрана — кандидат на reporter.
+  useEffect(() => {
+    captureException(error, {
+      tag: 'errorBoundary',
+      extra: { version, platform },
+    });
+  }, [error, version, platform]);
 
   const copyDiagnostics = async () => {
     const payload = [

@@ -55,7 +55,7 @@ function MenuItem({ icon, label, onPress, subtitle }: MenuItemProps) {
   );
 }
 
-export default function ProfileScreen() {
+function ProfileScreen() {
   const router = useRouter();
   const { colors, typography: typo, spacing: sp, borderRadius: br } = useTheme();
   const bottomOffset = useTabBarOffset(0);
@@ -280,3 +280,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
 });
+
+// --- Tab-level Error Boundary wrapper ---
+import { TabErrorBoundary } from '@/src/components/TabErrorBoundary';
+export default function ProfileScreenWithBoundary() {
+  return (
+    <TabErrorBoundary tabName="profile">
+      <ProfileScreen />
+    </TabErrorBoundary>
+  );
+}

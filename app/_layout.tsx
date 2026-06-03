@@ -14,7 +14,12 @@ import { ToastProvider } from '@/src/components/ui';
 import { BiometricGate } from '@/src/components/BiometricGate';
 import { RouterErrorBoundary } from '@/src/components/ErrorScreen';
 import { seedDevDataIfNeeded } from '@/src/lib/devSeed';
+import { initCrashReporter } from '@/src/lib/crashReporter';
 import 'react-native-reanimated';
+
+// Запускаем сразу — должно быть до первого React-рендера, иначе crash до
+// init не поймается. initCrashReporter() безопасен без DSN (no-op).
+initCrashReporter();
 
 // expo-router распознаёт `ErrorBoundary` экспорт и подсовывает его в качестве
 // fallback при необработанной ошибке в любом роуте. Оборачиваем в тему —

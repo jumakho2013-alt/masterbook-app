@@ -28,7 +28,7 @@ const FILTER_LABELS: Record<Filter, string> = {
   all: 'Все',
 };
 
-export default function TodayScreen() {
+function TodayScreen() {
   const router = useRouter();
   const { colors, typography: typo, spacing: sp, borderRadius: br } = useTheme();
   const fabOffset = useTabBarOffset(16);
@@ -358,3 +358,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 });
+
+// --- Tab-level Error Boundary wrapper ---
+import { TabErrorBoundary } from '@/src/components/TabErrorBoundary';
+export default function TodayScreenWithBoundary() {
+  return (
+    <TabErrorBoundary tabName="today">
+      <TodayScreen />
+    </TabErrorBoundary>
+  );
+}

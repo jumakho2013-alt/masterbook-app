@@ -48,7 +48,7 @@ function getMonthGrid(date: Date): (Date | null)[] {
 
 const WEEKDAY_LABELS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
-export default function CalendarScreen() {
+function CalendarScreen() {
   const router = useRouter();
   const { colors, typography: typo, borderRadius: br, spacing: sp } = useTheme();
   const bottomOffset = useTabBarOffset(0);
@@ -327,3 +327,13 @@ const styles = StyleSheet.create({
   },
   monthDot: { width: 4, height: 4, borderRadius: 2, marginTop: 2 },
 });
+
+// --- Tab-level Error Boundary wrapper ---
+import { TabErrorBoundary } from '@/src/components/TabErrorBoundary';
+export default function CalendarScreenWithBoundary() {
+  return (
+    <TabErrorBoundary tabName="calendar">
+      <CalendarScreen />
+    </TabErrorBoundary>
+  );
+}

@@ -45,6 +45,9 @@ export default function RegisterScreen() {
   };
 
   const handleRegister = async () => {
+    // Guard от double-tap: пока идёт сетевой запрос, повторный submit
+    // создал бы 2 запроса signUp → второй вернёт «email уже занят», UX-баг.
+    if (loading) return;
     Keyboard.dismiss();
     if (!consent) {
       showError(

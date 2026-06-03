@@ -7,6 +7,7 @@ import { useFinanceStore } from '@/src/stores/useFinanceStore';
 import { useServiceStore } from '@/src/stores/useServiceStore';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { cancelAllNotifications } from '@/src/lib/notifications';
+import { captureException, clearUserContext } from '@/src/lib/crashReporter';
 
 /**
  * Результат удаления аккаунта.
@@ -62,6 +63,7 @@ export async function deleteAccount(): Promise<DeleteAccountResult> {
       const { error: rpcError } = await supabase.rpc('delete_user');
       if (rpcError) {
         serverError = rpcError.message;
+        captureException(rpcError, { tag: 'deleteAccount.rpc' });
       }
 
       // 3. Sign out (чистит локальную секрет-сессию). Не падаем если уже
@@ -86,11 +88,14 @@ export async function deleteAccount(): Promise<DeleteAccountResult> {
     //    -appointments, -finances, -services, -settings, -auth).
     await AsyncStorage.clear();
 
+    clearUserContext();
+
     if (serverError) {
       return { ok: true, serverDeleteFailed: true, serverError };
     }
     return { ok: true, serverDeleteFailed: false };
   } catch (err) {
+    captureException(err, { tag: 'deleteAccount.catastrophic' });
     return {
       ok: false,
       error: err instanceof Error ? err.message : String(err),

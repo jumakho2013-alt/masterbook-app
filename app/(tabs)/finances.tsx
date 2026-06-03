@@ -56,7 +56,7 @@ const periodLabels: Record<Period, string> = {
   month: 'Месяц',
 };
 
-export default function FinancesScreen() {
+function FinancesScreen() {
   const { colors, typography: typo, spacing: sp, borderRadius: br } = useTheme();
   const bottomOffset = useTabBarOffset(0);
   const [period, setPeriod] = useState<Period>('month');
@@ -277,7 +277,7 @@ export default function FinancesScreen() {
                   <Text style={[typo.small, { color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5 }]}>
                     Популярная услуга
                   </Text>
-                  <Text style={[typo.bodyBold, { color: colors.text, marginTop: 2 }]}>
+                  <Text style={[typo.bodyBold, { color: colors.text, marginTop: 2 }]} numberOfLines={1}>
                     {analytics.popularService.service.name}
                   </Text>
                 </View>
@@ -408,3 +408,13 @@ const styles = StyleSheet.create({
     gap: 2,
   },
 });
+
+// --- Tab-level Error Boundary wrapper ---
+import { TabErrorBoundary } from '@/src/components/TabErrorBoundary';
+export default function FinancesScreenWithBoundary() {
+  return (
+    <TabErrorBoundary tabName="finances">
+      <FinancesScreen />
+    </TabErrorBoundary>
+  );
+}

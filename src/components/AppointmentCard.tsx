@@ -93,7 +93,7 @@ export const AppointmentCard = React.memo(function AppointmentCard({
         </View>
 
         {/* Service name */}
-        <Text style={[typo.bodyBold, { color: colors.text, marginTop: 4 }]}>
+        <Text style={[typo.bodyBold, { color: colors.text, marginTop: 4 }]} numberOfLines={1}>
           {service?.name ?? 'Услуга'}
         </Text>
 

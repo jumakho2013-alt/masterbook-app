@@ -55,6 +55,7 @@ export function ServiceChip({ service, selected = false, onPress }: ServiceChipP
             typo.bodyBold,
             { color: selected ? service.color : colors.text },
           ]}
+          numberOfLines={1}
         >
           {service.name}
         </Text>

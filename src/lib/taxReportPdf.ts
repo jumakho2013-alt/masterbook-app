@@ -6,6 +6,7 @@ import { useClientStore } from '@/src/stores/useClientStore';
 import { useServiceStore } from '@/src/stores/useServiceStore';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { formatCurrency } from '@/src/utils/currency';
+import { captureException } from '@/src/lib/crashReporter';
 
 /**
  * Налоговый PDF-отчёт для самозанятого (НПД 4%).
@@ -302,6 +303,7 @@ export async function generateAndShareTaxReport(
     });
     return { ok: true, uri };
   } catch (err) {
+    captureException(err, { tag: 'taxReportPdf' });
     return {
       ok: false,
       error: err instanceof Error ? err.message : String(err),

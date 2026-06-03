@@ -50,7 +50,7 @@ export default function AppointmentDetailScreen() {
   const services = useServiceStore((s) => s.services);
   const workHours = useSettingsStore((s) => s.workHours);
 
-  const { alertConfig, success, confirm } = useAlert();
+  const { alertConfig, success, confirm, error: showError } = useAlert();
   const toast = useToast();
 
   const appointment = allAppointments.find((a) => a.id === id);
@@ -123,17 +123,36 @@ export default function AppointmentDetailScreen() {
   };
 
   const handleAddPhoto = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      quality: 0.8,
-      allowsMultipleSelection: true,
-      selectionLimit: 5,
-    });
-    if (!result.canceled && result.assets.length > 0) {
-      const newUris = result.assets.map((a) => a.uri);
-      const existing = appointment.photos ?? [];
-      updateAppointment(appointment.id, { photos: [...existing, ...newUris] });
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    // Permission check ДО открытия пикера. Если юзер уже отказал — Android
+    // сразу вернёт denied, iOS покажет нативный rationale один раз.
+    // Без явной проверки launchImageLibraryAsync молча возвращает canceled,
+    // и пользователь думает «не работает».
+    const perm = await ImagePicker.getMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      const req = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!req.granted) {
+        showError(
+          'Нужен доступ к фото',
+          'Включи доступ к галерее в Настройках → MasterBook → Фото. Без него нельзя прикрепить фото к записи.',
+        );
+        return;
+      }
+    }
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        quality: 0.8,
+        allowsMultipleSelection: true,
+        selectionLimit: 5,
+      });
+      if (!result.canceled && result.assets.length > 0) {
+        const newUris = result.assets.map((a) => a.uri);
+        const existing = appointment.photos ?? [];
+        updateAppointment(appointment.id, { photos: [...existing, ...newUris] });
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    } catch (err) {
+      showError('Не удалось открыть галерею', err instanceof Error ? err.message : String(err));
     }
   };
 

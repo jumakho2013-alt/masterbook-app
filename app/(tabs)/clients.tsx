@@ -26,7 +26,7 @@ const SORT_LABELS: Record<SortBy, string> = {
   debt: 'Долг',
 };
 
-export default function ClientsScreen() {
+function ClientsScreen() {
   const router = useRouter();
   const { colors, typography: typo, spacing: sp, borderRadius: br } = useTheme();
   const fabOffset = useTabBarOffset(16);
@@ -305,3 +305,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 });
+
+// --- Tab-level Error Boundary wrapper ---
+import { TabErrorBoundary } from '@/src/components/TabErrorBoundary';
+export default function ClientsScreenWithBoundary() {
+  return (
+    <TabErrorBoundary tabName="clients">
+      <ClientsScreen />
+    </TabErrorBoundary>
+  );
+}

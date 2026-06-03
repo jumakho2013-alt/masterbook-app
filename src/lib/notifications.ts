@@ -1,6 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
+import { captureException } from '@/src/lib/crashReporter';
 
 // Настройка отображения уведомлений когда приложение открыто
 Notifications.setNotificationHandler({
@@ -13,10 +14,40 @@ Notifications.setNotificationHandler({
   }),
 });
 
+/** Текущий статус permission'а на нотификации. Используется UI для решения
+ *  показывать ли подсказку «включи в настройках». */
+export type NotificationPermissionStatus = 'granted' | 'denied' | 'undetermined' | 'simulator';
+
+let cachedStatus: NotificationPermissionStatus | null = null;
+
+export async function getNotificationPermissionStatus(): Promise<NotificationPermissionStatus> {
+  if (cachedStatus) return cachedStatus;
+  if (!Device.isDevice) {
+    cachedStatus = 'simulator';
+    return cachedStatus;
+  }
+  try {
+    const { status } = await Notifications.getPermissionsAsync();
+    cachedStatus = status === 'granted' ? 'granted' : status === 'denied' ? 'denied' : 'undetermined';
+    return cachedStatus;
+  } catch (err) {
+    captureException(err, { tag: 'notifications.getPermissionStatus' });
+    return 'undetermined';
+  }
+}
+
+/** Сбросить кэш — нужно после того как юзер открыл системные настройки и
+ *  переключил permission. Иначе мы будем продолжать показывать
+ *  «выключено» хотя уже granted. */
+export function invalidateNotificationPermissionCache() {
+  cachedStatus = null;
+}
+
 // Запрос разрешений для локальных уведомлений
 export async function registerForPushNotifications(): Promise<boolean> {
   try {
     if (!Device.isDevice) {
+      cachedStatus = 'simulator';
       return false;
     }
 
@@ -27,6 +58,8 @@ export async function registerForPushNotifications(): Promise<boolean> {
       const { status } = await Notifications.requestPermissionsAsync();
       finalStatus = status;
     }
+
+    cachedStatus = finalStatus === 'granted' ? 'granted' : 'denied';
 
     if (finalStatus !== 'granted') {
       return false;
@@ -45,7 +78,7 @@ export async function registerForPushNotifications(): Promise<boolean> {
 
     return true;
   } catch (err) {
-    console.warn('Notifications setup failed:', err);
+    captureException(err, { tag: 'notifications.register' });
     return false;
   }
 }
