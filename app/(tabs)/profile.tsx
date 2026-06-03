@@ -35,6 +35,7 @@ import {
   cancelDailyClientReminderPrompt,
 } from '@/src/lib/notifications';
 import { useAlert } from '@/src/hooks/useAlert';
+import { useT } from '@/src/hooks/useT';
 import { useAuthStore } from '@/src/stores/useAuthStore';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { SUPPORTED_CURRENCIES } from '@/src/utils/currency';
@@ -109,6 +110,7 @@ function ProfileScreen() {
   const resetServices = useServiceStore((s) => s.reset);
 
   const { alertConfig, info, confirm } = useAlert();
+  const tr = useT();
 
   const clients = useClientStore((s) => s.clients);
   const appointments = useAppointmentStore((s) => s.appointments);
@@ -129,17 +131,17 @@ function ProfileScreen() {
     setTheme(next);
   };
 
-  const themeLabel = theme === 'light' ? 'Светлая' : theme === 'dark' ? 'Тёмная' : 'Системная';
+  const themeLabel = theme === 'light' ? tr('profile.themeLight') : theme === 'dark' ? tr('profile.themeDark') : tr('profile.themeSystem');
   const language = useSettingsStore((s) => s.language);
-  const languageLabel = language === 'ru' ? 'Русский' : language === 'en' ? 'English' : 'Системный';
+  const languageLabel = language === 'ru' ? tr('profile.langRu') : language === 'en' ? tr('profile.langEn') : tr('profile.langSystem');
 
   const localOnly = useAuthStore((s) => s.localOnlyMode);
   const userId = useAuthStore((s) => s.user?.id ?? null);
 
   const handleSignOut = () => {
     confirm(
-      'Выйти из аккаунта?',
-      'Данные на этом устройстве будут стёрты, но останутся в облаке — при входе обратно они вернутся. Убедись, что в Профиле статус «Синхронизировано».',
+      tr('profile.signOutTitle'),
+      tr('profile.signOutBody'),
       async () => {
         // Перед стиранием локальных сторов дошлём незапушенные правки в облако.
         // Если сети нет — push провалится, и без предупреждения данные пропали
@@ -148,10 +150,10 @@ function ProfileScreen() {
           const res = await flushPush();
           if (!res.ok) {
             confirm(
-              'Нет связи с облаком',
-              'Последние изменения не удалось сохранить в облако. Если выйти сейчас — они пропадут. Выйти всё равно?',
+              tr('profile.noCloudTitle'),
+              tr('profile.noCloudBody'),
               () => signOut(),
-              'Выйти без сохранения',
+              tr('profile.signOutAnyway'),
               true,
             );
             return;
@@ -159,7 +161,7 @@ function ProfileScreen() {
         }
         signOut();
       },
-      'Выйти',
+      tr('profile.signOutConfirm'),
       true,
     );
   };
@@ -173,24 +175,18 @@ function ProfileScreen() {
     // Включаем: нужны разрешения на уведомления.
     const granted = await registerForPushNotifications();
     if (!granted) {
-      info(
-        'Нужны уведомления',
-        'Чтобы напоминать о завтрашних клиентах, разрешите уведомления в настройках телефона.',
-      );
+      info(tr('profile.remindersNeedTitle'), tr('profile.remindersNeedBody'));
       return;
     }
     setAutoClientReminders(true);
     await scheduleDailyClientReminderPrompt();
-    info(
-      'Готово',
-      'Каждый вечер в 19:00 напомню разослать сообщения завтрашним клиентам. Тексты будут уже готовы.',
-    );
+    info(tr('profile.remindersDoneTitle'), tr('profile.remindersDoneBody'));
   };
 
   const handleReset = () => {
     confirm(
-      'Сменить профессию?',
-      'Список твоих услуг будет очищен — для новой профессии подгрузятся свои шаблоны. Клиенты, записи и финансы останутся на месте.',
+      tr('profile.changeProfTitle'),
+      tr('profile.changeProfBody'),
       () => {
         // Сбрасываем услуги (они были под старую профессию) и состояние
         // онбординга. session/localOnlyMode НЕ трогаем — юзер остаётся
@@ -199,7 +195,7 @@ function ProfileScreen() {
         restartOnboarding();
         router.replace('/(auth)/profession');
       },
-      'Сменить',
+      tr('profile.changeProfConfirm'),
       true,
     );
   };
@@ -208,7 +204,7 @@ function ProfileScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]} edges={['top']}>
       <ScrollView contentContainerStyle={{ paddingBottom: bottomOffset + 24 }} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Text style={[typo.h2, { color: colors.text }]}>Профиль</Text>
+          <Text style={[typo.h2, { color: colors.text }]}>{tr('profile.title')}</Text>
         </View>
 
         {/* Profile card — MasterBook logo вместо случайного яркого аватара.
@@ -219,10 +215,10 @@ function ProfileScreen() {
             <MasterBookLogo size={64} />
             <View style={{ marginLeft: sp.md, flex: 1 }}>
               <Text style={[typo.h3, { color: colors.text }]}>
-                {masterName || 'Мастер'}
+                {masterName || tr('profile.masterFallback')}
               </Text>
               <Text style={[typo.caption, { color: colors.textSecondary, marginTop: 2 }]}>
-                {spec?.name ?? 'Специализация'}
+                {spec?.name ?? tr('profile.specFallback')}
               </Text>
             </View>
           </GlassCard>
@@ -232,82 +228,82 @@ function ProfileScreen() {
         <View style={[styles.compactStatsRow, { paddingHorizontal: 16, marginBottom: sp.lg }]}>
           <View style={styles.compactStat}>
             <Text style={[typo.h3, { color: colors.text }]}>{stats.totalClients}</Text>
-            <Text style={[typo.small, { color: colors.textSecondary }]}>клиентов</Text>
+            <Text style={[typo.small, { color: colors.textSecondary }]}>{tr('profile.statClients')}</Text>
           </View>
           <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
           <View style={styles.compactStat}>
             <Text style={[typo.h3, { color: colors.text }]}>{stats.totalAppointments}</Text>
-            <Text style={[typo.small, { color: colors.textSecondary }]}>визитов</Text>
+            <Text style={[typo.small, { color: colors.textSecondary }]}>{tr('profile.statVisits')}</Text>
           </View>
           <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
           <View style={styles.compactStat}>
             <Text style={[typo.h3, { color: colors.text }]}>{formatCurrency(stats.totalIncome)}</Text>
-            <Text style={[typo.small, { color: colors.textSecondary }]}>заработано</Text>
+            <Text style={[typo.small, { color: colors.textSecondary }]}>{tr('profile.statEarned')}</Text>
           </View>
         </View>
 
         {/* === Раздел: ОБЛАКО === */}
-        <SectionLabel title="Облако" />
+        <SectionLabel title={tr('profile.sectionCloud')} />
         <View style={{ paddingHorizontal: 16, marginBottom: sp.md }}>
           <SyncStatusCard />
         </View>
 
         {/* === Раздел: БИЗНЕС === */}
-        <SectionLabel title="Бизнес" />
+        <SectionLabel title={tr('profile.sectionBusiness')} />
         <View style={{ paddingHorizontal: 16, marginBottom: sp.md }}>
           <GlassCard style={{ padding: 0 }}>
             <MenuItem
               icon={<TrendingUp size={20} color={colors.primary} />}
-              label="Аналитика"
-              subtitle="Выручка, новые клиенты, лучший день"
+              label={tr('profile.analytics')}
+              subtitle={tr('profile.analyticsSub')}
               onPress={() => router.push('/insights')}
             />
             <Divider style={{ marginVertical: 0, marginLeft: 52 }} />
             <MenuItem
               icon={<Scissors size={20} color={colors.primary} />}
-              label="Мои услуги"
-              subtitle={`${stats.totalClients > 0 ? 'Прайс-лист и длительности' : 'Создай свой прайс'}`}
+              label={tr('profile.myServices')}
+              subtitle={stats.totalClients > 0 ? tr('profile.myServicesSubHas') : tr('profile.myServicesSubEmpty')}
               onPress={() => router.push('/services/manage')}
             />
             <Divider style={{ marginVertical: 0, marginLeft: 52 }} />
             <MenuItem
               icon={<Clock size={20} color={colors.primary} />}
-              label="Рабочее время"
+              label={tr('profile.workHours')}
               onPress={() => router.push('/settings/work-hours')}
             />
             <Divider style={{ marginVertical: 0, marginLeft: 52 }} />
             <MenuItem
               icon={<Banknote size={20} color={colors.primary} />}
-              label="Валюта"
+              label={tr('profile.currency')}
               subtitle={currencyMeta ? `${currencyMeta.name} (${currencyMeta.symbol})` : currency}
               onPress={() => router.push('/settings/currency')}
             />
             <Divider style={{ marginVertical: 0, marginLeft: 52 }} />
             <MenuItem
               icon={<Star size={20} color={colors.primary} />}
-              label="Ссылка для отзывов"
-              subtitle="Yandex Maps / 2GIS — клиенту после визита"
+              label={tr('profile.reviewLink')}
+              subtitle={tr('profile.reviewLinkSub')}
               onPress={() => router.push('/settings/review-link')}
             />
             <Divider style={{ marginVertical: 0, marginLeft: 52 }} />
             <MenuItem
               icon={<CalendarSync size={20} color={colors.primary} />}
-              label="Календарь устройства"
-              subtitle="Синхронизация с iPhone / Google Calendar"
+              label={tr('profile.calendarSync')}
+              subtitle={tr('profile.calendarSyncSub')}
               onPress={() => router.push('/settings/calendar-sync')}
             />
             <Divider style={{ marginVertical: 0, marginLeft: 52 }} />
             <MenuItem
               icon={<BellRing size={20} color={colors.primary} />}
-              label="Авто-напоминания клиентам"
-              subtitle={autoClientReminders ? 'Вкл — вечером покажу завтрашних' : 'Напоминать рассылать сообщения'}
+              label={tr('profile.autoReminders')}
+              subtitle={autoClientReminders ? tr('profile.autoRemindersOn') : tr('profile.autoRemindersOff')}
               onPress={handleToggleAutoReminders}
             />
           </GlassCard>
         </View>
 
         {/* === Раздел: ВНЕШНИЙ ВИД === */}
-        <SectionLabel title="Внешний вид" />
+        <SectionLabel title={tr('profile.sectionAppearance')} />
         <View style={{ paddingHorizontal: 16, marginBottom: sp.md }}>
           <GlassCard style={{ padding: 0 }}>
             <MenuItem
@@ -326,40 +322,40 @@ function ProfileScreen() {
             <Divider style={{ marginVertical: 0, marginLeft: 52 }} />
             <MenuItem
               icon={<Zap size={20} color={colors.primary} />}
-              label="Уменьшить эффекты"
-              subtitle={reduceEffects ? 'Включено — без размытия (быстрее)' : 'Размытие и эффекты включены'}
+              label={tr('profile.reduceEffectsLabel')}
+              subtitle={reduceEffects ? tr('profile.reduceEffectsOn') : tr('profile.reduceEffectsOff')}
               onPress={() => setReduceEffects(!reduceEffects)}
             />
           </GlassCard>
         </View>
 
         {/* === Раздел: АККАУНТ === */}
-        <SectionLabel title="Аккаунт" />
+        <SectionLabel title={tr('profile.sectionAccount')} />
         <View style={{ paddingHorizontal: 16, marginBottom: sp.md }}>
           <GlassCard style={{ padding: 0 }}>
             <MenuItem
               icon={<ShieldCheck size={20} color={colors.primary} />}
-              label="Безопасность и данные"
-              subtitle="Face ID, экспорт, удаление"
+              label={tr('profile.security')}
+              subtitle={tr('profile.securitySub')}
               onPress={() => router.push('/settings/account')}
             />
             <Divider style={{ marginVertical: 0, marginLeft: 52 }} />
             <MenuItem
               icon={<RefreshCw size={20} color={colors.textSecondary} />}
-              label="Сменить профессию"
+              label={tr('profile.changeProfession')}
               onPress={handleReset}
             />
             <Divider style={{ marginVertical: 0, marginLeft: 52 }} />
             <MenuItem
               icon={<Info size={20} color={colors.textSecondary} />}
-              label="О приложении"
+              label={tr('profile.about')}
               subtitle="v1.0.0"
-              onPress={() => info('MasterBook', 'Версия 1.0.0\n\nCRM для частных мастеров')}
+              onPress={() => info('MasterBook', tr('profile.aboutBody'))}
             />
             <Divider style={{ marginVertical: 0, marginLeft: 52 }} />
             <MenuItem
               icon={<LogOut size={20} color={colors.danger} />}
-              label="Выйти"
+              label={tr('profile.signOut')}
               onPress={handleSignOut}
             />
           </GlassCard>
