@@ -20,6 +20,7 @@ import {
   Banknote,
   Star,
   CalendarSync,
+  Languages,
 } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
 import { GlassCard, Avatar, Divider, CustomAlert } from '@/src/components/ui';
@@ -115,6 +116,8 @@ function ProfileScreen() {
   };
 
   const themeLabel = theme === 'light' ? 'Светлая' : theme === 'dark' ? 'Тёмная' : 'Системная';
+  const language = useSettingsStore((s) => s.language);
+  const languageLabel = language === 'ru' ? 'Русский' : language === 'en' ? 'English' : 'Системный';
 
   const handleSignOut = () => {
     confirm(
@@ -232,6 +235,13 @@ function ProfileScreen() {
               label="Тема"
               subtitle={themeLabel}
               onPress={toggleTheme}
+            />
+            <Divider style={{ marginVertical: 0, marginLeft: 52 }} />
+            <MenuItem
+              icon={<Languages size={20} color={colors.primary} />}
+              label="Язык"
+              subtitle={languageLabel}
+              onPress={() => router.push('/settings/language')}
             />
           </GlassCard>
         </View>

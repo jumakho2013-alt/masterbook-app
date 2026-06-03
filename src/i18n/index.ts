@@ -1,0 +1,53 @@
+/**
+ * i18n core — i18n-js + expo-localization.
+ *
+ * Архитектура:
+ *   - locales/ru.json и locales/en.json содержат все строки UI
+ *   - useT() hook возвращает t-function реактивную к смене language
+ *   - Language stored в useSettingsStore.language ('ru' | 'en' | 'system')
+ *   - При 'system' — берётся первый matched язык из getLocales() с fallback ru
+ *
+ * Migration plan:
+ *   - Существующие hardcoded строки остаются работать
+ *   - Новые компоненты используют useT()
+ *   - Постепенно мигрируем экраны (отдельный спринт)
+ */
+
+import { I18n } from 'i18n-js';
+import { getLocales } from 'expo-localization';
+import ruLocale from './locales/ru.json';
+import enLocale from './locales/en.json';
+
+export type AppLanguage = 'system' | 'ru' | 'en';
+
+const i18n = new I18n({
+  ru: ruLocale,
+  en: enLocale,
+});
+i18n.defaultLocale = 'ru';
+i18n.enableFallback = true;
+
+/** Резолвит финальный locale на основе настройки + system. */
+export function resolveLocale(setting: AppLanguage): 'ru' | 'en' {
+  if (setting === 'ru' || setting === 'en') return setting;
+  // system: получаем первый supported из system locales.
+  const sys = getLocales();
+  for (const l of sys) {
+    const code = (l.languageCode ?? '').toLowerCase();
+    if (code === 'ru' || code === 'en') return code as 'ru' | 'en';
+  }
+  return 'ru';
+}
+
+/** Применяет выбранный язык к i18n instance. Вызывается из useT и при
+ *  смене настройки. */
+export function applyLanguage(setting: AppLanguage) {
+  i18n.locale = resolveLocale(setting);
+}
+
+/** Прямая t-функция (вне React-контекста — для notification сообщений и т.п.) */
+export function t(key: string, options?: Record<string, string | number>): string {
+  return i18n.t(key, options);
+}
+
+export { i18n };

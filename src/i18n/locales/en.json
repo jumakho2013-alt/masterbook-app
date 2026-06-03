@@ -1,0 +1,90 @@
+{
+  "tabs": {
+    "today": "Today",
+    "calendar": "Calendar",
+    "clients": "Clients",
+    "finances": "Finances",
+    "profile": "Profile"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "back": "Back",
+    "done": "Done",
+    "loading": "Loading...",
+    "yes": "Yes",
+    "no": "No",
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "yesterday": "Yesterday"
+  },
+  "today": {
+    "title": "Today",
+    "forecastToday": "Today",
+    "forecastWeek": "This week",
+    "filterUpcoming": "Upcoming",
+    "filterCompleted": "Completed",
+    "filterAll": "All",
+    "tryWithSample": "Try with sample data",
+    "emptyTitle": "Your day will appear here",
+    "emptySubtitle": "Add your first client and appointment"
+  },
+  "calendar": {
+    "title": "Calendar",
+    "today": "Today",
+    "noAppointmentsThisDay": "No appointments this day"
+  },
+  "clients": {
+    "title": "Clients",
+    "addFirst": "Add your first client",
+    "noneFound": "Nobody found",
+    "searchPlaceholder": "Name or phone..."
+  },
+  "finances": {
+    "title": "Finances",
+    "income": "Income",
+    "expense": "Expense",
+    "net": "Net",
+    "avgCheck": "Avg ticket",
+    "hours": "Hours",
+    "transactions": "Transactions",
+    "topClients": "Top clients",
+    "popularService": "Popular service"
+  },
+  "profile": {
+    "title": "Profile",
+    "sectionBusiness": "Business",
+    "sectionAppearance": "Appearance",
+    "sectionAccount": "Account",
+    "myServices": "My services",
+    "workHours": "Work hours",
+    "currency": "Currency",
+    "reviewLink": "Review link",
+    "calendarSync": "Device calendar",
+    "theme": "Theme",
+    "security": "Security & data",
+    "changeProfession": "Change profession",
+    "about": "About",
+    "signOut": "Sign out",
+    "language": "Language"
+  },
+  "auth": {
+    "loginTitle": "Sign in",
+    "registerTitle": "Create account",
+    "email": "Email",
+    "password": "Password",
+    "name": "Your name",
+    "login": "Sign in",
+    "register": "Sign up",
+    "or": "or",
+    "startWithoutAccount": "Start without account",
+    "startWithoutAccountHint": "Data stays on your phone.\nYou can connect an account later.",
+    "forgotPassword": "Forgot password?",
+    "noAccount": "No account?",
+    "haveAccount": "Already have an account?",
+    "consentLabel": "I agree to the processing of personal data per the {policyLink}",
+    "privacyPolicy": "Privacy Policy"
+  }
+}

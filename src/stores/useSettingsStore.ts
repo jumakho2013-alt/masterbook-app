@@ -36,6 +36,8 @@ interface SettingsState {
   /** Синхронизация записей в системный календарь (iOS Calendar / Google).
    *  По умолчанию false — включается явно в settings. */
   calendarSyncEnabled: boolean;
+  /** Язык интерфейса: 'system' = автоматически по системе, иначе явно ru/en. */
+  language: 'system' | 'ru' | 'en';
 
   setTheme: (theme: ThemeSetting) => void;
   setWorkHours: (start: string, end: string) => void;
@@ -52,6 +54,7 @@ interface SettingsState {
   dismissChecklist: () => void;
   setReviewLinkUrl: (url: string | null) => void;
   setCalendarSyncEnabled: (enabled: boolean) => void;
+  setLanguage: (lang: 'system' | 'ru' | 'en') => void;
   /** Полный сброс к дефолтам (используется при signOut / deleteAccount).
    *  Сохраняет тему (UI preference) — это про устройство, не про аккаунт.
    *  Валюту тоже сохраняем — она привязана к региону, не к юзеру. */
@@ -87,6 +90,7 @@ export const useSettingsStore = create<SettingsState>()(
       checklistDismissedAt: null,
       reviewLinkUrl: null,
       calendarSyncEnabled: false,
+      language: 'system',
       ...defaultSettingsForAccount,
 
       setTheme: (theme) => set({ theme }),
@@ -105,6 +109,7 @@ export const useSettingsStore = create<SettingsState>()(
       dismissChecklist: () => set({ checklistDismissedAt: new Date().toISOString() }),
       setReviewLinkUrl: (url) => set({ reviewLinkUrl: url }),
       setCalendarSyncEnabled: (enabled) => set({ calendarSyncEnabled: enabled }),
+      setLanguage: (lang) => set({ language: lang }),
 
       reset: () =>
         set({

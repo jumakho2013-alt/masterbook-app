@@ -1,0 +1,90 @@
+{
+  "tabs": {
+    "today": "Сегодня",
+    "calendar": "Календарь",
+    "clients": "Клиенты",
+    "finances": "Финансы",
+    "profile": "Профиль"
+  },
+  "common": {
+    "save": "Сохранить",
+    "cancel": "Отмена",
+    "delete": "Удалить",
+    "edit": "Изменить",
+    "back": "Назад",
+    "done": "Готово",
+    "loading": "Загрузка...",
+    "yes": "Да",
+    "no": "Нет",
+    "today": "Сегодня",
+    "tomorrow": "Завтра",
+    "yesterday": "Вчера"
+  },
+  "today": {
+    "title": "Сегодня",
+    "forecastToday": "Сегодня",
+    "forecastWeek": "За неделю",
+    "filterUpcoming": "Предстоящие",
+    "filterCompleted": "Завершённые",
+    "filterAll": "Все",
+    "tryWithSample": "Попробовать с примером",
+    "emptyTitle": "Здесь будет твой день",
+    "emptySubtitle": "Добавь первого клиента и запись"
+  },
+  "calendar": {
+    "title": "Календарь",
+    "today": "Сегодня",
+    "noAppointmentsThisDay": "На этот день записей нет"
+  },
+  "clients": {
+    "title": "Клиенты",
+    "addFirst": "Добавьте первого клиента",
+    "noneFound": "Никого не нашли",
+    "searchPlaceholder": "Имя или телефон..."
+  },
+  "finances": {
+    "title": "Финансы",
+    "income": "Доход",
+    "expense": "Расход",
+    "net": "Чистыми",
+    "avgCheck": "Средний чек",
+    "hours": "Отработано",
+    "transactions": "Транзакции",
+    "topClients": "Топ клиенты",
+    "popularService": "Популярная услуга"
+  },
+  "profile": {
+    "title": "Профиль",
+    "sectionBusiness": "Бизнес",
+    "sectionAppearance": "Внешний вид",
+    "sectionAccount": "Аккаунт",
+    "myServices": "Мои услуги",
+    "workHours": "Рабочее время",
+    "currency": "Валюта",
+    "reviewLink": "Ссылка для отзывов",
+    "calendarSync": "Календарь устройства",
+    "theme": "Тема",
+    "security": "Безопасность и данные",
+    "changeProfession": "Сменить профессию",
+    "about": "О приложении",
+    "signOut": "Выйти",
+    "language": "Язык"
+  },
+  "auth": {
+    "loginTitle": "Войдите в аккаунт",
+    "registerTitle": "Создайте аккаунт",
+    "email": "Email",
+    "password": "Пароль",
+    "name": "Ваше имя",
+    "login": "Войти",
+    "register": "Зарегистрироваться",
+    "or": "или",
+    "startWithoutAccount": "Начать без аккаунта",
+    "startWithoutAccountHint": "Данные хранятся только на телефоне.\nМожно подключить аккаунт позже.",
+    "forgotPassword": "Забыли пароль?",
+    "noAccount": "Нет аккаунта?",
+    "haveAccount": "Уже есть аккаунт?",
+    "consentLabel": "Я согласен(а) на обработку персональных данных в соответствии с {policyLink}",
+    "privacyPolicy": "Политикой конфиденциальности"
+  }
+}
