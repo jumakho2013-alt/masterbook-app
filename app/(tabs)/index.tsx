@@ -304,6 +304,24 @@ function TodayScreen() {
             {/* Спящие клиенты — nudge-блок. Возвращает null если все
                 клиенты активны, поэтому не съедает место без причины. */}
             <SleepingClientsCard />
+
+            {/* Заголовок списка «на сегодня» с прогрессом проведённых —
+                делает Today читаемым как чеклист дня. */}
+            {(() => {
+              const todayAll = appointments.filter((a) => a.date === todayKey);
+              if (todayAll.length === 0) return null;
+              const done = todayAll.filter((a) => a.status === 'completed').length;
+              return (
+                <View style={styles.dayListHeader}>
+                  <Text style={[typo.bodyBold, { color: colors.text }]}>
+                    {filter === 'upcoming' ? 'Сегодня' : FILTER_LABELS[filter]}
+                  </Text>
+                  <Text style={[typo.caption, { color: colors.textSecondary }]}>
+                    {done} из {todayAll.length} проведено
+                  </Text>
+                </View>
+              );
+            })()}
           </>
         }
         ListEmptyComponent={
@@ -388,6 +406,13 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 16 },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  dayListHeader: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+    paddingHorizontal: 4,
+  },
   forecastInline: {
     flexDirection: 'row',
     alignItems: 'center',
