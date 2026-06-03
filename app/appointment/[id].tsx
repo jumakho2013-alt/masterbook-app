@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import {
   ArrowLeft, Clock, User, Scissors, CalendarPlus,
-  MoveRight, StickyNote, Check, X, CameraIcon, MessageCircle,
+  MoveRight, StickyNote, Check, X, CameraIcon, MessageCircle, Wallet,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
@@ -68,6 +68,8 @@ export default function AppointmentDetailScreen() {
   const [rescheduleTime, setRescheduleTime] = useState<string | null>(null);
   const [editingNotes, setEditingNotes] = useState(false);
   const [notes, setNotes] = useState(appointment?.notes ?? '');
+  const [editingDeposit, setEditingDeposit] = useState(false);
+  const [depositInput, setDepositInput] = useState(appointment?.deposit ? String(appointment.deposit) : '');
 
   if (!appointment) return null;
 
@@ -221,6 +223,23 @@ export default function AppointmentDetailScreen() {
     toast.success('Заметка сохранена');
   };
 
+  const handleSaveDeposit = () => {
+    const n = Number(depositInput.replace(',', '.'));
+    const valid = Number.isFinite(n) && n > 0;
+    updateAppointment(appointment.id, {
+      deposit: valid ? n : undefined,
+      // снимаем «внесён» если депозит обнулили
+      depositPaid: valid ? appointment.depositPaid : false,
+    });
+    setEditingDeposit(false);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  const toggleDepositPaid = () => {
+    updateAppointment(appointment.id, { depositPaid: !appointment.depositPaid });
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
   // Sheet с выбором канала. Показывается тапом «Напомнить клиенту».
   const [reminderSheetOpen, setReminderSheetOpen] = useState(false);
   const masterName = useSettingsStore((s) => s.masterName);
@@ -296,6 +315,63 @@ export default function AppointmentDetailScreen() {
             <Text style={[typo.h3, { color: colors.primary }]}>{formatCurrency(appointment.price)}</Text>
           </View>
         </GlassCard>
+
+        {/* === ПРЕДОПЛАТА / ДЕПОЗИТ === (минус №4: снижает no-show) */}
+        <Animated.View entering={FadeInDown.delay(80)}>
+          <View style={[styles.sectionHeader, { marginTop: sp.lg }]}>
+            <Wallet size={18} color={colors.textSecondary} />
+            <Text style={[typo.bodyBold, { color: colors.text, marginLeft: 8 }]}>Предоплата</Text>
+          </View>
+          {editingDeposit ? (
+            <GlassCard style={{ marginTop: sp.sm }}>
+              <TextInput
+                value={depositInput}
+                onChangeText={setDepositInput}
+                placeholder="Сумма депозита"
+                placeholderTextColor={colors.textTertiary}
+                keyboardType="numeric"
+                style={[typo.body, { color: colors.text }]}
+                autoFocus
+              />
+              <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+                <Button title="Сохранить" onPress={handleSaveDeposit} size="sm" style={{ flex: 1 }} />
+                <Button
+                  title="Отмена"
+                  onPress={() => { setEditingDeposit(false); setDepositInput(appointment.deposit ? String(appointment.deposit) : ''); }}
+                  variant="ghost"
+                  size="sm"
+                  style={{ flex: 1 }}
+                />
+              </View>
+            </GlassCard>
+          ) : appointment.deposit ? (
+            <GlassCard style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: sp.sm }}>
+              <Pressable onPress={() => setEditingDeposit(true)} hitSlop={8} style={{ flex: 1 }}>
+                <Text style={[typo.h3, { color: colors.text }]}>{formatCurrency(appointment.deposit)}</Text>
+                <Text style={[typo.small, { color: colors.textTertiary }]}>нажмите, чтобы изменить</Text>
+              </Pressable>
+              <Pressable
+                onPress={toggleDepositPaid}
+                accessibilityRole="button"
+                accessibilityLabel={appointment.depositPaid ? 'Депозит внесён' : 'Депозит ожидается'}
+              >
+                <Badge
+                  label={appointment.depositPaid ? '✓ Внесён' : 'Ожидается'}
+                  color={appointment.depositPaid ? colors.success : colors.warning}
+                />
+              </Pressable>
+            </GlassCard>
+          ) : (
+            <Pressable
+              onPress={() => setEditingDeposit(true)}
+              style={[styles.notesBox, { backgroundColor: colors.surfaceElevated, borderRadius: br.md, marginTop: sp.sm }]}
+            >
+              <Text style={[typo.body, { color: colors.textTertiary }]}>
+                + Добавить предоплату (снижает риск неявки)
+              </Text>
+            </Pressable>
+          )}
+        </Animated.View>
 
         {/* === NOTES SECTION === */}
         <Animated.View entering={FadeInDown.delay(100)}>

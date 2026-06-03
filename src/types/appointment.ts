@@ -13,6 +13,11 @@ export interface Appointment {
   endTime: string; // "15:30"
   status: AppointmentStatus;
   price: number;
+  /** Предоплата/депозит за запись (сумма). undefined = не запрашивался.
+   *  Списание с карты — отдельная фича (ЮKassa/СБП); пока ручной учёт. */
+  deposit?: number;
+  /** Депозит фактически получен (нал/перевод). Снижает риск no-show. */
+  depositPaid?: boolean;
   notes?: string;
   address?: string;
   photos?: string[]; // URI локальных фото
