@@ -28,13 +28,20 @@ xcrun simctl openurl booted "exp://127.0.0.1:8081"  # запуск в симул
 
 ## Ключевые документы
 
+### Релиз / store compliance
 - [`docs/`](./docs/) — сайт на GitHub Pages (privacy, support, landing)
 - [`docs/SUPABASE_SETUP.md`](./docs/SUPABASE_SETUP.md) — настройка Supabase пошагово
 - [`docs/DATA_SAFETY.md`](./docs/DATA_SAFETY.md) — готовые ответы на Google Play Data Safety form
-- [`docs/APP_STORE_METADATA.md`](./docs/APP_STORE_METADATA.md) — метадата для App Store Connect
+- [`docs/APP_STORE_METADATA.md`](./docs/APP_STORE_METADATA.md) — метадата для App Store Connect + инструкция по настройке `eas submit`
+- [`docs/ANDROID_PERMISSIONS.md`](./docs/ANDROID_PERMISSIONS.md) — обоснования permissions для Play Console (SCHEDULE_EXACT_ALARM и др.)
 - [`docs/SCREENSHOTS.md`](./docs/SCREENSHOTS.md) — инструкция по снятию скриншотов
 - [`PRIVACY_POLICY.md`](./PRIVACY_POLICY.md) — политика конфиденциальности (каноническая версия на GitHub Pages)
 - [`supabase-schema.sql`](./supabase-schema.sql) — SQL схема БД + RLS + delete_user RPC
+
+### Стратегия и дорожная карта (июнь 2026)
+- [`docs/CHANGELOG-2026-06.md`](./docs/CHANGELOG-2026-06.md) — что сделано в релизном спринте + что отложено + 7 следующих шагов
+- [`docs/growth-analysis-2026-06/PLAN.md`](./docs/growth-analysis-2026-06/PLAN.md) — план роста v1: что критично починить, позиционирование, конкуренты, монетизация, GTM
+- [`docs/value-uplift-2026-06/PLAN-V2.md`](./docs/value-uplift-2026-06/PLAN-V2.md) — план v2: универсализация под все профессии, custom fields, value-uplift до 299₽/мес
 
 ## Архитектура
 
@@ -75,23 +82,29 @@ GitHub Actions:
 ## Что сейчас работает / что нет
 
 ### ✅ Работает
-- Auth (Email + Apple Sign-In на iOS)
+- Auth (Email + Apple Sign-In на iOS) с 152-ФЗ согласием на signup
 - Календарь с напоминаниями за час до записи
 - Zod-валидация форм
-- Face ID / Touch ID защита (Профиль → Безопасность и данные)
-- Экспорт JSON
-- Удаление аккаунта (in-app + Supabase RPC)
+- Face ID / Touch ID защита (Профиль → Безопасность и данные) с guard от race-condition
+- **Экспорт JSON + Tax PDF для самозанятых** (НПД 4% индикативно)
+- Удаление аккаунта (in-app + Supabase RPC) с честной обработкой ошибки сервера
+- **Wipe всех бизнес-сторов на signOut / deleteAccount** (защита от cross-account contamination)
+- **Мультивалютность**: 8 валют (RUB default, KZT, UAH, BYN, USD, EUR, GEL, TRY)
 - Error Boundary с диагностикой и копированием stack trace
 - Rate limiting для auth (5 попыток / 10 мин → cooldown 15с→30с→60с)
 - Темная/светлая тема, русская локализация
+- 102 unit-теста, TypeScript clean, expo-doctor предупреждения только pre-existing
 
-### 🚧 В очереди
+### 🚧 В очереди (см. [`docs/CHANGELOG-2026-06.md`](./docs/CHANGELOG-2026-06.md) §«Следующие 7 шагов»)
 - Синхронизация с Supabase (сейчас Zustand + AsyncStorage только локально)
 - Offline-queue для операций когда сеть вернётся
 - Push-уведомления remote (сейчас только local)
+- Sentry / crash reporter
+- Онлайн-запись для клиентов (публичная web-страница мастера)
+- IAP / RuStore Billing (текущий free-only, упоминания цены убраны)
+- Profession packs (универсализация под любые профессии — см. PLAN-V2.md)
 - iOS 17+ Home Screen Widget
-- Онлайн-запись для клиентов (web-страница мастера)
-- Экспорт в PDF
+- Sleeping-clients widget с WhatsApp-draft
 
 ## Лицензия
 
