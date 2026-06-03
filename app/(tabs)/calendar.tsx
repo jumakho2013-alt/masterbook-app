@@ -6,14 +6,16 @@ import Animated, { FadeIn } from 'react-native-reanimated';
 import { useTheme } from '@/src/theme';
 import { AppointmentCard } from '@/src/components/AppointmentCard';
 import { EmptyState } from '@/src/components/ui';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, LayoutGrid, CalendarDays } from 'lucide-react-native';
+import { DayView } from '@/src/components/CalendarDayView';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, LayoutGrid, CalendarDays, Clock } from 'lucide-react-native';
 import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useClientStore } from '@/src/stores/useClientStore';
 import { useServiceStore } from '@/src/stores/useServiceStore';
 import { useTabBarOffset } from '@/src/hooks/useTabBarOffset';
 import { toDateKey, getDayOfWeekShort, getDayNumber, getMonthName } from '@/src/utils/date';
 
-type ViewMode = 'week' | 'month';
+type ViewMode = 'day' | 'week' | 'month';
+
 
 function getWeekDays(centerDate: Date): Date[] {
   const days: Date[] = [];
@@ -149,10 +151,17 @@ function CalendarScreen() {
             </Text>
           </Pressable>
           <Pressable
-            onPress={() => setViewMode(viewMode === 'week' ? 'month' : 'week')}
+            onPress={() => {
+              // Цикл: day → week → month → day
+              setViewMode((m) => (m === 'day' ? 'week' : m === 'week' ? 'month' : 'day'));
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={`Режим: ${viewMode === 'day' ? 'день' : viewMode === 'week' ? 'неделя' : 'месяц'}`}
             style={[styles.modeBtn, { backgroundColor: colors.surfaceElevated, borderRadius: br.sm }]}
           >
-            {viewMode === 'week' ? (
+            {viewMode === 'day' ? (
+              <Clock size={16} color={colors.textSecondary} />
+            ) : viewMode === 'week' ? (
               <LayoutGrid size={16} color={colors.textSecondary} />
             ) : (
               <CalendarDays size={16} color={colors.textSecondary} />
@@ -161,7 +170,23 @@ function CalendarScreen() {
         </View>
       </View>
 
-      {viewMode === 'week' ? (
+      {viewMode === 'day' ? (
+        <DayView
+          appointments={appointments}
+          selectedDate={selectedDate}
+          getClient={getClient}
+          getService={getService}
+          onPressEmpty={(hour) => {
+            // тап на пустой час — создать новую запись (тип «modal»)
+            router.push({
+              pathname: '/appointment/new',
+              params: { startHour: String(hour) },
+            });
+          }}
+          onPressAppt={(aptId) => router.push(`/appointment/${aptId}`)}
+          bottomOffset={bottomOffset}
+        />
+      ) : viewMode === 'week' ? (
         <Animated.View entering={FadeIn.duration(200)}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.weekStrip}>
             {weekDays.map((day) => {
