@@ -21,6 +21,7 @@ import { formatCurrency } from '@/src/utils/currency';
 import { nowMinutesOfDay, timeToMinutes } from '@/src/utils/time';
 import { seedSampleData } from '@/src/lib/sampleData';
 import { useProfessionPack } from '@/src/hooks/useProfessionPack';
+import { useT } from '@/src/hooks/useT';
 import { useFinanceStore } from '@/src/stores/useFinanceStore';
 import { syncDeleteEvent } from '@/src/lib/calendarSync';
 import type { Appointment } from '@/src/types';
@@ -37,10 +38,11 @@ function plural(n: number, one: string, few: string, many: string): string {
 
 type Filter = 'upcoming' | 'completed' | 'all';
 
-const FILTER_LABELS: Record<Filter, string> = {
-  upcoming: 'Предстоящие',
-  completed: 'Завершённые',
-  all: 'Все',
+// i18n-ключи фильтров (резолвятся в рендере через useT).
+const FILTER_KEYS: Record<Filter, string> = {
+  upcoming: 'today.filterUpcoming',
+  completed: 'today.filterCompleted',
+  all: 'today.filterAll',
 };
 
 function TodayScreen() {
@@ -58,6 +60,7 @@ function TodayScreen() {
   const demoDataSeededAt = useSettingsStore((s) => s.demoDataSeededAt);
   const toast = useToast();
   const { pack } = useProfessionPack();
+  const tr = useT();
 
   // Полностью пустое состояние: ни клиентов, ни услуг, ни записей — самый
   // первый запуск после онбординга, либо user только что почистил всё.
@@ -66,9 +69,9 @@ function TodayScreen() {
 
   const onTrySample = useCallback(() => {
     const ok = seedSampleData();
-    if (ok) toast.success('Пример загружен — потом можно очистить в настройках');
-    else toast.error('Похоже у тебя уже есть данные');
-  }, [toast]);
+    if (ok) toast.success(tr('today.sampleLoaded'));
+    else toast.error(tr('today.sampleHasData'));
+  }, [toast, tr]);
 
   // Quick-complete: тап на ✓ в карточке → запись становится «проведено»,
   // доход автоматически записан в финансы, toast подтверждает.
@@ -94,9 +97,9 @@ function TodayScreen() {
           appointmentId: appt.id,
         });
       }
-      toast.success(`Проведено · +${formatCurrency(appt.price)}`);
+      toast.success(tr('today.completedToast', { amount: formatCurrency(appt.price) }));
     },
-    [setApptStatus, addFinanceEntry, clients, services, toast],
+    [setApptStatus, addFinanceEntry, clients, services, toast, tr],
   );
 
   const todayKey = toDateKey(new Date());
@@ -162,7 +165,7 @@ function TodayScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]} edges={['top']}>
       <View style={[styles.header, styles.headerRow]}>
         <View style={{ flex: 1 }}>
-          <Text style={[typo.h1, { color: colors.text }]}>Сегодня</Text>
+          <Text style={[typo.h1, { color: colors.text }]}>{tr('today.title')}</Text>
           <Text style={[typo.body, { color: colors.textSecondary, marginTop: 2, textTransform: 'capitalize' }]}>
             {formatDateFull(new Date())}
           </Text>
@@ -193,7 +196,7 @@ function TodayScreen() {
                 <GlassCard style={styles.forecastInline}>
                   <View style={styles.forecastSegment}>
                     <Text style={[typo.small, { color: colors.textTertiary, textTransform: 'uppercase', letterSpacing: 0.6 }]}>
-                      Сегодня
+                      {tr('today.forecastToday')}
                     </Text>
                     <CountUp
                       value={forecast.todayIncome}
@@ -201,13 +204,13 @@ function TodayScreen() {
                       formatter={(n) => formatCurrency(Math.round(n))}
                     />
                     <Text style={[typo.small, { color: colors.textSecondary, marginTop: 2 }]}>
-                      {forecast.todayCount} {plural(forecast.todayCount, 'запись', 'записи', 'записей')}
+                      {forecast.todayCount} {plural(forecast.todayCount, tr('today.recOne'), tr('today.recFew'), tr('today.recMany'))}
                     </Text>
                   </View>
                   <View style={[styles.forecastDivider, { backgroundColor: colors.border }]} />
                   <View style={styles.forecastSegment}>
                     <Text style={[typo.small, { color: colors.textTertiary, textTransform: 'uppercase', letterSpacing: 0.6 }]}>
-                      За неделю
+                      {tr('today.forecastWeek')}
                     </Text>
                     <CountUp
                       value={forecast.weekIncome}
@@ -215,7 +218,7 @@ function TodayScreen() {
                       formatter={(n) => formatCurrency(Math.round(n))}
                     />
                     <Text style={[typo.small, { color: colors.textSecondary, marginTop: 2 }]}>
-                      {forecast.weekCount} {plural(forecast.weekCount, 'запись', 'записи', 'записей')}
+                      {forecast.weekCount} {plural(forecast.weekCount, tr('today.recOne'), tr('today.recFew'), tr('today.recMany'))}
                     </Text>
                   </View>
                 </GlassCard>
@@ -228,7 +231,7 @@ function TodayScreen() {
                 <Pressable
                   onPress={() => router.push(`/appointment/${currentAppointment.id}`)}
                   accessibilityRole="button"
-                  accessibilityLabel={`Сейчас идёт: ${currentClient.name}, ${currentService.name}`}
+                  accessibilityLabel={tr('today.nowOngoingA11y', { client: currentClient.name, service: currentService.name })}
                 >
                   <LiquidGlass
                     variant="floating"
@@ -242,7 +245,7 @@ function TodayScreen() {
                     </View>
                     <View style={{ flex: 1, marginLeft: 12 }}>
                       <Text style={[typo.small, { color: colors.white, opacity: 0.85, textTransform: 'uppercase', letterSpacing: 0.5 }]}>
-                        Сейчас идёт
+                        {tr('today.nowOngoing')}
                       </Text>
                       <Text style={[typo.bodyBold, { color: colors.white, marginTop: 2 }]}>
                         {currentClient.name} — {currentService.name}
@@ -264,14 +267,14 @@ function TodayScreen() {
               if (!shouldShowFilters) return null;
               return (
                 <View style={[styles.filterRow, { marginBottom: sp.md }]}>
-                  {(Object.keys(FILTER_LABELS) as Filter[]).map((key) => {
+                  {(Object.keys(FILTER_KEYS) as Filter[]).map((key) => {
                     const active = filter === key;
                     return (
                       <Pressable
                         key={key}
                         onPress={() => setFilter(key)}
                         accessibilityRole="button"
-                        accessibilityLabel={`Фильтр: ${FILTER_LABELS[key]}`}
+                        accessibilityLabel={tr('today.filterA11y', { label: tr(FILTER_KEYS[key]) })}
                         accessibilityState={{ selected: active }}
                         hitSlop={{ top: 6, bottom: 6 }}
                         style={[
@@ -288,7 +291,7 @@ function TodayScreen() {
                             { color: active ? colors.white : colors.textSecondary },
                           ]}
                         >
-                          {FILTER_LABELS[key]}
+                          {tr(FILTER_KEYS[key])}
                         </Text>
                       </Pressable>
                     );
@@ -314,10 +317,10 @@ function TodayScreen() {
               return (
                 <View style={styles.dayListHeader}>
                   <Text style={[typo.bodyBold, { color: colors.text }]}>
-                    {filter === 'upcoming' ? 'Сегодня' : FILTER_LABELS[filter]}
+                    {filter === 'upcoming' ? tr('today.title') : tr(FILTER_KEYS[filter])}
                   </Text>
                   <Text style={[typo.caption, { color: colors.textSecondary }]}>
-                    {done} из {todayAll.length} проведено
+                    {tr('today.doneOfCount', { done, total: todayAll.length })}
                   </Text>
                 </View>
               );
@@ -332,14 +335,11 @@ function TodayScreen() {
             <View style={{ paddingHorizontal: 16 }}>
               <EmptyState
                 icon={<CalendarCheck size={48} color={colors.textTertiary} />}
-                title={pack.emptyStates.today?.title ?? 'Здесь будет твой день'}
-                subtitle={
-                  pack.emptyStates.today?.subtitle ??
-                  'Добавь первого клиента и запись — или попробуй на примере.'
-                }
+                title={pack.emptyStates.today?.title ?? tr('today.emptyTitle')}
+                subtitle={pack.emptyStates.today?.subtitle ?? tr('today.emptySampleSubtitle')}
               />
               <Button
-                title="Попробовать с примером"
+                title={tr('today.tryWithSample')}
                 variant="primary"
                 onPress={onTrySample}
                 fullWidth
@@ -351,19 +351,19 @@ function TodayScreen() {
                   { color: colors.textTertiary, textAlign: 'center', marginTop: 8 },
                 ]}
               >
-                5 клиентов, 3 предстоящие записи, доходы за месяц.{'\n'}Очистить можно одной кнопкой в настройках.
+                {tr('today.sampleDetails')}
               </Text>
             </View>
           ) : (
             <EmptyState
               icon={<CalendarCheck size={48} color={colors.textTertiary} />}
-              title="Нет записей"
+              title={tr('today.noneTitle')}
               subtitle={
                 filter === 'upcoming'
-                  ? 'На сегодня записей нет. Нажмите + чтобы добавить.'
+                  ? tr('today.emptyUpcoming')
                   : filter === 'completed'
-                    ? 'Нет завершённых визитов за сегодня'
-                    : 'Пусто'
+                    ? tr('today.emptyCompleted')
+                    : tr('today.emptyAll')
               }
             />
           )
@@ -385,7 +385,7 @@ function TodayScreen() {
         onPress={() => router.push('/appointment/new')}
         activeOpacity={0.85}
         accessibilityRole="button"
-        accessibilityLabel="Новая запись"
+        accessibilityLabel={tr('today.newAppointment')}
         style={[styles.fabWrap, { bottom: fabOffset }]}
       >
         <LiquidGlass
