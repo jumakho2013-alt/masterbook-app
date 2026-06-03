@@ -14,6 +14,7 @@ import { ToastProvider } from '@/src/components/ui';
 import { BiometricGate } from '@/src/components/BiometricGate';
 import { RouterErrorBoundary } from '@/src/components/ErrorScreen';
 import { seedDevDataIfNeeded } from '@/src/lib/devSeed';
+import { AppBackground } from '@/src/components/AppBackground';
 import { initCrashReporter } from '@/src/lib/crashReporter';
 import { useNotificationDeepLink } from '@/src/hooks/useNotificationDeepLink';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -43,12 +44,13 @@ function RootInner() {
   useNotificationDeepLink();
 
   return (
-    <>
+    <AppBackground>
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: colors.background },
+          // Прозрачный — сквозь экраны виден корневой mesh-фон (glassmorphism).
+          contentStyle: { backgroundColor: 'transparent' },
           animation: 'fade',
         }}
       >
@@ -71,7 +73,7 @@ function RootInner() {
         <Stack.Screen name="finance/new" options={{ presentation: 'modal' }} />
         <Stack.Screen name="finance/report" />
       </Stack>
-    </>
+    </AppBackground>
   );
 }
 

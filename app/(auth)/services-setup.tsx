@@ -96,7 +96,7 @@ export default function ServicesSetupScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]}>
       <Animated.View entering={FadeInDown.duration(400)} style={styles.header}>
         <Text style={[typo.h2, { color: colors.text }]}>
           Ваши услуги

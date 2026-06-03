@@ -12,7 +12,7 @@ export default function WelcomeScreen() {
   const { colors, typography: typo, spacing: sp } = useTheme();
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]}>
       <View style={styles.content}>
         <Animated.View entering={FadeInDown.delay(200).duration(600)} style={styles.logoWrap}>
           <MasterBookLogo size={96} />

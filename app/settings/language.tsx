@@ -29,7 +29,7 @@ export default function LanguageSettingsScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]} edges={['top']}>
       <View style={styles.topBar}>
         <IconButton
           icon={<ArrowLeft size={22} color={colors.text} />}

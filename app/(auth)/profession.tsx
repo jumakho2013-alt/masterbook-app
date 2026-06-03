@@ -34,7 +34,7 @@ export default function ProfessionScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]}>
       <Animated.View entering={FadeInDown.duration(400)} style={styles.header}>
         <Text style={[typo.h1, { color: colors.text }]}>
           {'Чем вы\nзанимаетесь?'}

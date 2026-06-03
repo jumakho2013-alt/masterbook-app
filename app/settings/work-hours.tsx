@@ -61,7 +61,7 @@ export default function WorkHoursScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]}>
       <View style={styles.topBar}>
         <IconButton icon={<ArrowLeft size={22} color={colors.text} />} onPress={() => router.back()} variant="ghost" />
         <Text style={[typo.h3, { color: colors.text }]}>Рабочее время</Text>

@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { Tabs } from 'expo-router';
 import { GlassTabBar } from '@/src/components/GlassTabBar';
-import { AppBackground } from '@/src/components/AppBackground';
 import { registerForPushNotifications } from '@/src/lib/notifications';
 
 export default function TabLayout() {
@@ -12,24 +11,22 @@ export default function TabLayout() {
     registerForPushNotifications().catch(() => {});
   }, []);
 
-  // AppBackground рисует mesh-фон под ВСЕ табы. Scene-контейнер прозрачный,
-  // экраны тоже прозрачные — сквозь стеклянные карточки виден цветной фон.
+  // mesh-фон рисуется глобально в app/_layout (AppBackground под всем Stack).
+  // Здесь только делаем scene прозрачной чтобы фон просвечивал.
   return (
-    <AppBackground>
-      <Tabs
-        tabBar={(props) => <GlassTabBar {...props} />}
-        screenOptions={{
-          headerShown: false,
-          tabBarStyle: { display: 'none' },
-          sceneStyle: { backgroundColor: 'transparent' },
-        }}
-      >
-        <Tabs.Screen name="index" />
-        <Tabs.Screen name="calendar" />
-        <Tabs.Screen name="clients" />
-        <Tabs.Screen name="finances" />
-        <Tabs.Screen name="profile" />
-      </Tabs>
-    </AppBackground>
+    <Tabs
+      tabBar={(props) => <GlassTabBar {...props} />}
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: { display: 'none' },
+        sceneStyle: { backgroundColor: 'transparent' },
+      }}
+    >
+      <Tabs.Screen name="index" />
+      <Tabs.Screen name="calendar" />
+      <Tabs.Screen name="clients" />
+      <Tabs.Screen name="finances" />
+      <Tabs.Screen name="profile" />
+    </Tabs>
   );
 }
