@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, AppState, type AppStateStatus, Pressable } from 'react-native';
-import { BookOpen, Fingerprint, ScanFace } from 'lucide-react-native';
+import { Fingerprint, ScanFace } from 'lucide-react-native';
+import { MasterBookLogo } from '@/src/components/MasterBookLogo';
 import { useTheme } from '@/src/theme';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { useAuthStore } from '@/src/stores/useAuthStore';
@@ -85,9 +86,8 @@ export function BiometricGate({ children }: { children: React.ReactNode }) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]} accessibilityLabel="Экран блокировки">
-      <View style={[styles.logo, { backgroundColor: colors.primarySoft, borderRadius: br.lg }]}>
-        <BookOpen size={44} color={colors.primary} />
-      </View>
+      <MasterBookLogo size={96} />
+
       <Text style={[typo.h2, { color: colors.text, marginTop: sp.lg }]}>MasterBook</Text>
       <Text style={[typo.body, { color: colors.textSecondary, marginTop: sp.xs, textAlign: 'center' }]}>
         Приложение заблокировано

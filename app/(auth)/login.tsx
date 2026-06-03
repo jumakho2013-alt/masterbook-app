@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Keyboard, Pressable } from 'react-n
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { BookOpen } from 'lucide-react-native';
+import { MasterBookLogo } from '@/src/components/MasterBookLogo';
 import * as WebBrowser from 'expo-web-browser';
 import { useTheme } from '@/src/theme';
 import { Button, Input, CustomAlert } from '@/src/components/ui';
@@ -96,9 +96,8 @@ export default function LoginScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Animated.View entering={FadeInDown.duration(600)} style={styles.logo}>
-          <View style={[styles.logoIcon, { backgroundColor: colors.primarySoft }]}>
-            <BookOpen size={40} color={colors.primary} />
-          </View>
+          <MasterBookLogo size={80} />
+
           <Text style={[typo.h1, { color: colors.text, marginTop: sp.md }]}>MasterBook</Text>
           <Text style={[typo.body, { color: colors.textSecondary, marginTop: sp.xs }]}>
             Войдите в аккаунт

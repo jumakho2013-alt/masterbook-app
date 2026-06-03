@@ -3,9 +3,9 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { BookOpen } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
 import { Button } from '@/src/components/ui';
+import { MasterBookLogo } from '@/src/components/MasterBookLogo';
 
 export default function WelcomeScreen() {
   const router = useRouter();
@@ -15,9 +15,8 @@ export default function WelcomeScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.content}>
         <Animated.View entering={FadeInDown.delay(200).duration(600)} style={styles.logoWrap}>
-          <View style={[styles.logoCircle, { backgroundColor: colors.primary + '15' }]}>
-            <BookOpen size={48} color={colors.primary} />
-          </View>
+          <MasterBookLogo size={96} />
+
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(400).duration(600)}>
