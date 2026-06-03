@@ -17,6 +17,7 @@ import { seedDevDataIfNeeded } from '@/src/lib/devSeed';
 import { AppBackground } from '@/src/components/AppBackground';
 import { initCrashReporter } from '@/src/lib/crashReporter';
 import { useNotificationDeepLink } from '@/src/hooks/useNotificationDeepLink';
+import { useCloudSyncLifecycle } from '@/src/hooks/useCloudSyncLifecycle';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
@@ -42,6 +43,8 @@ function RootInner() {
   // Routes a tapped reminder notification to the corresponding appointment.
   // Должно быть ВНУТРИ Stack-mounting context — router недоступен в RootLayout.
   useNotificationDeepLink();
+  // Облачная синхронизация: старт/стоп по auth-состоянию, pull+push при входе.
+  useCloudSyncLifecycle();
 
   return (
     <AppBackground>

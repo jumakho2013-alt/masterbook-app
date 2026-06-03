@@ -29,6 +29,13 @@ jest.mock('@/src/lib/supabase', () => ({
   },
 }));
 
+// cloudSync импортирует react-native (AppState) — мокаем, чтобы jest не тянул
+// нативный модуль. deleteAccount должен останавливать авто-синк.
+const stopAutoSyncMock = jest.fn();
+jest.mock('@/src/lib/cloudSync', () => ({
+  stopAutoSync: () => stopAutoSyncMock(),
+}));
+
 const cancelAllNotificationsMock = jest.fn(async () => undefined);
 jest.mock('@/src/lib/notifications', () => ({
   cancelAllNotifications: () => cancelAllNotificationsMock(),

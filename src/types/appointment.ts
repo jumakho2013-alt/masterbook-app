@@ -20,4 +20,7 @@ export interface Appointment {
   /** id события в системном календаре (iOS Calendar / Google Calendar)
    *  если включён calendar sync. null = не синхронизировано. */
   calendarEventId?: string;
+  /** ISO момента последнего изменения — для last-write-wins при облачной
+   *  синхронизации (см. src/lib/cloudSync.ts). */
+  updatedAt?: string;
 }

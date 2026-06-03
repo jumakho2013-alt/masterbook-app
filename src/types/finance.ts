@@ -5,6 +5,9 @@ export interface FinanceEntry {
   description: string;
   date: string; // YYYY-MM-DD
   appointmentId?: string;
+  /** ISO момента последнего изменения — для last-write-wins при облачной
+   *  синхронизации (см. src/lib/cloudSync.ts). */
+  updatedAt?: string;
 }
 
 export interface FinanceSummary {

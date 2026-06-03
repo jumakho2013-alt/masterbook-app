@@ -25,6 +25,8 @@ import {
 import { useTheme } from '@/src/theme';
 import { GlassCard, Divider, CustomAlert } from '@/src/components/ui';
 import { MasterBookLogo } from '@/src/components/MasterBookLogo';
+import { SyncStatusCard } from '@/src/components/SyncStatusCard';
+import { flushPush } from '@/src/lib/cloudSync';
 import { useAlert } from '@/src/hooks/useAlert';
 import { useAuthStore } from '@/src/stores/useAuthStore';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
@@ -120,11 +122,32 @@ function ProfileScreen() {
   const language = useSettingsStore((s) => s.language);
   const languageLabel = language === 'ru' ? 'Русский' : language === 'en' ? 'English' : 'Системный';
 
+  const localOnly = useAuthStore((s) => s.localOnlyMode);
+  const userId = useAuthStore((s) => s.user?.id ?? null);
+
   const handleSignOut = () => {
     confirm(
       'Выйти из аккаунта?',
-      'Данные на этом устройстве будут стёрты (облачная синхронизация будет в следующем обновлении). Сделать экспорт перед выходом — Профиль → Безопасность и данные → Экспорт.',
-      () => signOut(),
+      'Данные на этом устройстве будут стёрты, но останутся в облаке — при входе обратно они вернутся. Убедись, что в Профиле статус «Синхронизировано».',
+      async () => {
+        // Перед стиранием локальных сторов дошлём незапушенные правки в облако.
+        // Если сети нет — push провалится, и без предупреждения данные пропали
+        // бы безвозвратно. В local-only режиме слать некуда — flush = no-op.
+        if (userId && !localOnly) {
+          const res = await flushPush();
+          if (!res.ok) {
+            confirm(
+              'Нет связи с облаком',
+              'Последние изменения не удалось сохранить в облако. Если выйти сейчас — они пропадут. Выйти всё равно?',
+              () => signOut(),
+              'Выйти без сохранения',
+              true,
+            );
+            return;
+          }
+        }
+        signOut();
+      },
       'Выйти',
       true,
     );
@@ -187,6 +210,12 @@ function ProfileScreen() {
             <Text style={[typo.h3, { color: colors.text }]}>{formatCurrency(stats.totalIncome)}</Text>
             <Text style={[typo.small, { color: colors.textSecondary }]}>заработано</Text>
           </View>
+        </View>
+
+        {/* === Раздел: ОБЛАКО === */}
+        <SectionLabel title="Облако" />
+        <View style={{ paddingHorizontal: 16, marginBottom: sp.md }}>
+          <SyncStatusCard />
         </View>
 
         {/* === Раздел: БИЗНЕС === */}

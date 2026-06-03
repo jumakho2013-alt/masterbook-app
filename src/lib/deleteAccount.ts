@@ -8,6 +8,7 @@ import { useServiceStore } from '@/src/stores/useServiceStore';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { cancelAllNotifications } from '@/src/lib/notifications';
 import { captureException, clearUserContext } from '@/src/lib/crashReporter';
+import { stopAutoSync } from '@/src/lib/cloudSync';
 
 /**
  * Результат удаления аккаунта.
@@ -53,6 +54,10 @@ export async function deleteAccount(): Promise<DeleteAccountResult> {
   const isLocalOnly = useAuthStore.getState().localOnlyMode;
 
   try {
+    // 0. Останавливаем авто-синк сразу — чтобы debounced push не попытался
+    //    писать в аккаунт, который мы вот-вот удалим.
+    stopAutoSync();
+
     // 1. Уведомления
     await cancelAllNotifications().catch(() => {});
 

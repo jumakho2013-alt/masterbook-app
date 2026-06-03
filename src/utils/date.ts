@@ -30,6 +30,12 @@ export function toDateKey(date: Date): string {
   return format(date, 'yyyy-MM-dd');
 }
 
+/** Текущий момент в ISO (UTC). Единая точка — используется как updatedAt
+ *  для облачной синхронизации (last-write-wins). */
+export function nowIso(): string {
+  return new Date().toISOString();
+}
+
 export function getDayOfWeekShort(date: Date): string {
   return format(date, 'EE', { locale: ru });
 }

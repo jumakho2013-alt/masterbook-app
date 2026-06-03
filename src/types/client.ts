@@ -12,4 +12,7 @@ export interface Client {
   debt?: number; // client debt
   photoUri?: string; // фото клиента
   createdAt: string; // ISO
+  /** ISO момента последнего изменения. Нужен для last-write-wins при
+   *  облачной синхронизации (см. src/lib/cloudSync.ts). */
+  updatedAt?: string;
 }
