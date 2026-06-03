@@ -20,6 +20,9 @@ import { formatCurrency } from '@/src/utils/currency';
 import { nowMinutesOfDay, timeToMinutes } from '@/src/utils/time';
 import { seedSampleData } from '@/src/lib/sampleData';
 import { useProfessionPack } from '@/src/hooks/useProfessionPack';
+import { useFinanceStore } from '@/src/stores/useFinanceStore';
+import { syncDeleteEvent } from '@/src/lib/calendarSync';
+import type { Appointment } from '@/src/types';
 
 /** Русские склонения числительных. */
 function plural(n: number, one: string, few: string, many: string): string {
@@ -65,6 +68,35 @@ function TodayScreen() {
     if (ok) toast.success('Пример загружен — потом можно очистить в настройках');
     else toast.error('Похоже у тебя уже есть данные');
   }, [toast]);
+
+  // Quick-complete: тап на ✓ в карточке → запись становится «проведено»,
+  // доход автоматически записан в финансы, toast подтверждает.
+  // Это главный «daily ritual» — каждый клиент приходит → один тап → готово.
+  const setApptStatus = useAppointmentStore((s) => s.setStatus);
+  const addFinanceEntry = useFinanceStore((s) => s.addEntry);
+  const handleQuickComplete = useCallback(
+    (appt: Appointment) => {
+      setApptStatus(appt.id, 'completed');
+      // Предотвращаем double-recording если уже записано
+      const existingEntries = useFinanceStore.getState().entries;
+      const alreadyRecorded = existingEntries.some((e) => e.appointmentId === appt.id);
+      if (!alreadyRecorded) {
+        // Используем store.getState() напрямую — getClient/getService
+        // объявлены ниже в файле, инициализированы при первом render.
+        const client = clients.find((c) => c.id === appt.clientId);
+        const service = services.find((s) => s.id === appt.serviceId);
+        addFinanceEntry({
+          type: 'income',
+          amount: appt.price,
+          description: `${service?.name ?? 'Услуга'} — ${client?.name ?? 'Клиент'}`,
+          date: appt.date,
+          appointmentId: appt.id,
+        });
+      }
+      toast.success(`Проведено · +${formatCurrency(appt.price)}`);
+    },
+    [setApptStatus, addFinanceEntry, clients, services, toast],
+  );
 
   const todayKey = toDateKey(new Date());
 
@@ -319,6 +351,7 @@ function TodayScreen() {
               client={getClient(item.clientId)}
               service={getService(item.serviceId)}
               onPress={() => router.push(`/appointment/${item.id}`)}
+              onQuickComplete={() => handleQuickComplete(item)}
             />
           </Animated.View>
         )}

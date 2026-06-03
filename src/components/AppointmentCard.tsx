@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
-import { Clock, ChevronRight } from 'lucide-react-native';
+import { Clock, ChevronRight, Check } from 'lucide-react-native';
+import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/src/theme';
 import { Avatar } from '@/src/components/ui';
 import { useReduceMotion } from '@/src/hooks/useReduceMotion';
@@ -16,6 +17,9 @@ interface AppointmentCardProps {
   client?: Client;
   service?: Service;
   onPress?: () => void;
+  /** Включает quick-complete check button справа.
+   *  Используется на Today screen для приёма «проведено» одним тапом. */
+  onQuickComplete?: () => void;
 }
 
 export const AppointmentCard = React.memo(function AppointmentCard({
@@ -23,23 +27,36 @@ export const AppointmentCard = React.memo(function AppointmentCard({
   client,
   service,
   onPress,
+  onQuickComplete,
 }: AppointmentCardProps) {
   const { colors, typography: typo, spacing: sp, borderRadius: br, shadows: sh } = useTheme();
   const reduceMotion = useReduceMotion();
   const scale = useSharedValue(1);
 
+  const isCompleted = appointment.status === 'completed';
+  const isCancelled = appointment.status === 'cancelled' || appointment.status === 'no-show';
+  const canQuickComplete = onQuickComplete && appointment.status === 'scheduled';
+
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }));
 
-  // Одной строкой описываем карточку для VoiceOver — иначе он читает отдельно
-  // время, цену, название, клиента и "кнопка" — пользователю не собрать целое.
+  // Композитный a11y label для VoiceOver — иначе читает части отдельно.
   const a11yLabel = [
     `${formatTimeRange(appointment.startTime, appointment.endTime)}`,
     service?.name ?? 'услуга',
     client?.name ?? 'клиент',
     formatCurrency(appointment.price),
-  ].join(', ');
+    isCompleted ? 'проведено' : isCancelled ? 'отменено' : undefined,
+  ]
+    .filter(Boolean)
+    .join(', ');
+
+  const handleQuickComplete = () => {
+    if (!onQuickComplete) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    onQuickComplete();
+  };
 
   return (
     <AnimatedPressable
@@ -62,6 +79,7 @@ export const AppointmentCard = React.memo(function AppointmentCard({
           backgroundColor: colors.surface,
           borderRadius: br.lg,
           borderColor: colors.border,
+          opacity: isCancelled ? 0.55 : 1,
           ...sh.sm,
         },
       ]}
@@ -71,7 +89,7 @@ export const AppointmentCard = React.memo(function AppointmentCard({
         style={[
           styles.indicator,
           {
-            backgroundColor: service?.color ?? colors.primary,
+            backgroundColor: isCompleted ? colors.success : (service?.color ?? colors.primary),
             borderTopLeftRadius: br.lg,
             borderBottomLeftRadius: br.lg,
           },
@@ -83,17 +101,36 @@ export const AppointmentCard = React.memo(function AppointmentCard({
         <View style={styles.topRow}>
           <View style={styles.timeRow}>
             <Clock size={14} color={colors.textSecondary} />
-            <Text style={[typo.caption, { color: colors.textSecondary, marginLeft: 4 }]}>
+            <Text
+              style={[
+                typo.caption,
+                {
+                  color: colors.textSecondary,
+                  marginLeft: 4,
+                  textDecorationLine: isCancelled ? 'line-through' : 'none',
+                },
+              ]}
+            >
               {formatTimeRange(appointment.startTime, appointment.endTime)}
             </Text>
           </View>
-          <Text style={[typo.bodyBold, { color: colors.primary }]}>
+          <Text style={[typo.bodyBold, { color: isCompleted ? colors.success : colors.primary }]}>
             {formatCurrency(appointment.price)}
           </Text>
         </View>
 
         {/* Service name */}
-        <Text style={[typo.bodyBold, { color: colors.text, marginTop: 4 }]} numberOfLines={1}>
+        <Text
+          style={[
+            typo.bodyBold,
+            {
+              color: colors.text,
+              marginTop: 4,
+              textDecorationLine: isCancelled ? 'line-through' : 'none',
+            },
+          ]}
+          numberOfLines={1}
+        >
           {service?.name ?? 'Услуга'}
         </Text>
 
@@ -106,7 +143,41 @@ export const AppointmentCard = React.memo(function AppointmentCard({
           >
             {client?.name ?? 'Клиент'}
           </Text>
-          <ChevronRight size={18} color={colors.textTertiary} />
+
+          {/* Quick-complete check button (только для scheduled-записей сегодня) */}
+          {canQuickComplete ? (
+            <Pressable
+              onPress={handleQuickComplete}
+              accessibilityRole="button"
+              accessibilityLabel="Отметить как проведено"
+              hitSlop={10}
+              style={[
+                styles.checkBtn,
+                {
+                  backgroundColor: colors.successSoft,
+                  borderColor: colors.success,
+                  borderRadius: br.sm,
+                },
+              ]}
+            >
+              <Check size={20} color={colors.success} strokeWidth={3} />
+            </Pressable>
+          ) : isCompleted ? (
+            <View
+              style={[
+                styles.checkBtn,
+                {
+                  backgroundColor: colors.success,
+                  borderColor: colors.success,
+                  borderRadius: br.sm,
+                },
+              ]}
+            >
+              <Check size={20} color={colors.white} strokeWidth={3} />
+            </View>
+          ) : (
+            <ChevronRight size={18} color={colors.textTertiary} />
+          )}
         </View>
       </View>
     </AnimatedPressable>
@@ -138,5 +209,12 @@ const styles = StyleSheet.create({
   clientRow: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  checkBtn: {
+    width: 36,
+    height: 36,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
