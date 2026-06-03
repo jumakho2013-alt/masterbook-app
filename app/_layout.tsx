@@ -15,6 +15,7 @@ import { BiometricGate } from '@/src/components/BiometricGate';
 import { RouterErrorBoundary } from '@/src/components/ErrorScreen';
 import { seedDevDataIfNeeded } from '@/src/lib/devSeed';
 import { initCrashReporter } from '@/src/lib/crashReporter';
+import { useNotificationDeepLink } from '@/src/hooks/useNotificationDeepLink';
 import 'react-native-reanimated';
 
 // Запускаем сразу — должно быть до первого React-рендера, иначе crash до
@@ -36,6 +37,9 @@ SplashScreen.preventAutoHideAsync();
 
 function RootInner() {
   const { isDark, colors } = useTheme();
+  // Routes a tapped reminder notification to the corresponding appointment.
+  // Должно быть ВНУТРИ Stack-mounting context — router недоступен в RootLayout.
+  useNotificationDeepLink();
 
   return (
     <>
