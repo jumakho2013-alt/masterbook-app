@@ -13,9 +13,11 @@ import {
 } from 'lucide-react-native';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import * as Haptics from 'expo-haptics';
+import { useT } from '@/src/hooks/useT';
 
 const TAB_ICONS = [CalendarCheck, Calendar, Users, Wallet, UserCircle];
-const TAB_LABELS = ['Сегодня', 'Календарь', 'Клиенты', 'Финансы', 'Профиль'];
+// i18n-ключи (резолвятся в рендере через useT) — порядок = порядок вкладок.
+const TAB_KEYS = ['tabs.today', 'tabs.calendar', 'tabs.clients', 'tabs.finances', 'tabs.profile'];
 
 // Minimum iOS tab bar content height (bottom safe-area is added on top).
 export const TAB_BAR_CONTENT_HEIGHT = 56;
@@ -91,6 +93,7 @@ function TabItem({
 export function GlassTabBar({ state, navigation }: BottomTabBarProps) {
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
+  const tr = useT();
   const bottomPad = Math.max(insets.bottom, Platform.OS === 'ios' ? 8 : 6);
 
   // Стекло на обеих темах: за tab bar — mesh-фон AppBackground, blur его
@@ -122,7 +125,7 @@ export function GlassTabBar({ state, navigation }: BottomTabBarProps) {
             <TabItem
               key={route.key}
               icon={TAB_ICONS[index]}
-              label={TAB_LABELS[index]}
+              label={tr(TAB_KEYS[index])}
               focused={focused}
               onPress={() => { if (!focused) navigation.navigate(route.name); }}
             />
