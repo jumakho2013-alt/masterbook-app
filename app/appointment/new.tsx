@@ -49,12 +49,35 @@ export default function NewAppointmentScreen() {
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  // Длительность для этой конкретной записи. Override на confirm-шаге —
+  // новый клиент часто требует +30 мин, постоянный может уложиться меньше.
+  // null = используем service.duration (дефолт).
+  const [customDurationMinutes, setCustomDurationMinutes] = useState<number | null>(null);
 
   const searchClients = useClientStore((s) => s.searchClients);
+  const allClients = useClientStore((s) => s.clients);
   const services = useServiceStore((s) => s.services);
   const addAppointment = useAppointmentStore((s) => s.addAppointment);
   const updateAppointment = useAppointmentStore((s) => s.updateAppointment);
   const allAppointments = useAppointmentStore((s) => s.appointments);
+
+  // Top-5 недавних клиентов по последнему visit'у. Показываем горизонтальной
+  // полоской над списком — главный use-case: записать постоянного клиента.
+  const recentClients = useMemo(() => {
+    if (search.trim().length > 0) return []; // во время поиска скрываем
+    const lastVisit: Record<string, string> = {};
+    for (const a of allAppointments) {
+      if (a.status === 'completed' || a.status === 'scheduled') {
+        if (!lastVisit[a.clientId] || a.date > lastVisit[a.clientId]) {
+          lastVisit[a.clientId] = a.date;
+        }
+      }
+    }
+    return allClients
+      .filter((c) => lastVisit[c.id])
+      .sort((a, b) => lastVisit[b.id].localeCompare(lastVisit[a.id]))
+      .slice(0, 5);
+  }, [allClients, allAppointments, search]);
   const workHours = useSettingsStore((s) => s.workHours);
   const workDays = useSettingsStore((s) => s.workDays);
   const breakTime = useSettingsStore((s) => s.breakTime);
@@ -140,7 +163,8 @@ export default function NewAppointmentScreen() {
     if (!selectedService) { showError('Выберите услугу'); return; }
     if (!selectedTime) { showError('Выберите время'); return; }
 
-    const endTime = addMinutes(selectedTime, selectedService.duration);
+    const effectiveDuration = customDurationMinutes ?? selectedService.duration;
+    const endTime = addMinutes(selectedTime, effectiveDuration);
 
     // Final Zod validation
     const parsed = appointmentSchema.safeParse({
@@ -219,6 +243,54 @@ export default function NewAppointmentScreen() {
           <View style={{ paddingHorizontal: 16, marginBottom: 12 }}>
             <SearchBar value={search} onChangeText={setSearch} placeholder="Имя или телефон..." />
           </View>
+
+          {/* Recent clients — горизонтальная полоска. Скрывается при поиске
+              (фильтрованный список — главный фокус). */}
+          {recentClients.length > 0 && (
+            <View style={{ marginBottom: 12 }}>
+              <Text
+                style={[
+                  typo.small,
+                  {
+                    color: colors.textTertiary,
+                    paddingHorizontal: 20,
+                    marginBottom: 8,
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.6,
+                  },
+                ]}
+              >
+                Недавние
+              </Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingHorizontal: 16, gap: 10 }}
+              >
+                {recentClients.map((c) => (
+                  <Pressable
+                    key={c.id}
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      setSelectedClient(c);
+                      next();
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel={c.name}
+                    style={[
+                      styles.recentChip,
+                      { backgroundColor: colors.surfaceElevated, borderRadius: br.md },
+                    ]}
+                  >
+                    <Text style={[typo.caption, { color: colors.text, fontFamily: typo.bodyBold.fontFamily }]} numberOfLines={1}>
+                      {c.name.split(' ')[0]}
+                    </Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
           <FlatList
             data={searchClients(search)}
             keyExtractor={(item) => item.id}
@@ -388,27 +460,71 @@ export default function NewAppointmentScreen() {
         </Animated.View>
       )}
 
-      {step === 'confirm' && (
-        <Animated.View entering={FadeInRight.duration(300)} style={styles.confirmWrap}>
-          <GlassCard style={styles.confirmCard}>
-            <Row label="Клиент" value={selectedClient?.name ?? ''} />
-            <Row label="Услуга" value={selectedService?.name ?? ''} />
-            <Row label="Дата" value={formatDate(selectedDate)} />
-            <Row
-              label="Время"
-              value={selectedTime ? `${selectedTime} — ${addMinutes(selectedTime, selectedService?.duration ?? 0)}` : ''}
-            />
-            <Row label="Стоимость" value={formatCurrency(selectedService?.price ?? 0)} />
-          </GlassCard>
+      {step === 'confirm' && (() => {
+        const effectiveDuration = customDurationMinutes ?? selectedService?.duration ?? 0;
+        const endTime = selectedTime ? addMinutes(selectedTime, effectiveDuration) : '';
+        const decrease = () => {
+          const next = Math.max(15, effectiveDuration - 15);
+          setCustomDurationMinutes(next);
+          Haptics.selectionAsync();
+        };
+        const increase = () => {
+          const next = Math.min(480, effectiveDuration + 15);
+          setCustomDurationMinutes(next);
+          Haptics.selectionAsync();
+        };
+        return (
+          <Animated.View entering={FadeInRight.duration(300)} style={styles.confirmWrap}>
+            <GlassCard style={styles.confirmCard}>
+              <Row label="Клиент" value={selectedClient?.name ?? ''} />
+              <Row label="Услуга" value={selectedService?.name ?? ''} />
+              <Row label="Дата" value={formatDate(selectedDate)} />
+              <Row
+                label="Время"
+                value={selectedTime ? `${selectedTime} — ${endTime}` : ''}
+              />
 
-          <Button
-            title="Записать"
-            onPress={confirm}
-            size="lg"
-            style={{ marginTop: sp.lg }}
-          />
-        </Animated.View>
-      )}
+              {/* Длительность — редактируемая. Шаг 15 мин. Новый клиент?
+                  +30 мин одним тапом. Постоянный? Можно убавить. */}
+              <View style={styles.durationRow}>
+                <Text style={[typo.body, { color: colors.textSecondary }]}>Длительность</Text>
+                <View style={styles.durationControls}>
+                  <Pressable
+                    onPress={decrease}
+                    accessibilityRole="button"
+                    accessibilityLabel="Уменьшить длительность на 15 минут"
+                    hitSlop={8}
+                    style={[styles.durationBtn, { backgroundColor: colors.surfaceElevated, borderRadius: br.sm }]}
+                  >
+                    <Text style={[typo.bodyBold, { color: colors.text }]}>−</Text>
+                  </Pressable>
+                  <Text style={[typo.bodyBold, { color: colors.text, minWidth: 70, textAlign: 'center' }]}>
+                    {effectiveDuration} мин
+                  </Text>
+                  <Pressable
+                    onPress={increase}
+                    accessibilityRole="button"
+                    accessibilityLabel="Увеличить длительность на 15 минут"
+                    hitSlop={8}
+                    style={[styles.durationBtn, { backgroundColor: colors.surfaceElevated, borderRadius: br.sm }]}
+                  >
+                    <Text style={[typo.bodyBold, { color: colors.text }]}>+</Text>
+                  </Pressable>
+                </View>
+              </View>
+
+              <Row label="Стоимость" value={formatCurrency(selectedService?.price ?? 0)} />
+            </GlassCard>
+
+            <Button
+              title="Записать"
+              onPress={confirm}
+              size="lg"
+              style={{ marginTop: sp.lg }}
+            />
+          </Animated.View>
+        );
+      })()}
       <CustomAlert {...alertConfig} />
     </SafeAreaView>
   );
@@ -453,6 +569,30 @@ const styles = StyleSheet.create({
   dateChip: {
     width: 56,
     paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  recentChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    minWidth: 70,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  durationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+  },
+  durationControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  durationBtn: {
+    width: 32,
+    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
   },
