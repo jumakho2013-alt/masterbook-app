@@ -40,6 +40,27 @@ interface MenuItemProps {
   subtitle?: string;
 }
 
+/** Section label — group header в стиле iOS settings. */
+function SectionLabel({ title }: { title: string }) {
+  const { colors, typography: typo } = useTheme();
+  return (
+    <Text
+      style={[
+        typo.small,
+        {
+          color: colors.textTertiary,
+          paddingHorizontal: 24,
+          paddingBottom: 8,
+          textTransform: 'uppercase',
+          letterSpacing: 0.8,
+        },
+      ]}
+    >
+      {title}
+    </Text>
+  );
+}
+
 function MenuItem({ icon, label, onPress, subtitle }: MenuItemProps) {
   const { colors, typography: typo } = useTheme();
   return (
@@ -142,61 +163,32 @@ function ProfileScreen() {
           </GlassCard>
         </Animated.View>
 
-        {/* Stats */}
-        <Animated.View entering={FadeInDown.delay(100)} style={{ paddingHorizontal: 16, marginBottom: sp.lg }}>
-          <View style={styles.statsRow}>
-            <GlassCard style={styles.statCard}>
-              <Users size={18} color={colors.primary} />
-              <Text style={[typo.h3, { color: colors.text, marginTop: 6 }]}>{stats.totalClients}</Text>
-              <Text style={[typo.small, { color: colors.textSecondary }]}>Клиентов</Text>
-            </GlassCard>
-            <GlassCard style={styles.statCard}>
-              <CalendarCheck size={18} color={colors.success} />
-              <Text style={[typo.h3, { color: colors.text, marginTop: 6 }]}>{stats.totalAppointments}</Text>
-              <Text style={[typo.small, { color: colors.textSecondary }]}>Визитов</Text>
-            </GlassCard>
-            <GlassCard style={styles.statCard}>
-              <TrendingUp size={18} color={colors.accent} />
-              <Text style={[typo.h3, { color: colors.text, marginTop: 6 }]}>{formatCurrency(stats.totalIncome)}</Text>
-              <Text style={[typo.small, { color: colors.textSecondary }]}>Доход</Text>
-            </GlassCard>
+        {/* Compact stats row — inline numbers, не три большие карточки */}
+        <View style={[styles.compactStatsRow, { paddingHorizontal: 16, marginBottom: sp.lg }]}>
+          <View style={styles.compactStat}>
+            <Text style={[typo.h3, { color: colors.text }]}>{stats.totalClients}</Text>
+            <Text style={[typo.small, { color: colors.textSecondary }]}>клиентов</Text>
           </View>
-        </Animated.View>
+          <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
+          <View style={styles.compactStat}>
+            <Text style={[typo.h3, { color: colors.text }]}>{stats.totalAppointments}</Text>
+            <Text style={[typo.small, { color: colors.textSecondary }]}>визитов</Text>
+          </View>
+          <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
+          <View style={styles.compactStat}>
+            <Text style={[typo.h3, { color: colors.text }]}>{formatCurrency(stats.totalIncome)}</Text>
+            <Text style={[typo.small, { color: colors.textSecondary }]}>заработано</Text>
+          </View>
+        </View>
 
-        {/* Roadmap teaser — без упоминания цены: реальный IAP ещё не подключён,
-            Apple Guideline 3.1.1 запрещает рекламировать платные тиры без StoreKit. */}
-        <Animated.View entering={FadeInDown.delay(150)} style={{ paddingHorizontal: 16, marginBottom: sp.lg }}>
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() =>
-              info(
-                'Скоро в MasterBook',
-                'Мы добавляем:\n\n• Безлимит клиентов\n• Облачная синхронизация\n• Онлайн-запись для клиентов\n• Финансовые отчёты и PDF для самозанятых\n• Экспорт фото работ\n\nХочешь попробовать первым — напиши на support@masterbook.app',
-              )
-            }
-          >
-            <GlassCard elevated style={{ ...styles.proBanner, borderColor: colors.primary + '30' }}>
-              <View style={[styles.proIcon, { backgroundColor: colors.primarySoft, borderRadius: br.md }]}>
-                <Crown size={24} color={colors.primary} />
-              </View>
-              <View style={{ flex: 1, marginLeft: sp.md }}>
-                <Text style={[typo.bodyBold, { color: colors.primary }]}>Что добавим дальше</Text>
-                <Text style={[typo.caption, { color: colors.textSecondary, marginTop: 2 }]}>
-                  Облачная синхронизация, онлайн-запись, отчёты
-                </Text>
-              </View>
-              <ChevronRight size={18} color={colors.primary} />
-            </GlassCard>
-          </TouchableOpacity>
-        </Animated.View>
-
-        {/* Menu */}
-        <Animated.View entering={FadeInDown.delay(200)} style={{ paddingHorizontal: 16 }}>
+        {/* === Раздел: БИЗНЕС === */}
+        <SectionLabel title="Бизнес" />
+        <View style={{ paddingHorizontal: 16, marginBottom: sp.md }}>
           <GlassCard style={{ padding: 0 }}>
             <MenuItem
               icon={<Scissors size={20} color={colors.primary} />}
               label="Мои услуги"
-              subtitle="Управление услугами"
+              subtitle={`${stats.totalClients > 0 ? 'Прайс-лист и длительности' : 'Создай свой прайс'}`}
               onPress={() => router.push('/services/manage')}
             />
             <Divider style={{ marginVertical: 0, marginLeft: 52 }} />
@@ -207,30 +199,35 @@ function ProfileScreen() {
             />
             <Divider style={{ marginVertical: 0, marginLeft: 52 }} />
             <MenuItem
-              icon={<Link size={20} color={colors.primary} />}
-              label="Онлайн-запись"
-              subtitle="Скоро"
-              onPress={() => info('Скоро', 'Онлайн-запись будет доступна в следующем обновлении')}
-            />
-            <Divider style={{ marginVertical: 0, marginLeft: 52 }} />
-            <MenuItem
               icon={<Banknote size={20} color={colors.primary} />}
               label="Валюта"
               subtitle={currencyMeta ? `${currencyMeta.name} (${currencyMeta.symbol})` : currency}
               onPress={() => router.push('/settings/currency')}
             />
-            <Divider style={{ marginVertical: 0, marginLeft: 52 }} />
+          </GlassCard>
+        </View>
+
+        {/* === Раздел: ВНЕШНИЙ ВИД === */}
+        <SectionLabel title="Внешний вид" />
+        <View style={{ paddingHorizontal: 16, marginBottom: sp.md }}>
+          <GlassCard style={{ padding: 0 }}>
             <MenuItem
               icon={<Palette size={20} color={colors.primary} />}
               label="Тема"
               subtitle={themeLabel}
               onPress={toggleTheme}
             />
-            <Divider style={{ marginVertical: 0, marginLeft: 52 }} />
+          </GlassCard>
+        </View>
+
+        {/* === Раздел: АККАУНТ === */}
+        <SectionLabel title="Аккаунт" />
+        <View style={{ paddingHorizontal: 16, marginBottom: sp.md }}>
+          <GlassCard style={{ padding: 0 }}>
             <MenuItem
               icon={<ShieldCheck size={20} color={colors.primary} />}
               label="Безопасность и данные"
-              subtitle="Face ID, экспорт, удаление аккаунта"
+              subtitle="Face ID, экспорт, удаление"
               onPress={() => router.push('/settings/account')}
             />
             <Divider style={{ marginVertical: 0, marginLeft: 52 }} />
@@ -243,8 +240,8 @@ function ProfileScreen() {
             <MenuItem
               icon={<Info size={20} color={colors.textSecondary} />}
               label="О приложении"
-              subtitle="Версия 1.0.0"
-              onPress={() => info('MasterBook', 'Версия 1.0.0\n\nCRM для частных мастеров\n\nСоздано с ❤️')}
+              subtitle="v1.0.0"
+              onPress={() => info('MasterBook', 'Версия 1.0.0\n\nCRM для частных мастеров')}
             />
             <Divider style={{ marginVertical: 0, marginLeft: 52 }} />
             <MenuItem
@@ -253,7 +250,7 @@ function ProfileScreen() {
               onPress={handleSignOut}
             />
           </GlassCard>
-        </Animated.View>
+        </View>
       </ScrollView>
       <CustomAlert {...alertConfig} />
     </SafeAreaView>
@@ -267,25 +264,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  statsRow: {
+  compactStatsRow: {
     flexDirection: 'row',
-    gap: 10,
+    alignItems: 'center',
+    gap: 8,
   },
-  statCard: {
+  compactStat: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 8,
   },
-  proBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  proIcon: {
-    width: 48,
-    height: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
+  statDivider: {
+    width: 1,
+    height: 32,
   },
   menuItem: {
     flexDirection: 'row',
