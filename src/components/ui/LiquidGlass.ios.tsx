@@ -2,6 +2,7 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useTheme } from '@/src/theme';
+import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { applyAlpha, type LiquidGlassProps } from './LiquidGlass.shared';
 
 /**
@@ -32,6 +33,7 @@ export function LiquidGlass({
   padding,
 }: LiquidGlassProps) {
   const { colors, isDark, borderRadius: br, shadows: sh } = useTheme();
+  const reduceEffects = useSettingsStore((s) => s.reduceEffects);
 
   const resolvedRadius = radius ?? br.lg;
   const shadowStyle =
@@ -55,18 +57,21 @@ export function LiquidGlass({
         shadowStyle,
         {
           borderRadius: resolvedRadius,
-          backgroundColor: 'transparent',
+          // reduceEffects: сплошная поверхность вместо стекла (без BlurView).
+          backgroundColor: reduceEffects ? colors.surface : 'transparent',
           overflow: 'hidden',
         },
         padding !== undefined ? { padding } : null,
         style,
       ]}
     >
-      <BlurView
-        tint={isDark ? 'dark' : 'light'}
-        intensity={Math.max(intensity, 90)}
-        style={StyleSheet.absoluteFill}
-      />
+      {!reduceEffects && (
+        <BlurView
+          tint={isDark ? 'dark' : 'light'}
+          intensity={Math.max(intensity, 90)}
+          style={StyleSheet.absoluteFill}
+        />
+      )}
       <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: veil }]} />
       {!noRim && (
         <View

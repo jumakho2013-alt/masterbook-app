@@ -38,6 +38,10 @@ interface SettingsState {
   calendarSyncEnabled: boolean;
   /** Язык интерфейса: 'system' = автоматически по системе, иначе явно ru/en. */
   language: 'system' | 'ru' | 'en';
+  /** «Уменьшить эффекты» — отключает blur/mesh (сплошные поверхности).
+   *  Для слабых/бюджетных Android, где blur роняет FPS при скролле.
+   *  Device-preference (как тема) — не сбрасывается при выходе из аккаунта. */
+  reduceEffects: boolean;
 
   setTheme: (theme: ThemeSetting) => void;
   setWorkHours: (start: string, end: string) => void;
@@ -55,6 +59,7 @@ interface SettingsState {
   setReviewLinkUrl: (url: string | null) => void;
   setCalendarSyncEnabled: (enabled: boolean) => void;
   setLanguage: (lang: 'system' | 'ru' | 'en') => void;
+  setReduceEffects: (enabled: boolean) => void;
   /** Полный сброс к дефолтам (используется при signOut / deleteAccount).
    *  Сохраняет тему (UI preference) — это про устройство, не про аккаунт.
    *  Валюту тоже сохраняем — она привязана к региону, не к юзеру. */
@@ -91,6 +96,7 @@ export const useSettingsStore = create<SettingsState>()(
       reviewLinkUrl: null,
       calendarSyncEnabled: false,
       language: 'system',
+      reduceEffects: false,
       ...defaultSettingsForAccount,
 
       setTheme: (theme) => set({ theme }),
@@ -110,6 +116,7 @@ export const useSettingsStore = create<SettingsState>()(
       setReviewLinkUrl: (url) => set({ reviewLinkUrl: url }),
       setCalendarSyncEnabled: (enabled) => set({ calendarSyncEnabled: enabled }),
       setLanguage: (lang) => set({ language: lang }),
+      setReduceEffects: (enabled) => set({ reduceEffects: enabled }),
 
       reset: () =>
         set({

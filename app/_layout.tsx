@@ -18,6 +18,8 @@ import { AppBackground } from '@/src/components/AppBackground';
 import { initCrashReporter } from '@/src/lib/crashReporter';
 import { useNotificationDeepLink } from '@/src/hooks/useNotificationDeepLink';
 import { useCloudSyncLifecycle } from '@/src/hooks/useCloudSyncLifecycle';
+import { rescheduleMissingReminders } from '@/src/lib/reminderSync';
+import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
@@ -45,6 +47,20 @@ function RootInner() {
   useNotificationDeepLink();
   // Облачная синхронизация: старт/стоп по auth-состоянию, pull+push при входе.
   useCloudSyncLifecycle();
+
+  // Перепланируем напоминания, потерянные после ребута Android (минус №8).
+  // Ждём гидрации persist-стора записей — иначе прочитаем пустой список.
+  useEffect(() => {
+    const persistApi = useAppointmentStore.persist;
+    if (persistApi.hasHydrated()) {
+      void rescheduleMissingReminders();
+      return;
+    }
+    const unsub = persistApi.onFinishHydration(() => {
+      void rescheduleMissingReminders();
+    });
+    return unsub;
+  }, []);
 
   return (
     <AppBackground>

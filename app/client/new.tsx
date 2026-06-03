@@ -13,9 +13,8 @@ export default function NewClientScreen() {
   const router = useRouter();
   const { colors, typography: typo, spacing: sp } = useTheme();
   const addClient = useClientStore((s) => s.addClient);
-  const clientCount = useClientStore((s) => s.clients.length);
 
-  const { alertConfig, error: showError } = useAlert();
+  const { alertConfig } = useAlert();
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -40,14 +39,6 @@ export default function NewClientScreen() {
         }
       }
       setErrors(fieldErrors);
-      return;
-    }
-
-    if (clientCount >= 20) {
-      showError(
-        'Лимит клиентов',
-        'Сейчас можно добавить максимум 20 клиентов. Безлимитная база — в ближайшем обновлении.',
-      );
       return;
     }
 

@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Plus, Trash2, Pencil } from 'lucide-react-native';
+import { ArrowLeft, Plus, Trash2 } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
-import { GlassCard, IconButton, Button, Input, CustomAlert, useToast } from '@/src/components/ui';
+import { GlassCard, IconButton, Button, Input, CustomAlert, useToast, SearchBar } from '@/src/components/ui';
 import { useAlert } from '@/src/hooks/useAlert';
 import { useServiceStore } from '@/src/stores/useServiceStore';
 import { formatCurrency } from '@/src/utils/currency';
@@ -23,6 +23,13 @@ export default function ManageServicesScreen() {
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [duration, setDuration] = useState('');
+  const [query, setQuery] = useState('');
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return services;
+    return services.filter((s) => s.name.toLowerCase().includes(q));
+  }, [services, query]);
 
   const handleAdd = () => {
     if (!name.trim()) {
@@ -63,11 +70,24 @@ export default function ManageServicesScreen() {
         />
       </View>
 
+      {services.length > 6 && (
+        <View style={{ paddingHorizontal: 16, marginBottom: 12 }}>
+          <SearchBar value={query} onChangeText={setQuery} placeholder="Поиск услуги" />
+        </View>
+      )}
+
       <FlatList
-        data={services}
+        data={filtered}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
         ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
+        ListEmptyComponent={
+          query.trim() ? (
+            <Text style={[typo.body, { color: colors.textSecondary, textAlign: 'center', marginTop: 32 }]}>
+              Ничего не найдено
+            </Text>
+          ) : null
+        }
         renderItem={({ item }) => (
           <GlassCard style={styles.serviceCard}>
             <View style={[styles.colorDot, { backgroundColor: item.color }]} />
@@ -90,7 +110,7 @@ export default function ManageServicesScreen() {
         <View style={[styles.addForm, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
           <Input placeholder="Название" value={name} onChangeText={setName} />
           <View style={styles.addRow}>
-            <Input placeholder="Price ($)" value={price} onChangeText={setPrice} keyboardType="numeric" containerStyle={{ flex: 1 }} />
+            <Input placeholder="Цена" value={price} onChangeText={setPrice} keyboardType="numeric" containerStyle={{ flex: 1 }} />
             <Input placeholder="Мин" value={duration} onChangeText={setDuration} keyboardType="numeric" containerStyle={{ width: 80 }} />
           </View>
           <View style={styles.addRow}>

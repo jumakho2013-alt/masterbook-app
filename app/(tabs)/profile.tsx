@@ -21,6 +21,7 @@ import {
   Star,
   CalendarSync,
   Languages,
+  Zap,
 } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
 import { GlassCard, Divider, CustomAlert } from '@/src/components/ui';
@@ -91,6 +92,8 @@ function ProfileScreen() {
   const specializationId = useAuthStore((s) => s.specializationId);
   const theme = useSettingsStore((s) => s.theme);
   const setTheme = useSettingsStore((s) => s.setTheme);
+  const reduceEffects = useSettingsStore((s) => s.reduceEffects);
+  const setReduceEffects = useSettingsStore((s) => s.setReduceEffects);
   const currency = useSettingsStore((s) => s.currency);
   const currencyMeta = SUPPORTED_CURRENCIES.find((c) => c.code === currency);
   const restartOnboarding = useAuthStore((s) => s.restartOnboarding);
@@ -274,6 +277,13 @@ function ProfileScreen() {
               label="Язык"
               subtitle={languageLabel}
               onPress={() => router.push('/settings/language')}
+            />
+            <Divider style={{ marginVertical: 0, marginLeft: 52 }} />
+            <MenuItem
+              icon={<Zap size={20} color={colors.primary} />}
+              label="Уменьшить эффекты"
+              subtitle={reduceEffects ? 'Включено — без размытия (быстрее)' : 'Размытие и эффекты включены'}
+              onPress={() => setReduceEffects(!reduceEffects)}
             />
           </GlassCard>
         </View>

@@ -2,6 +2,7 @@ import React from 'react';
 import { View, StyleSheet, useWindowDimensions } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useTheme } from '@/src/theme';
+import { useSettingsStore } from '@/src/stores/useSettingsStore';
 
 /**
  * AppBackground — живой mesh-gradient фон под весь экран.
@@ -23,6 +24,17 @@ export function AppBackground({ children }: { children: React.ReactNode }) {
   const { colors, isDark } = useTheme();
   const { width, height } = useWindowDimensions();
   const blobSize = Math.max(width, height) * 0.9;
+  const reduceEffects = useSettingsStore((s) => s.reduceEffects);
+
+  // «Уменьшить эффекты»: сплошная заливка, без mesh-кругов и blur. На слабых
+  // Android blur роняет FPS при скролле — даём пользователю выключить.
+  if (reduceEffects) {
+    return (
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.background }]}>
+        <View style={StyleSheet.absoluteFill}>{children}</View>
+      </View>
+    );
+  }
 
   return (
     <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.background }]}>

@@ -15,6 +15,12 @@ interface AppointmentState {
   addAppointment: (data: Omit<Appointment, 'id'>) => Appointment;
   updateAppointment: (id: string, updates: Partial<Appointment>) => void;
   setStatus: (id: string, status: AppointmentStatus) => void;
+  /** Записать device-local id напоминания БЕЗ изменения updatedAt и без
+   *  триггера облачного push. reminderNotificationId не синхронизируется, и
+   *  его обновление (например, при перепланировании после ребута) не должно
+   *  считаться правкой данных — иначе устройство необоснованно «победит» в
+   *  last-write-wins против других устройств. */
+  setReminderId: (id: string, notifId: string | undefined) => void;
   deleteAppointment: (id: string) => void;
   getTodayAppointments: () => Appointment[];
   getByDate: (date: string) => Appointment[];
@@ -77,6 +83,13 @@ export const useAppointmentStore = create<AppointmentState>()(
         }));
         notifyLocalMutation();
       },
+
+      setReminderId: (id, notifId) =>
+        set((s) => ({
+          appointments: s.appointments.map((a) =>
+            a.id === id ? { ...a, reminderNotificationId: notifId } : a,
+          ),
+        })),
 
       deleteAppointment: (id) => {
         const prev = get().appointments.find((a) => a.id === id);

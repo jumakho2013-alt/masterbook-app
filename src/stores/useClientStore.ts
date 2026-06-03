@@ -7,8 +7,6 @@ import { nowIso } from '@/src/utils/date';
 import { mergeRemote, type RemoteChange, type Tombstone } from '@/src/lib/syncMerge';
 import { notifyLocalMutation } from '@/src/lib/cloudSyncSignal';
 
-const FREE_CLIENT_LIMIT = 20;
-
 interface ClientState {
   clients: Client[];
   /** Локальные удаления, ждущие пуша на сервер (deleted_at). */
@@ -36,7 +34,6 @@ export const useClientStore = create<ClientState>()(
       tombstones: [],
 
       addClient: (data) => {
-        if (!get().canAddClient()) return null;
         const now = nowIso();
         const client: Client = {
           ...data,
@@ -82,7 +79,9 @@ export const useClientStore = create<ClientState>()(
         );
       },
 
-      canAddClient: () => get().clients.length < FREE_CLIENT_LIMIT,
+      // Лимита больше нет: PRO-биллинг ещё не построен, поэтому ограничение
+      // было тупиком (упёрся → заплатить нельзя). Вернём, когда появится оплата.
+      canAddClient: () => true,
 
       mergeRemote: (remote) => {
         const { records, appliedDeletes } = mergeRemote(get().clients, remote);
