@@ -198,7 +198,8 @@ export default function LoginScreen() {
           <Pressable
             onPress={() => {
               enableLocalOnly();
-              router.replace('/(auth)/welcome');
+              // Ведём прямо в выбор профессии — без промежуточного welcome.
+              router.replace('/(auth)/profession');
             }}
             accessibilityRole="button"
             accessibilityLabel="Начать без аккаунта"

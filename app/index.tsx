@@ -50,8 +50,10 @@ export default function Index() {
 
   // Local-only mode: пользователь выбрал «Начать без аккаунта». Сессии
   // нет, и не нужна — пускаем по onboarding пути дальше.
+  // Welcome-экран после login = шумный второй welcome; ведём прямо в выбор
+  // профессии. Юзер ОДНУ красивую welcome видел на login screen.
   if (localOnlyMode) {
-    if (!onboarded) return <Redirect href="/(auth)/welcome" />;
+    if (!onboarded) return <Redirect href="/(auth)/profession" />;
     return <Redirect href="/(tabs)" />;
   }
 
@@ -60,9 +62,9 @@ export default function Index() {
     return <Redirect href="/(auth)/login" />;
   }
 
-  // Session but not onboarded → welcome
+  // Session but not onboarded → выбор профессии (без промежуточного welcome).
   if (!onboarded) {
-    return <Redirect href="/(auth)/welcome" />;
+    return <Redirect href="/(auth)/profession" />;
   }
 
   // Session + onboarded → main app
