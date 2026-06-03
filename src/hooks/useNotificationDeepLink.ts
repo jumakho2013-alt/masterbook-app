@@ -37,6 +37,9 @@ export function useNotificationDeepLink() {
           pathname: '/appointment/[id]',
           params: { id: data.appointmentId },
         });
+      } else if (data.type === 'client_reminders') {
+        // Ежедневное «разошли напоминания клиентам» → экран завтрашних клиентов.
+        router.push('/reminders-tomorrow');
       }
       // morning_summary: ничего не делаем, юзер уже видит Today.
     };

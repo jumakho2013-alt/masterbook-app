@@ -22,12 +22,18 @@ import {
   CalendarSync,
   Languages,
   Zap,
+  BellRing,
 } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
 import { GlassCard, Divider, CustomAlert } from '@/src/components/ui';
 import { MasterBookLogo } from '@/src/components/MasterBookLogo';
 import { SyncStatusCard } from '@/src/components/SyncStatusCard';
 import { flushPush } from '@/src/lib/cloudSync';
+import {
+  registerForPushNotifications,
+  scheduleDailyClientReminderPrompt,
+  cancelDailyClientReminderPrompt,
+} from '@/src/lib/notifications';
 import { useAlert } from '@/src/hooks/useAlert';
 import { useAuthStore } from '@/src/stores/useAuthStore';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
@@ -94,6 +100,8 @@ function ProfileScreen() {
   const setTheme = useSettingsStore((s) => s.setTheme);
   const reduceEffects = useSettingsStore((s) => s.reduceEffects);
   const setReduceEffects = useSettingsStore((s) => s.setReduceEffects);
+  const autoClientReminders = useSettingsStore((s) => s.autoClientReminders);
+  const setAutoClientReminders = useSettingsStore((s) => s.setAutoClientReminders);
   const currency = useSettingsStore((s) => s.currency);
   const currencyMeta = SUPPORTED_CURRENCIES.find((c) => c.code === currency);
   const restartOnboarding = useAuthStore((s) => s.restartOnboarding);
@@ -153,6 +161,29 @@ function ProfileScreen() {
       },
       'Выйти',
       true,
+    );
+  };
+
+  const handleToggleAutoReminders = async () => {
+    if (autoClientReminders) {
+      setAutoClientReminders(false);
+      await cancelDailyClientReminderPrompt();
+      return;
+    }
+    // Включаем: нужны разрешения на уведомления.
+    const granted = await registerForPushNotifications();
+    if (!granted) {
+      info(
+        'Нужны уведомления',
+        'Чтобы напоминать о завтрашних клиентах, разрешите уведомления в настройках телефона.',
+      );
+      return;
+    }
+    setAutoClientReminders(true);
+    await scheduleDailyClientReminderPrompt();
+    info(
+      'Готово',
+      'Каждый вечер в 19:00 напомню разослать сообщения завтрашним клиентам. Тексты будут уже готовы.',
     );
   };
 
@@ -264,6 +295,13 @@ function ProfileScreen() {
               label="Календарь устройства"
               subtitle="Синхронизация с iPhone / Google Calendar"
               onPress={() => router.push('/settings/calendar-sync')}
+            />
+            <Divider style={{ marginVertical: 0, marginLeft: 52 }} />
+            <MenuItem
+              icon={<BellRing size={20} color={colors.primary} />}
+              label="Авто-напоминания клиентам"
+              subtitle={autoClientReminders ? 'Вкл — вечером покажу завтрашних' : 'Напоминать рассылать сообщения'}
+              onPress={handleToggleAutoReminders}
             />
           </GlassCard>
         </View>

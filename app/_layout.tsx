@@ -92,6 +92,7 @@ function RootInner() {
         <Stack.Screen name="finance/new" options={{ presentation: 'modal' }} />
         <Stack.Screen name="finance/report" />
         <Stack.Screen name="insights" />
+        <Stack.Screen name="reminders-tomorrow" />
       </Stack>
     </AppBackground>
   );

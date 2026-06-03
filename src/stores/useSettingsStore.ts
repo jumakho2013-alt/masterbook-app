@@ -42,6 +42,11 @@ interface SettingsState {
    *  Для слабых/бюджетных Android, где blur роняет FPS при скролле.
    *  Device-preference (как тема) — не сбрасывается при выходе из аккаунта. */
   reduceEffects: boolean;
+  /** Авто-напоминания клиентам: вечером ежедневно приложение напоминает
+   *  мастеру разослать напоминания завтрашним клиентам (тап → экран рассылки
+   *  с готовыми WhatsApp-черновиками). Авто-отправка SMS требует платного
+   *  шлюза — отложено. Opt-in, по умолчанию выключено. */
+  autoClientReminders: boolean;
 
   setTheme: (theme: ThemeSetting) => void;
   setWorkHours: (start: string, end: string) => void;
@@ -60,6 +65,7 @@ interface SettingsState {
   setCalendarSyncEnabled: (enabled: boolean) => void;
   setLanguage: (lang: 'system' | 'ru' | 'en') => void;
   setReduceEffects: (enabled: boolean) => void;
+  setAutoClientReminders: (enabled: boolean) => void;
   /** Полный сброс к дефолтам (используется при signOut / deleteAccount).
    *  Сохраняет тему (UI preference) — это про устройство, не про аккаунт.
    *  Валюту тоже сохраняем — она привязана к региону, не к юзеру. */
@@ -97,6 +103,7 @@ export const useSettingsStore = create<SettingsState>()(
       calendarSyncEnabled: false,
       language: 'system',
       reduceEffects: false,
+      autoClientReminders: false,
       ...defaultSettingsForAccount,
 
       setTheme: (theme) => set({ theme }),
@@ -117,6 +124,7 @@ export const useSettingsStore = create<SettingsState>()(
       setCalendarSyncEnabled: (enabled) => set({ calendarSyncEnabled: enabled }),
       setLanguage: (lang) => set({ language: lang }),
       setReduceEffects: (enabled) => set({ reduceEffects: enabled }),
+      setAutoClientReminders: (enabled) => set({ autoClientReminders: enabled }),
 
       reset: () =>
         set({
@@ -126,6 +134,7 @@ export const useSettingsStore = create<SettingsState>()(
           checklistDismissedAt: null,
           reviewLinkUrl: null,
           calendarSyncEnabled: false,
+          autoClientReminders: false,
         }),
     }),
     {

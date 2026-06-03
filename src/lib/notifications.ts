@@ -154,6 +154,43 @@ export async function scheduleMorningReminder(
   return id;
 }
 
+// Стабильный id ежедневного «разошли напоминания клиентам». Стабильный —
+// чтобы пере-планирование перезаписывало, а не плодило дубликаты.
+const DAILY_CLIENT_REMINDER_ID = 'daily-client-reminders';
+
+/** Запланировать ежедневное напоминание мастеру вечером: «разошли напоминания
+ *  завтрашним клиентам». Идемпотентно (стабильный identifier перезаписывает). */
+export async function scheduleDailyClientReminderPrompt(hour = 19, minute = 0): Promise<void> {
+  try {
+    await Notifications.scheduleNotificationAsync({
+      identifier: DAILY_CLIENT_REMINDER_ID,
+      content: {
+        title: 'Напомните клиентам о завтрашних записях 📲',
+        body: 'Нажмите — покажу список завтрашних клиентов с готовыми сообщениями.',
+        data: { type: 'client_reminders' },
+        sound: 'default',
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour,
+        minute,
+        channelId: 'reminders',
+      },
+    });
+  } catch (err) {
+    captureException(err, { tag: 'notifications.dailyClientReminder' });
+  }
+}
+
+/** Отменить ежедневное напоминание (idempotent, не падает если его нет). */
+export async function cancelDailyClientReminderPrompt(): Promise<void> {
+  try {
+    await Notifications.cancelScheduledNotificationAsync(DAILY_CLIENT_REMINDER_ID);
+  } catch {
+    // нет такого запланированного — ок
+  }
+}
+
 // Отменить конкретное уведомление
 export async function cancelNotification(notificationId: string) {
   await Notifications.cancelScheduledNotificationAsync(notificationId);

@@ -2,11 +2,14 @@ import * as Notifications from 'expo-notifications';
 import {
   getNotificationPermissionStatus,
   scheduleAppointmentReminder,
+  scheduleDailyClientReminderPrompt,
+  cancelDailyClientReminderPrompt,
 } from '@/src/lib/notifications';
 import { captureException } from '@/src/lib/crashReporter';
 import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useClientStore } from '@/src/stores/useClientStore';
 import { useServiceStore } from '@/src/stores/useServiceStore';
+import { useSettingsStore } from '@/src/stores/useSettingsStore';
 
 /** За сколько минут до записи напоминаем (совпадает с appointment/new.tsx). */
 const REMINDER_MINUTES_BEFORE = 60;
@@ -28,6 +31,14 @@ export async function rescheduleMissingReminders(): Promise<void> {
   try {
     const status = await getNotificationPermissionStatus();
     if (status !== 'granted') return;
+
+    // Самовосстановление ежедневного «разошли напоминания клиентам»: ставим
+    // если включено в настройках, снимаем если выключено (idempotent).
+    if (useSettingsStore.getState().autoClientReminders) {
+      await scheduleDailyClientReminderPrompt();
+    } else {
+      await cancelDailyClientReminderPrompt();
+    }
 
     const existing = await Notifications.getAllScheduledNotificationsAsync();
     const haveReminderFor = new Set<string>();
