@@ -10,6 +10,7 @@ import { Button, Input, CustomAlert } from '@/src/components/ui';
 import { AppleSignInButton } from '@/src/components/AppleSignInButton';
 import { useAlert } from '@/src/hooks/useAlert';
 import { useAuthStore } from '@/src/stores/useAuthStore';
+import { useT } from '@/src/hooks/useT';
 import { signInSchema } from '@/src/lib/validation';
 import {
   checkAuthRateLimit,
@@ -28,12 +29,13 @@ export default function LoginScreen() {
   const setConsentGiven = useAuthStore((s) => s.setConsentGiven);
   const dataConsentGivenAt = useAuthStore((s) => s.dataConsentGivenAt);
   const enableLocalOnly = useAuthStore((s) => s.enableLocalOnly);
+  const t = useT();
 
   const { alertConfig, error: showError, info } = useAlert();
 
   const openPrivacyPolicy = () => {
     WebBrowser.openBrowserAsync(PRIVACY_POLICY_URL).catch(() => {
-      showError('Не удалось открыть', 'Скопируйте ссылку: ' + PRIVACY_POLICY_URL);
+      showError(t('common.openFailed'), t('common.copyLink', { url: PRIVACY_POLICY_URL }));
     });
   };
 
@@ -67,7 +69,7 @@ export default function LoginScreen() {
     // Rate limit: если перебрали попыток — не шлём даже на бэкенд
     const rl = await checkAuthRateLimit();
     if (rl.locked) {
-      showError('Слишком много попыток', `Подождите ${formatRetryDuration(rl.retryInMs)} и попробуйте снова`);
+      showError(t('auth.tooManyAttempts'), t('auth.tooManyAttemptsWait', { duration: formatRetryDuration(rl.retryInMs) }));
       return;
     }
 
@@ -79,11 +81,11 @@ export default function LoginScreen() {
       const next = await recordAuthFailure();
       if (next.locked) {
         showError(
-          'Слишком много попыток',
-          `Ваш вход временно заблокирован на ${formatRetryDuration(next.retryInMs)}`,
+          t('auth.tooManyAttempts'),
+          t('auth.loginBlocked', { duration: formatRetryDuration(next.retryInMs) }),
         );
       } else {
-        showError('Ошибка', error);
+        showError(t('common.error'), error);
       }
     } else {
       await resetAuthRateLimit();
@@ -100,38 +102,38 @@ export default function LoginScreen() {
 
           <Text style={[typo.h1, { color: colors.text, marginTop: sp.md }]}>MasterBook</Text>
           <Text style={[typo.body, { color: colors.textSecondary, marginTop: sp.xs }]}>
-            Войдите в аккаунт
+            {t('auth.loginSubtitle')}
           </Text>
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(200).duration(600)} style={styles.form}>
           <Input
-            label="Email"
+            label={t('auth.email')}
             placeholder="you@example.com"
             value={email}
-            onChangeText={(t) => { setEmail(t); setErrors((e) => ({ ...e, email: undefined })); }}
+            onChangeText={(v) => { setEmail(v); setErrors((e) => ({ ...e, email: undefined })); }}
             error={errors.email}
             keyboardType="email-address"
             autoCapitalize="none"
           />
           <Input
-            label="Пароль"
+            label={t('auth.password')}
             placeholder="••••••••"
             value={password}
-            onChangeText={(t) => { setPassword(t); setErrors((e) => ({ ...e, password: undefined })); }}
+            onChangeText={(v) => { setPassword(v); setErrors((e) => ({ ...e, password: undefined })); }}
             error={errors.password}
             secureTextEntry
           />
 
           <Pressable
-            onPress={() => info('Забыли пароль?', 'Напишите нам на support@masterbook.app и мы поможем восстановить доступ')}
+            onPress={() => info(t('auth.forgotPassword'), t('auth.forgotPasswordBody'))}
             style={{ alignSelf: 'flex-end' }}
           >
-            <Text style={[typo.caption, { color: colors.primary }]}>Забыли пароль?</Text>
+            <Text style={[typo.caption, { color: colors.primary }]}>{t('auth.forgotPassword')}</Text>
           </Pressable>
 
           <Button
-            title="Войти"
+            title={t('auth.login')}
             onPress={handleLogin}
             loading={loading}
             size="lg"
@@ -146,7 +148,7 @@ export default function LoginScreen() {
               recordConsentIfNeeded();
               router.replace('/');
             }}
-            onError={(msg) => showError('Apple Sign-In', msg)}
+            onError={(msg) => showError(t('auth.appleSignIn'), msg)}
           />
 
           {/* 152-ФЗ disclaimer. Apple HIG не разрешает чекбокс прямо над Sign in
@@ -159,21 +161,21 @@ export default function LoginScreen() {
               { color: colors.textTertiary, textAlign: 'center', marginTop: sp.md, lineHeight: 16 },
             ]}
           >
-            Нажимая «Войти», вы соглашаетесь с{' '}
+            {t('auth.loginConsentPrefix')}
             <Text
               onPress={openPrivacyPolicy}
               style={{ color: colors.primary, textDecorationLine: 'underline' }}
             >
-              обработкой персональных данных
+              {t('auth.consentProcessing')}
             </Text>
           </Text>
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(400).duration(600)} style={styles.footer}>
-          <Text style={[typo.body, { color: colors.textSecondary }]}>Нет аккаунта?</Text>
+          <Text style={[typo.body, { color: colors.textSecondary }]}>{t('auth.noAccount')}</Text>
           <Pressable onPress={() => router.push('/(auth)/register')}>
             <Text style={[typo.bodyBold, { color: colors.primary, marginLeft: 6 }]}>
-              Зарегистрироваться
+              {t('auth.register')}
             </Text>
           </Pressable>
         </Animated.View>
@@ -191,7 +193,7 @@ export default function LoginScreen() {
             }}
           >
             <View style={{ flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: colors.border }} />
-            <Text style={[typo.small, { color: colors.textTertiary }]}>или</Text>
+            <Text style={[typo.small, { color: colors.textTertiary }]}>{t('auth.or')}</Text>
             <View style={{ flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: colors.border }} />
           </View>
           <Pressable
@@ -201,11 +203,11 @@ export default function LoginScreen() {
               router.replace('/(auth)/profession');
             }}
             accessibilityRole="button"
-            accessibilityLabel="Начать без аккаунта"
+            accessibilityLabel={t('auth.startWithoutAccount')}
             style={{ alignSelf: 'center', paddingVertical: 6 }}
           >
             <Text style={[typo.bodyBold, { color: colors.text }]}>
-              Начать без аккаунта
+              {t('auth.startWithoutAccount')}
             </Text>
             <Text
               style={[
@@ -213,7 +215,7 @@ export default function LoginScreen() {
                 { color: colors.textTertiary, textAlign: 'center', marginTop: 4, lineHeight: 16 },
               ]}
             >
-              Данные хранятся только на телефоне.{'\n'}Можно подключить аккаунт позже.
+              {t('auth.startWithoutAccountHint')}
             </Text>
           </Pressable>
         </Animated.View>

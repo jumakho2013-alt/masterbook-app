@@ -11,6 +11,7 @@ import { Button, Input, CustomAlert } from '@/src/components/ui';
 import { useAlert } from '@/src/hooks/useAlert';
 import { useAuthStore } from '@/src/stores/useAuthStore';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
+import { useT } from '@/src/hooks/useT';
 import { signUpSchema } from '@/src/lib/validation';
 
 // Ссылка на каноническую версию политики конфиденциальности.
@@ -23,6 +24,7 @@ export default function RegisterScreen() {
   const { colors, typography: typo, spacing: sp } = useTheme();
   const signUp = useAuthStore((s) => s.signUp);
   const setMasterName = useSettingsStore((s) => s.setMasterName);
+  const t = useT();
 
   const { alertConfig, error: showError } = useAlert();
 
@@ -41,7 +43,7 @@ export default function RegisterScreen() {
     // expo-web-browser открывает SFSafariViewController / Custom Tabs —
     // пользователь не выходит из приложения, нет риска фишинг-perception.
     WebBrowser.openBrowserAsync(PRIVACY_POLICY_URL).catch(() => {
-      showError('Не удалось открыть', 'Скопируйте ссылку: ' + PRIVACY_POLICY_URL);
+      showError(t('common.openFailed'), t('common.copyLink', { url: PRIVACY_POLICY_URL }));
     });
   };
 
@@ -51,10 +53,7 @@ export default function RegisterScreen() {
     if (loading) return;
     Keyboard.dismiss();
     if (!consent) {
-      showError(
-        'Нужно согласие',
-        'Чтобы продолжить, отметьте согласие на обработку персональных данных.',
-      );
+      showError(t('auth.consentNeededTitle'), t('auth.consentNeededBody'));
       return;
     }
     const parsed = signUpSchema.safeParse({ name, email, password });
@@ -73,7 +72,7 @@ export default function RegisterScreen() {
     setLoading(false);
 
     if (error) {
-      showError('Ошибка', error);
+      showError(t('common.error'), error);
     } else {
       // Фиксируем факт согласия с timestamp — для журнала
       // обработки персональных данных (152-ФЗ ст. 9).
@@ -91,33 +90,33 @@ export default function RegisterScreen() {
 
           <Text style={[typo.h1, { color: colors.text, marginTop: sp.md }]}>MasterBook</Text>
           <Text style={[typo.body, { color: colors.textSecondary, marginTop: sp.xs }]}>
-            Создайте аккаунт
+            {t('auth.registerSubtitle')}
           </Text>
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(200).duration(600)} style={styles.form}>
           <Input
-            label="Ваше имя"
-            placeholder="Мария"
+            label={t('auth.name')}
+            placeholder={t('auth.namePlaceholder')}
             value={name}
-            onChangeText={(t) => { setName(t); setErrors((e) => ({ ...e, name: undefined })); }}
+            onChangeText={(v) => { setName(v); setErrors((e) => ({ ...e, name: undefined })); }}
             error={errors.name}
             autoFocus
           />
           <Input
-            label="Email"
+            label={t('auth.email')}
             placeholder="you@example.com"
             value={email}
-            onChangeText={(t) => { setEmail(t); setErrors((e) => ({ ...e, email: undefined })); }}
+            onChangeText={(v) => { setEmail(v); setErrors((e) => ({ ...e, email: undefined })); }}
             error={errors.email}
             keyboardType="email-address"
             autoCapitalize="none"
           />
           <Input
-            label="Пароль"
-            placeholder="Минимум 6 символов"
+            label={t('auth.password')}
+            placeholder={t('auth.passwordMinPlaceholder')}
             value={password}
-            onChangeText={(t) => { setPassword(t); setErrors((e) => ({ ...e, password: undefined })); }}
+            onChangeText={(v) => { setPassword(v); setErrors((e) => ({ ...e, password: undefined })); }}
             error={errors.password}
             secureTextEntry
           />
@@ -129,7 +128,7 @@ export default function RegisterScreen() {
             onPress={() => setConsent((v) => !v)}
             accessibilityRole="checkbox"
             accessibilityState={{ checked: consent }}
-            accessibilityLabel="Согласие на обработку персональных данных"
+            accessibilityLabel={t('auth.consentA11y')}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             style={styles.consentRow}
           >
@@ -145,18 +144,18 @@ export default function RegisterScreen() {
               {consent && <Check size={14} color={colors.white} strokeWidth={3} />}
             </View>
             <Text style={[typo.caption, { color: colors.textSecondary, flex: 1, lineHeight: 18 }]}>
-              Я согласен(а) на обработку персональных данных в соответствии с{' '}
+              {t('auth.registerConsentPrefix')}
               <Text
                 onPress={openPrivacyPolicy}
                 style={{ color: colors.primary, textDecorationLine: 'underline' }}
               >
-                Политикой конфиденциальности
+                {t('auth.privacyPolicy')}
               </Text>
             </Text>
           </Pressable>
 
           <Button
-            title="Зарегистрироваться"
+            title={t('auth.register')}
             onPress={handleRegister}
             loading={loading}
             disabled={!consent}
@@ -167,10 +166,10 @@ export default function RegisterScreen() {
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(400).duration(600)} style={styles.footer}>
-          <Text style={[typo.body, { color: colors.textSecondary }]}>Уже есть аккаунт?</Text>
+          <Text style={[typo.body, { color: colors.textSecondary }]}>{t('auth.haveAccount')}</Text>
           <Pressable onPress={() => router.back()}>
             <Text style={[typo.bodyBold, { color: colors.primary, marginLeft: 6 }]}>
-              Войти
+              {t('auth.login')}
             </Text>
           </Pressable>
         </Animated.View>

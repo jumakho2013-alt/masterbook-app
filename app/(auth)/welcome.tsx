@@ -6,10 +6,12 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useTheme } from '@/src/theme';
 import { Button } from '@/src/components/ui';
 import { MasterBookLogo } from '@/src/components/MasterBookLogo';
+import { useT } from '@/src/hooks/useT';
 
 export default function WelcomeScreen() {
   const router = useRouter();
   const { colors, typography: typo, spacing: sp } = useTheme();
+  const t = useT();
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]}>
@@ -29,14 +31,14 @@ export default function WelcomeScreen() {
               { color: colors.textSecondary, textAlign: 'center', marginTop: sp.sm },
             ]}
           >
-            {'Все клиенты, записи и доходы\nв одном приложении'}
+            {t('welcome.tagline')}
           </Text>
         </Animated.View>
       </View>
 
       <Animated.View entering={FadeInDown.delay(600).duration(600)} style={styles.bottom}>
         <Button
-          title="Начать"
+          title={t('welcome.start')}
           onPress={() => router.push('/(auth)/profession')}
           size="lg"
           style={{ width: '100%' }}

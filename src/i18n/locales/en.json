@@ -18,7 +18,15 @@
     "no": "No",
     "today": "Today",
     "tomorrow": "Tomorrow",
-    "yesterday": "Yesterday"
+    "yesterday": "Yesterday",
+    "error": "Error",
+    "ok": "Got it",
+    "openFailed": "Couldn't open",
+    "copyLink": "Copy the link: %{url}"
+  },
+  "welcome": {
+    "tagline": "All clients, appointments and income\nin one app",
+    "start": "Get started"
   },
   "today": {
     "title": "Today",
@@ -85,6 +93,24 @@
     "noAccount": "No account?",
     "haveAccount": "Already have an account?",
     "consentLabel": "I agree to the processing of personal data per the {policyLink}",
-    "privacyPolicy": "Privacy Policy"
+    "privacyPolicy": "Privacy Policy",
+    "loginSubtitle": "Sign in",
+    "registerSubtitle": "Create account",
+    "namePlaceholder": "Maria",
+    "passwordMinPlaceholder": "At least 6 characters",
+    "forgotPasswordBody": "Email us at support@masterbook.app and we'll help restore access",
+    "loginConsentPrefix": "By tapping \"Sign in\", you agree to ",
+    "consentProcessing": "personal data processing",
+    "registerConsentPrefix": "I agree to the processing of personal data per the ",
+    "consentNeededTitle": "Consent required",
+    "consentNeededBody": "To continue, please check the consent to personal data processing.",
+    "consentA11y": "Consent to personal data processing",
+    "tooManyAttempts": "Too many attempts",
+    "tooManyAttemptsWait": "Wait %{duration} and try again",
+    "loginBlocked": "Your sign-in is temporarily blocked for %{duration}",
+    "appleSignIn": "Apple Sign-In"
+  },
+  "onboarding": {
+    "professionTitle": "What do you\ndo?"
   }
 }

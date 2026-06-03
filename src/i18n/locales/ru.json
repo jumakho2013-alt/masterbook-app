@@ -18,7 +18,15 @@
     "no": "Нет",
     "today": "Сегодня",
     "tomorrow": "Завтра",
-    "yesterday": "Вчера"
+    "yesterday": "Вчера",
+    "error": "Ошибка",
+    "ok": "Понятно",
+    "openFailed": "Не удалось открыть",
+    "copyLink": "Скопируйте ссылку: %{url}"
+  },
+  "welcome": {
+    "tagline": "Все клиенты, записи и доходы\nв одном приложении",
+    "start": "Начать"
   },
   "today": {
     "title": "Сегодня",
@@ -85,6 +93,24 @@
     "noAccount": "Нет аккаунта?",
     "haveAccount": "Уже есть аккаунт?",
     "consentLabel": "Я согласен(а) на обработку персональных данных в соответствии с {policyLink}",
-    "privacyPolicy": "Политикой конфиденциальности"
+    "privacyPolicy": "Политикой конфиденциальности",
+    "loginSubtitle": "Войдите в аккаунт",
+    "registerSubtitle": "Создайте аккаунт",
+    "namePlaceholder": "Мария",
+    "passwordMinPlaceholder": "Минимум 6 символов",
+    "forgotPasswordBody": "Напишите нам на support@masterbook.app и мы поможем восстановить доступ",
+    "loginConsentPrefix": "Нажимая «Войти», вы соглашаетесь с ",
+    "consentProcessing": "обработкой персональных данных",
+    "registerConsentPrefix": "Я согласен(а) на обработку персональных данных в соответствии с ",
+    "consentNeededTitle": "Нужно согласие",
+    "consentNeededBody": "Чтобы продолжить, отметьте согласие на обработку персональных данных.",
+    "consentA11y": "Согласие на обработку персональных данных",
+    "tooManyAttempts": "Слишком много попыток",
+    "tooManyAttemptsWait": "Подождите %{duration} и попробуйте снова",
+    "loginBlocked": "Ваш вход временно заблокирован на %{duration}",
+    "appleSignIn": "Apple Sign-In"
+  },
+  "onboarding": {
+    "professionTitle": "Чем вы\nзанимаетесь?"
   }
 }

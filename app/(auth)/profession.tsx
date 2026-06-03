@@ -7,11 +7,13 @@ import { useTheme } from '@/src/theme';
 import { ProfessionCard } from '@/src/components/ProfessionCard';
 import { professionCategories } from '@/src/data/professions';
 import { useAuthStore } from '@/src/stores/useAuthStore';
+import { useT } from '@/src/hooks/useT';
 
 export default function ProfessionScreen() {
   const router = useRouter();
   const { colors, typography: typo, spacing: sp } = useTheme();
   const setProfession = useAuthStore((s) => s.setProfession);
+  const t = useT();
 
   const handleSelect = (categoryId: string) => {
     const category = professionCategories.find((c) => c.id === categoryId);
@@ -37,7 +39,7 @@ export default function ProfessionScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]}>
       <Animated.View entering={FadeInDown.duration(400)} style={styles.header}>
         <Text style={[typo.h1, { color: colors.text }]}>
-          {'Чем вы\nзанимаетесь?'}
+          {t('onboarding.professionTitle')}
         </Text>
       </Animated.View>
 
