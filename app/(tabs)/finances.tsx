@@ -13,6 +13,7 @@ import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useClientStore } from '@/src/stores/useClientStore';
 import { useServiceStore } from '@/src/stores/useServiceStore';
 import { useTabBarOffset } from '@/src/hooks/useTabBarOffset';
+import { useT } from '@/src/hooks/useT';
 import { formatCurrency } from '@/src/utils/currency';
 import { toDateKey, formatDate } from '@/src/utils/date';
 
@@ -52,15 +53,17 @@ function getPreviousRange(period: Period): { start: string; end: string } {
   return { start: toDateKey(start), end: toDateKey(end) };
 }
 
-const periodLabels: Record<Period, string> = {
-  day: 'День',
-  week: 'Неделя',
-  month: 'Месяц',
+// i18n-ключи периодов (резолвятся в рендере через useT).
+const PERIOD_KEYS: Record<Period, string> = {
+  day: 'finances.periodDay',
+  week: 'finances.periodWeek',
+  month: 'finances.periodMonth',
 };
 
 function FinancesScreen() {
   const router = useRouter();
   const { colors, typography: typo, spacing: sp, borderRadius: br } = useTheme();
+  const tr = useT();
   const bottomOffset = useTabBarOffset(0);
   const fabOffset = useTabBarOffset(16);
   const [period, setPeriod] = useState<Period>('month');
@@ -180,7 +183,7 @@ function FinancesScreen() {
               ]}
             >
               <Text style={[typo.caption, { color: p === period ? colors.white : colors.textSecondary }]}>
-                {periodLabels[p]}
+                {tr(PERIOD_KEYS[p])}
               </Text>
             </TouchableOpacity>
           ))}
@@ -190,14 +193,14 @@ function FinancesScreen() {
         <View style={{ paddingHorizontal: 16, marginBottom: 12 }}>
           <FinanceMetricCard
             variant="large"
-            label="Чистая прибыль"
+            label={tr('finances.netProfit')}
             icon={<Wallet size={20} color={colors.primary} />}
             value={summary.net}
             accentColor={colors.primary}
             sub={
               summary.incomeDiff !== 0
-                ? `${summary.incomeDiff > 0 ? '↗' : '↘'} ${Math.abs(summary.incomeDiff)}% к прошлому периоду`
-                : 'Доход − Расход'
+                ? tr('finances.vsPrevPeriod', { sign: summary.incomeDiff > 0 ? '↗' : '↘', percent: Math.abs(summary.incomeDiff) })
+                : tr('finances.incomeMinusExpense')
             }
             onPress={() => router.push({ pathname: '/finance/report', params: { kind: 'net', period } })}
           />
@@ -207,7 +210,7 @@ function FinancesScreen() {
         <View style={{ flexDirection: 'row', paddingHorizontal: 16, gap: 10, marginBottom: 10 }}>
           <View style={{ flex: 1 }}>
             <FinanceMetricCard
-              label="Доход"
+              label={tr('finances.income')}
               icon={<TrendingUp size={18} color={colors.success} />}
               value={summary.income}
               accentColor={colors.success}
@@ -216,7 +219,7 @@ function FinancesScreen() {
           </View>
           <View style={{ flex: 1 }}>
             <FinanceMetricCard
-              label="Расход"
+              label={tr('finances.expense')}
               icon={<TrendingDown size={18} color={colors.danger} />}
               value={summary.expense}
               accentColor={colors.danger}
@@ -232,7 +235,7 @@ function FinancesScreen() {
         >
           <View style={{ flex: 1 }}>
             <FinanceMetricCard
-              label="Средний чек"
+              label={tr('finances.avgCheck')}
               icon={<Wallet size={18} color={colors.primary} />}
               value={analytics.avgCheck}
               accentColor={colors.primary}
@@ -241,9 +244,9 @@ function FinancesScreen() {
           </View>
           <View style={{ flex: 1 }}>
             <FinanceMetricCard
-              label="Отработано"
+              label={tr('finances.hours')}
               icon={<Clock size={18} color={colors.accent} />}
-              value={`${analytics.hours} ч`}
+              value={tr('finances.hoursValue', { h: analytics.hours })}
               accentColor={colors.accent}
               onPress={() => router.push({ pathname: '/finance/report', params: { kind: 'hours', period } })}
             />
@@ -256,7 +259,7 @@ function FinancesScreen() {
             <GlassCard>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}>
                 <Trophy size={16} color={colors.warning} />
-                <Text style={[typo.bodyBold, { color: colors.text }]}>Топ клиенты</Text>
+                <Text style={[typo.bodyBold, { color: colors.text }]}>{tr('finances.topClients')}</Text>
               </View>
               {analytics.topClients.map((t, i) => (
                 <View key={t.client!.id} style={[styles.topRow, i > 0 && { borderTopWidth: 0.5, borderTopColor: colors.border }]}>
@@ -286,7 +289,7 @@ function FinancesScreen() {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[typo.small, { color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5 }]}>
-                    Популярная услуга
+                    {tr('finances.popularService')}
                   </Text>
                   <Text style={[typo.bodyBold, { color: colors.text, marginTop: 2 }]} numberOfLines={1}>
                     {analytics.popularService.service.name}
@@ -311,7 +314,7 @@ function FinancesScreen() {
 
       {entries.length > 0 && (
         <Text style={[typo.bodyBold, { color: colors.text, marginTop: sp.sm, marginBottom: sp.sm, paddingHorizontal: 16 }]}>
-          Транзакции
+          {tr('finances.transactions')}
         </Text>
       )}
     </>
@@ -320,7 +323,7 @@ function FinancesScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]} edges={['top']}>
       <View style={styles.header}>
-        <Text style={[typo.h2, { color: colors.text }]}>Финансы</Text>
+        <Text style={[typo.h2, { color: colors.text }]}>{tr('finances.title')}</Text>
       </View>
 
       <SectionList

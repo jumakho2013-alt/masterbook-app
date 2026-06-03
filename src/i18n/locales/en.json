@@ -75,7 +75,15 @@
     "hours": "Hours",
     "transactions": "Transactions",
     "topClients": "Top clients",
-    "popularService": "Popular service"
+    "popularService": "Popular service",
+    "netProfit": "Net profit",
+    "periodDay": "Day",
+    "periodWeek": "Week",
+    "periodMonth": "Month",
+    "vsPrevPeriod": "%{sign} %{percent}% vs last period",
+    "incomeMinusExpense": "Income − Expense",
+    "hoursValue": "%{h} h",
+    "addOperation": "Add transaction"
   },
   "profile": {
     "title": "Profile",

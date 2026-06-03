@@ -75,7 +75,15 @@
     "hours": "Отработано",
     "transactions": "Транзакции",
     "topClients": "Топ клиенты",
-    "popularService": "Популярная услуга"
+    "popularService": "Популярная услуга",
+    "netProfit": "Чистая прибыль",
+    "periodDay": "День",
+    "periodWeek": "Неделя",
+    "periodMonth": "Месяц",
+    "vsPrevPeriod": "%{sign} %{percent}% к прошлому периоду",
+    "incomeMinusExpense": "Доход − Расход",
+    "hoursValue": "%{h} ч",
+    "addOperation": "Добавить операцию"
   },
   "profile": {
     "title": "Профиль",
