@@ -29,8 +29,8 @@ export function MasterBookLogo({ size = 64, withBackground = true, style }: Mast
       <Svg width={size} height={size} viewBox={`0 0 ${VB} ${VB}`}>
         <Defs>
           <LinearGradient id="mbBg" x1="0" y1="0" x2="717" y2="1024" gradientUnits="userSpaceOnUse">
-            <Stop offset="0" stopColor="#A892FF" />
-            <Stop offset="1" stopColor="#5A3FD9" />
+            <Stop offset="0" stopColor="#2EE6A6" />
+            <Stop offset="1" stopColor="#047857" />
           </LinearGradient>
           <LinearGradient id="mbGlint" x1="0" y1="0" x2="0" y2="1">
             <Stop offset="0" stopColor="#FFFFFF" stopOpacity="0.10" />

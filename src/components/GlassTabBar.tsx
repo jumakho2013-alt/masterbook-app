@@ -93,9 +93,10 @@ export function GlassTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const bottomPad = Math.max(insets.bottom, Platform.OS === 'ios' ? 8 : 6);
 
-  // DARK: ровный solid surface (без blur/specular — давало мутность).
-  // LIGHT: лёгкое стекло поверх контента.
-  const useBlur = Platform.OS === 'ios' && !isDark;
+  // Стекло на обеих темах: за tab bar — mesh-фон AppBackground, blur его
+  // размывает → красивая полупрозрачная панель. Без specular-glint.
+  const useBlur = Platform.OS === 'ios';
+  const veil = isDark ? 'rgba(10,15,12,0.72)' : 'rgba(255,255,255,0.72)';
 
   return (
     <View
@@ -110,11 +111,8 @@ export function GlassTabBar({ state, navigation }: BottomTabBarProps) {
     >
       {useBlur && (
         <>
-          <BlurView tint="light" intensity={80} style={StyleSheet.absoluteFill} />
-          <View
-            pointerEvents="none"
-            style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(255,255,255,0.65)' }]}
-          />
+          <BlurView tint={isDark ? 'dark' : 'light'} intensity={80} style={StyleSheet.absoluteFill} />
+          <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: veil }]} />
         </>
       )}
       <View style={styles.row}>

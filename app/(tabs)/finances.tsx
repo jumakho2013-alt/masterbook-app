@@ -318,7 +318,7 @@ function FinancesScreen() {
   );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]} edges={['top']}>
       <View style={styles.header}>
         <Text style={[typo.h2, { color: colors.text }]}>Финансы</Text>
       </View>
@@ -338,7 +338,7 @@ function FinancesScreen() {
           <View
             style={[
               styles.daySectionHeader,
-              { backgroundColor: colors.background, borderBottomColor: colors.border },
+              { backgroundColor: colors.surface, borderBottomColor: colors.border },
             ]}
           >
             <Text style={[typo.small, { color: colors.textSecondary, textTransform: 'capitalize' }]}>

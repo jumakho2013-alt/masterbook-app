@@ -31,114 +31,87 @@ export interface ColorScheme {
   // Absolute
   white: string;
   black: string;
+
+  // Mesh — 3 цвета фоновых «пятен», которые blur размывает за карточками.
+  // Создают живой glassmorphism-фон вместо плоского background.
+  mesh: [string, string, string];
 }
 
-// Premium Light — холодный off-white с лавандовым undertone.
-//
-// Принципы (синхронизированы с dark-палитрой):
-//   1. Cool off-white фон (не пожелтевший бежевый) — выглядит свежее.
-//      Lavender undertone гармонирует с primary, единство визуала.
-//   2. textSecondary с slate-blue undertone (не нейтральный серый) —
-//      premium feel против цветов primary.
-//   3. Accents emerald/gold/rose, не lime/yellow/red — premium vs cheap.
-//   4. Borders с лёгкой primary-тинтом — единство дизайн-системы.
-//   5. WCAG AA контраст ≥4.5:1 для текста, ≥3:1 для UI элементов.
+// Emerald & Gold — Light. Мятно-зелёный off-white фон, изумруд + золото.
+// Гамма «деньги/успех/luxury». WCAG AA ≥4.5:1 для текста.
 export const lightColors: ColorScheme = {
-  // Lavender-tinted off-white — современнее жёлто-бежевого
-  background: '#F7F7FC',
-  // Surface чисто-белый — даёт ясную elevation tier поверх background
+  // Мятно-зелёный off-white — свежий, не белый-стерильный
+  background: '#F2F7F4',
   surface: '#FFFFFF',
   surfaceGlass: 'rgba(255,255,255,0.85)',
-  // surfaceElevated — между surface и background, ощущается как «утопленный»
-  // блок (textfield, segment-control bg). Тоже с лёгким lavender-тинтом.
-  surfaceElevated: '#EFEFF7',
+  surfaceElevated: '#E6F0EA',
 
-  // Primary тот же фиолетовый — наш бренд
-  primary: '#7C5DFA',
-  primarySoft: 'rgba(124,93,250,0.12)',
-  // Accent: тёплый коралл, чуть более розовый чем раньше
-  accent: '#FF7A6E',
-  accentSoft: 'rgba(255,122,110,0.14)',
+  // Primary — насыщенный изумруд (темнее для контраста на белом)
+  primary: '#059669',
+  primarySoft: 'rgba(5,150,105,0.12)',
+  // Accent — золото/амбер
+  accent: '#D9A21B',
+  accentSoft: 'rgba(217,162,27,0.14)',
 
-  // Text deeper indigo-black с лёгким purple undertone (не pure black)
-  text: '#15172A',
-  // Slate-blue secondary — не «серый в сером»
-  textSecondary: '#5E6178',
-  // #7A7A8A → #7A7E96 — slate undertone, 4.7:1 на background ✓
-  textTertiary: '#7A7E96',
+  // Text — глубокий графит с зелёным undertone
+  text: '#0E1A14',
+  textSecondary: '#4A5A51',
+  textTertiary: '#6B7C72',
 
-  // Borders с primary undertone — единство дизайн-системы
-  border: 'rgba(124,93,250,0.12)',
-  borderLight: 'rgba(124,93,250,0.06)',
+  border: 'rgba(5,150,105,0.14)',
+  borderLight: 'rgba(5,150,105,0.06)',
 
-  // Emerald, не lime — premium tone
-  success: '#10B981',
-  successSoft: 'rgba(16,185,129,0.13)',
-  // Amber/gold, не orange-yellow — выглядит дороже
-  warning: '#F59E0B',
-  warningSoft: 'rgba(245,158,11,0.13)',
-  // Rose, не tomato — мягче и premium
-  danger: '#EF4444',
-  dangerSoft: 'rgba(239,68,68,0.13)',
+  success: '#059669',
+  successSoft: 'rgba(5,150,105,0.13)',
+  warning: '#D9A21B',
+  warningSoft: 'rgba(217,162,27,0.14)',
+  danger: '#E5484D',
+  dangerSoft: 'rgba(229,72,77,0.13)',
 
   white: '#FFFFFF',
   black: '#000000',
+
+  // Mesh пятна для светлой темы — мягкие, светлые
+  mesh: ['rgba(16,185,129,0.18)', 'rgba(217,162,27,0.14)', 'rgba(5,150,105,0.10)'],
 };
 
-// Deep Luxury Dark — премиум-палитра для соло-мастеров.
-//
-// Дизайн-принципы (по UI/UX Pro Max + Apple HIG Dark Mode):
-//   1. НЕ pure-black (#000000) — это «cyberpunk», не «premium». Premium
-//      dark тематически — deep indigo/navy с фиолетовым undertone.
-//   2. Чёткие elevation tiers: между background и surface разница >12 единиц
-//      яркости, между surface и surfaceElevated — ещё >12. Глаз видит depth.
-//   3. Cool slate-blue undertone в textSecondary/textTertiary — гармонирует с
-//      primary (фиолетовый), даёт цельный вайб вместо «серого в сером».
-//   4. Vibrant но не неоновые accents — emerald/gold/rose вместо чистого
-//      lime/yellow/red. Это разница между cheap-startup и premium-product.
-//   5. Borders с микро-тинтом primary (фиолетового) — добавляет единства.
+// Emerald & Gold — Dark. Глубокий графит с зелёным undertone,
+// изумруд + золото. Luxury / деньги / статус. Mesh-фон оживляет blur.
 export const darkColors: ColorScheme = {
-  // Deep indigo-black. На OLED почти не отличим от чёрного, но даёт лёгкое
-  // тёплое ощущение «глубины» вместо стерильного серого.
-  background: '#0B0C16',
-  // Заметная ступень от background — теперь сильнее (~21 пунктов яркости
-  // вместо 13). Это решает «карточки сливаются с фоном» жалобу — глаз
-  // чётко видит surface как elevated.
-  surface: '#1F2235',
-  surfaceGlass: 'rgba(31,34,53,0.88)',
-  // Ещё ступень — для модалок/sheet'ов поверх surface.
-  surfaceElevated: '#2A2E47',
+  // Графитово-зелёный почти-чёрный (OLED-friendly), тёплее чем серый
+  background: '#0A0F0C',
+  // Заметная ступень — карточки читаются как elevated
+  surface: '#172019',
+  surfaceGlass: 'rgba(23,32,25,0.86)',
+  surfaceElevated: '#1F2B23',
 
-  // Более насыщенный пастельный фиолетовый — viewer-friendly и premium.
-  primary: '#A892FF',
-  primarySoft: 'rgba(168,146,255,0.18)',
-  // Coral с лёгкой розовостью — мягче чем чисто red-orange.
-  accent: '#FF8B7A',
-  accentSoft: 'rgba(255,139,122,0.18)',
+  // Primary — яркий изумруд (viewer-friendly на тёмном)
+  primary: '#2EE6A6',
+  primarySoft: 'rgba(46,230,166,0.16)',
+  // Accent — тёплое золото
+  accent: '#F5C147',
+  accentSoft: 'rgba(245,193,71,0.18)',
 
-  // Off-white, не #FFFFFF — снижает eye-strain на OLED.
-  text: '#F5F5FB',
-  // Cool slate-blue, не сухой серый. Гармонирует с primary.
-  textSecondary: '#A0A4B8',
-  // Глубже secondary, но всё ещё 4.6:1 на background — WCAG AA OK.
-  textTertiary: '#6E7388',
+  // Off-white с лёгким зелёным undertone (меньше eye-strain)
+  text: '#F0F5F2',
+  textSecondary: '#9CB0A4',
+  textTertiary: '#67786E',
 
-  // Borders с лёгким primary undertone — единство дизайн-системы.
-  // На dark поднимаем ещё (0.10 → 0.16) чтобы карточки имели чёткую границу
-  // от фона + друг от друга.
-  border: 'rgba(168,146,255,0.16)',
-  borderLight: 'rgba(168,146,255,0.08)',
+  // Borders с изумрудным undertone — единство гаммы
+  border: 'rgba(46,230,166,0.16)',
+  borderLight: 'rgba(46,230,166,0.08)',
 
-  // Emerald — не lime. Premium tone, не «зелёная Java-кнопка».
-  success: '#34D399',
-  successSoft: 'rgba(52,211,153,0.18)',
-  // Gold — не lemon. На dark выглядит как роскошь.
+  success: '#2EE6A6',
+  successSoft: 'rgba(46,230,166,0.16)',
   warning: '#F5C147',
   warningSoft: 'rgba(245,193,71,0.18)',
-  // Rose — мягче чем красный. Не пугает, но привлекает внимание.
   danger: '#F87171',
   dangerSoft: 'rgba(248,113,113,0.18)',
 
   white: '#FFFFFF',
   black: '#000000',
+
+  // Mesh — изумруд / золото / тёмно-зелёный. Эти пятна blur размывает
+  // за карточками → живой стеклянный фон.
+  mesh: ['rgba(46,230,166,0.20)', 'rgba(245,193,71,0.14)', 'rgba(4,120,87,0.22)'],
 };

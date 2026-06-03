@@ -39,32 +39,15 @@ export function LiquidGlass({
 
   const hasTint = tint !== undefined;
 
-  // ----- DARK: ровный solid surface (или tint), без blur/specular -----
-  if (isDark) {
-    const bg = hasTint ? applyAlpha(tint, Math.min(1, tintStrength + 0.06)) : colors.surface;
-    return (
-      <View
-        style={[
-          shadowStyle,
-          {
-            borderRadius: resolvedRadius,
-            backgroundColor: bg,
-            borderWidth: noRim ? 0 : StyleSheet.hairlineWidth,
-            borderColor: colors.border,
-            overflow: 'hidden',
-          },
-          padding !== undefined ? { padding } : null,
-          style,
-        ]}
-      >
-        {children}
-      </View>
-    );
-  }
-
-  // ----- LIGHT: настоящее стекло (blur + лёгкий veil), без грязного glint -----
-  const veil = hasTint ? applyAlpha(tint, tintStrength) : 'rgba(255,255,255,0.55)';
-  const rimColor = 'rgba(255,255,255,0.85)';
+  // Умеренное стекло (выбор юзера ~85% opacity): сквозь карточку чуть видно
+  // цветной mesh-фон AppBackground, но текст всегда чёткий. БЕЗ specular-glint
+  // (он давал «замазку») — только ровный blur + полупрозрачный veil + rim.
+  const veil = hasTint
+    ? applyAlpha(tint, Math.min(1, tintStrength + 0.06))
+    : isDark
+      ? 'rgba(23,32,25,0.82)' // surface #172019 @ 82% — лёгкая стеклянность
+      : 'rgba(255,255,255,0.80)';
+  const rimColor = isDark ? 'rgba(46,230,166,0.18)' : 'rgba(255,255,255,0.85)';
 
   return (
     <View
@@ -79,7 +62,11 @@ export function LiquidGlass({
         style,
       ]}
     >
-      <BlurView tint="light" intensity={intensity} style={StyleSheet.absoluteFill} />
+      <BlurView
+        tint={isDark ? 'dark' : 'light'}
+        intensity={intensity}
+        style={StyleSheet.absoluteFill}
+      />
       <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: veil }]} />
       {!noRim && (
         <View

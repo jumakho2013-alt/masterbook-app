@@ -159,7 +159,7 @@ function TodayScreen() {
   const currentService = currentAppointment ? getService(currentAppointment.serviceId) : null;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]} edges={['top']}>
       <View style={[styles.header, styles.headerRow]}>
         <View style={{ flex: 1 }}>
           <Text style={[typo.h1, { color: colors.text }]}>Сегодня</Text>
