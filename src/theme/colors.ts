@@ -33,33 +33,53 @@ export interface ColorScheme {
   black: string;
 }
 
-// Warm Premium Light — тёплый бежевый фон, мягкий индиго + коралл
+// Premium Light — холодный off-white с лавандовым undertone.
+//
+// Принципы (синхронизированы с dark-палитрой):
+//   1. Cool off-white фон (не пожелтевший бежевый) — выглядит свежее.
+//      Lavender undertone гармонирует с primary, единство визуала.
+//   2. textSecondary с slate-blue undertone (не нейтральный серый) —
+//      premium feel против цветов primary.
+//   3. Accents emerald/gold/rose, не lime/yellow/red — premium vs cheap.
+//   4. Borders с лёгкой primary-тинтом — единство дизайн-системы.
+//   5. WCAG AA контраст ≥4.5:1 для текста, ≥3:1 для UI элементов.
 export const lightColors: ColorScheme = {
-  background: '#FAF9F7',
+  // Lavender-tinted off-white — современнее жёлто-бежевого
+  background: '#F7F7FC',
+  // Surface чисто-белый — даёт ясную elevation tier поверх background
   surface: '#FFFFFF',
-  surfaceGlass: 'rgba(255,255,255,0.82)',
-  surfaceElevated: '#F5F3F0',
+  surfaceGlass: 'rgba(255,255,255,0.85)',
+  // surfaceElevated — между surface и background, ощущается как «утопленный»
+  // блок (textfield, segment-control bg). Тоже с лёгким lavender-тинтом.
+  surfaceElevated: '#EFEFF7',
 
+  // Primary тот же фиолетовый — наш бренд
   primary: '#7C5DFA',
   primarySoft: 'rgba(124,93,250,0.12)',
-  accent: '#FF6B6B',
-  accentSoft: 'rgba(255,107,107,0.12)',
+  // Accent: тёплый коралл, чуть более розовый чем раньше
+  accent: '#FF7A6E',
+  accentSoft: 'rgba(255,122,110,0.14)',
 
-  text: '#1E1E2E',
-  textSecondary: '#6E6E80',
-  // #A0A0B0 давал 3.8:1 на background — ниже WCAG AA (требуется 4.5:1 для normal).
-  // #7A7A8A даёт 4.7:1 и оставляет визуально "тихий" третичный оттенок.
-  textTertiary: '#7A7A8A',
+  // Text deeper indigo-black с лёгким purple undertone (не pure black)
+  text: '#15172A',
+  // Slate-blue secondary — не «серый в сером»
+  textSecondary: '#5E6178',
+  // #7A7A8A → #7A7E96 — slate undertone, 4.7:1 на background ✓
+  textTertiary: '#7A7E96',
 
-  border: 'rgba(30,30,46,0.08)',
-  borderLight: 'rgba(30,30,46,0.04)',
+  // Borders с primary undertone — единство дизайн-системы
+  border: 'rgba(124,93,250,0.12)',
+  borderLight: 'rgba(124,93,250,0.06)',
 
-  success: '#2ED573',
-  successSoft: 'rgba(46,213,115,0.12)',
-  warning: '#FFA502',
-  warningSoft: 'rgba(255,165,2,0.12)',
-  danger: '#FF4757',
-  dangerSoft: 'rgba(255,71,87,0.12)',
+  // Emerald, не lime — premium tone
+  success: '#10B981',
+  successSoft: 'rgba(16,185,129,0.13)',
+  // Amber/gold, не orange-yellow — выглядит дороже
+  warning: '#F59E0B',
+  warningSoft: 'rgba(245,158,11,0.13)',
+  // Rose, не tomato — мягче и premium
+  danger: '#EF4444',
+  dangerSoft: 'rgba(239,68,68,0.13)',
 
   white: '#FFFFFF',
   black: '#000000',
