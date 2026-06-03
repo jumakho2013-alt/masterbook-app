@@ -70,7 +70,11 @@ function RootInner() {
           headerShown: false,
           // Прозрачный — сквозь экраны виден корневой mesh-фон (glassmorphism).
           contentStyle: { backgroundColor: 'transparent' },
-          animation: 'fade',
+          // Нативный горизонтальный слайд (как push в iOS). РАНЬШЕ был 'fade':
+          // при кросс-фейде двух ПРОЗРАЧНЫХ экранов поверх общего mesh-фона было
+          // видно оба экрана разом → «склейка/мерцание». Slide убирает это:
+          // новый экран приходит справа поверх старого, без наложения контента.
+          animation: 'slide_from_right',
         }}
       >
         <Stack.Screen name="(auth)" />
