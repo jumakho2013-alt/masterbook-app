@@ -1,10 +1,11 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, SectionList, TouchableOpacity, RefreshControl } from 'react-native';
+import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { TrendingUp, TrendingDown, Wallet, ArrowUp, ArrowDown, Trophy, Clock, Scissors } from 'lucide-react-native';
+import { TrendingUp, TrendingDown, Wallet, ArrowUp, ArrowDown, Trophy, Clock, Scissors, Plus } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
-import { GlassCard, Divider, Avatar, CountUp } from '@/src/components/ui';
+import { GlassCard, Divider, Avatar, CountUp, LiquidGlass } from '@/src/components/ui';
 import { FinanceChart } from '@/src/components/FinanceChart';
 import { useFinanceStore } from '@/src/stores/useFinanceStore';
 import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
@@ -57,8 +58,10 @@ const periodLabels: Record<Period, string> = {
 };
 
 function FinancesScreen() {
+  const router = useRouter();
   const { colors, typography: typo, spacing: sp, borderRadius: br } = useTheme();
   const bottomOffset = useTabBarOffset(0);
+  const fabOffset = useTabBarOffset(16);
   const [period, setPeriod] = useState<Period>('month');
   const [refreshing, setRefreshing] = useState(false);
   const allEntries = useFinanceStore((s) => s.entries);
@@ -68,6 +71,25 @@ function FinancesScreen() {
 
   const range = useMemo(() => getPeriodRange(period), [period]);
   const prevRange = useMemo(() => getPreviousRange(period), [period]);
+
+  // Группировка транзакций по дням — сначала свежие.
+  const groupedEntries = useMemo(() => {
+    const filtered = allEntries
+      .filter((e) => e.date >= range.start && e.date <= range.end)
+      .sort((a, b) => b.date.localeCompare(a.date));
+    const byDate: Record<string, typeof filtered> = {};
+    for (const e of filtered) {
+      (byDate[e.date] ??= []).push(e);
+    }
+    return Object.entries(byDate).map(([date, data]) => ({
+      title: date,
+      data,
+      dayTotal: data.reduce(
+        (s, e) => s + (e.type === 'income' ? e.amount : -e.amount),
+        0,
+      ),
+    }));
+  }, [allEntries, range]);
 
   const entries = useMemo(
     () => allEntries.filter((e) => e.date >= range.start && e.date <= range.end).sort((a, b) => b.date.localeCompare(a.date)),
@@ -312,24 +334,45 @@ function FinancesScreen() {
         <Text style={[typo.h2, { color: colors.text }]}>Финансы</Text>
       </View>
 
-      <FlatList
-        data={entries}
+      <SectionList
+        sections={groupedEntries}
         keyExtractor={(item) => item.id}
         ListHeaderComponent={listHeader}
         ItemSeparatorComponent={() => <Divider style={{ marginVertical: 0 }} />}
-        contentContainerStyle={{ paddingBottom: bottomOffset + 24 }}
+        stickySectionHeadersEnabled
+        contentContainerStyle={{ paddingBottom: bottomOffset + 88 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />
         }
+        renderSectionHeader={({ section }) => (
+          <View
+            style={[
+              styles.daySectionHeader,
+              { backgroundColor: colors.background, borderBottomColor: colors.border },
+            ]}
+          >
+            <Text style={[typo.small, { color: colors.textSecondary, textTransform: 'capitalize' }]}>
+              {formatDate(section.title)}
+            </Text>
+            <Text
+              style={[
+                typo.small,
+                {
+                  color: section.dayTotal >= 0 ? colors.success : colors.danger,
+                  fontFamily: typo.bodyBold.fontFamily,
+                },
+              ]}
+            >
+              {section.dayTotal >= 0 ? '+' : ''}{formatCurrency(section.dayTotal)}
+            </Text>
+          </View>
+        )}
         renderItem={({ item }) => (
           <View style={[styles.txRow, { paddingHorizontal: 16 }]}>
             <View style={styles.txInfo}>
               <Text style={[typo.body, { color: colors.text }]} numberOfLines={1}>
                 {item.description}
-              </Text>
-              <Text style={[typo.caption, { color: colors.textSecondary }]}>
-                {formatDate(item.date)}
               </Text>
             </View>
             <Text
@@ -338,11 +381,31 @@ function FinancesScreen() {
                 { color: item.type === 'income' ? colors.success : colors.danger },
               ]}
             >
-              {item.type === 'income' ? '+' : '-'}{formatCurrency(item.amount)}
+              {item.type === 'income' ? '+' : '−'}{formatCurrency(item.amount)}
             </Text>
           </View>
         )}
       />
+
+      {/* FAB — добавить расход / доход. Главный gap из user feedback:
+          «где я добавляю расход купила лак за 1500₽?» */}
+      <TouchableOpacity
+        onPress={() => router.push('/finance/new')}
+        activeOpacity={0.85}
+        accessibilityRole="button"
+        accessibilityLabel="Добавить операцию"
+        style={[styles.fabWrap, { bottom: fabOffset }]}
+      >
+        <LiquidGlass
+          variant="floating"
+          tint={colors.primary}
+          tintStrength={0.72}
+          radius={20}
+          style={styles.fab}
+        >
+          <Plus size={28} color={colors.white} />
+        </LiquidGlass>
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -406,6 +469,29 @@ const styles = StyleSheet.create({
   txInfo: {
     flex: 1,
     gap: 2,
+  },
+  daySectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  fabWrap: {
+    position: 'absolute',
+    right: 20,
+    shadowColor: '#7C5DFA',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  fab: {
+    width: 56,
+    height: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 
