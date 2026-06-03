@@ -18,6 +18,7 @@ import { formatDateFull, toDateKey } from '@/src/utils/date';
 import { formatCurrency } from '@/src/utils/currency';
 import { nowMinutesOfDay, timeToMinutes } from '@/src/utils/time';
 import { seedSampleData } from '@/src/lib/sampleData';
+import { useProfessionPack } from '@/src/hooks/useProfessionPack';
 
 type Filter = 'upcoming' | 'completed' | 'all';
 
@@ -41,6 +42,7 @@ export default function TodayScreen() {
   const services = useServiceStore((s) => s.services);
   const demoDataSeededAt = useSettingsStore((s) => s.demoDataSeededAt);
   const toast = useToast();
+  const { pack } = useProfessionPack();
 
   // Полностью пустое состояние: ни клиентов, ни услуг, ни записей — самый
   // первый запуск после онбординга, либо user только что почистил всё.
@@ -239,8 +241,11 @@ export default function TodayScreen() {
             <View style={{ paddingHorizontal: 16 }}>
               <EmptyState
                 icon={<CalendarCheck size={48} color={colors.textTertiary} />}
-                title="Здесь будет твой день"
-                subtitle="Добавь первого клиента и запись — или попробуй на примере."
+                title={pack.emptyStates.today?.title ?? 'Здесь будет твой день'}
+                subtitle={
+                  pack.emptyStates.today?.subtitle ??
+                  'Добавь первого клиента и запись — или попробуй на примере.'
+                }
               />
               <Button
                 title="Попробовать с примером"

@@ -13,6 +13,7 @@ import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { supabase } from '@/src/lib/supabase';
 import { formatCurrency } from '@/src/utils/currency';
 import { generateId } from '@/src/utils/helpers';
+import { resolvePack } from '@/src/lib/professionPacks';
 import type { Service } from '@/src/types';
 
 export default function ServicesSetupScreen() {
@@ -26,6 +27,16 @@ export default function ServicesSetupScreen() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    // Сначала пробуем pack-default services (новая система профайл-паков).
+    // Если для specializationId есть pack — используем его дефолтные услуги.
+    // Иначе fallback на legacy serviceTemplates по specializationId
+    // (старая система — work in progress to phase out).
+    const pack = resolvePack(specializationId);
+    const packServices = pack.defaultServices;
+    if (packServices.length > 0) {
+      setServices(packServices.map((t) => ({ ...t, id: generateId() })));
+      return;
+    }
     const templates = serviceTemplates[specializationId ?? ''] ?? [];
     setServices(templates.map((t) => ({ ...t, id: generateId() })));
   }, [specializationId]);

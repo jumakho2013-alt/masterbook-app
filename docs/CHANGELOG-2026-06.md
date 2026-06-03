@@ -31,6 +31,49 @@ Google Play / RuStore.
 - 10 + 10 supporting research files
 - 2 adversarial critique files
 
+## Коммит 4 (`65d5f6e`+) — Sleeping clients + Demo data + Profession packs foundation
+
+### F1: Sleeping-clients widget (PLAN-V2 §6.4 anchor #4)
+
+- `src/lib/sleepingClients.ts`: `findSleepingClients()` чистая функция, индексирует appointments в O(N). Anti-pattern guards: исключает `problematic`-tagged клиентов и тех у кого уже есть upcoming appointment.
+- `buildDraftMessages()` — 3 тёплых черновика (не агрессивные «приходи скорее»).
+- `openOutreach()` — WhatsApp/Telegram/SMS deep-link с pre-filled текстом. Telegram URL не поддерживает pre-fill → копируем в clipboard.
+- `phoneForWhatsApp()` — корректно конвертирует RU 8XXX → 7XXX, не ломает корейские +82.
+- `SleepingClientsCard.tsx` — Today screen widget + bottom-sheet с 3 драфтами + 4 кнопками.
+- Унифицирован виджет «Давно не были» на Clients tab (раньше своя ad-hoc реализация).
+
+### F2: Расширенный client search
+
+Добавлены `preferences` и `address` к матчингу (раньше только name/phone/notes).
+
+### F4: Demo data toggle
+
+- `src/lib/sampleData.ts`: `seedSampleData()` безопасна для production — никогда не перезаписывает данные. `clearAllBusinessData()` для отката.
+- `settingsStore.demoDataSeededAt`: timestamp для UI-флага.
+- Today empty-state: CTA «Попробовать с примером» появляется только когда всё пусто И демо ещё не было.
+- `account.tsx`: «Очистить демо-данные» — появляется только если демо активно.
+
+### F3: Profession packs foundation (PLAN-V2 §2)
+
+- `src/types/professionPack.ts`: `ProfessionPack` interface (vocabulary, defaultServices, customFields, emptyStates, reminderTemplate, firstWeekChecklist).
+- 3 пака: `manicure` (default), `tutor` (vocab swap demo), `photographer` (creative).
+- `src/lib/professionPacks.ts`: `PACK_REGISTRY` + `resolvePack()` с legacy-mapping (nails→manicure, videographer→photographer) + `tProf()` vocab swap с `{placeholder}` подстановкой.
+- `useProfessionPack()` hook — реактивен на смену specializationId.
+- Wired в:
+  - Clients tab — заголовок и empty state из pack-словаря (репетитор увидит «Ученики»)
+  - Today screen — empty state из `pack.emptyStates.today`
+  - `services-setup.tsx` — при онбординге услуги берутся из `pack.defaultServices` (с fallback на legacy templates)
+
+### Метрики после коммита 4
+
+| Метрика | До | После |
+|---|---|---|
+| Тесты | 102 | 144 (+42) |
+| Файлы кода | — | +9 |
+| Pack-готовых вертикалей | 0 | 3 (extend trivially) |
+
+---
+
 ## Коммит 2 (`c52da3d`) — Multi-currency + Tax PDF (value-uplift v1)
 
 Первая фича из value-uplift roadmap — то что начинает оправдывать цену в
