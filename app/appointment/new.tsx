@@ -25,6 +25,7 @@ import {
 } from '@/src/utils/time';
 import { scheduleAppointmentReminder } from '@/src/lib/notifications';
 import { appointmentSchema } from '@/src/lib/validation';
+import { syncCreateEvent } from '@/src/lib/calendarSync';
 import type { Client, Service } from '@/src/types';
 
 type Step = 'client' | 'service' | 'time' | 'confirm';
@@ -206,6 +207,13 @@ export default function NewAppointmentScreen() {
       .catch(() => {
         // User might have declined notifications — don't fail the booking.
       });
+
+    // Sync в системный календарь (если включено в настройках, no-op иначе).
+    syncCreateEvent(appt, selectedClient.name, selectedService.name)
+      .then((eventId) => {
+        if (eventId) updateAppointment(appt.id, { calendarEventId: eventId });
+      })
+      .catch(() => {});
 
     router.back();
   };

@@ -24,6 +24,7 @@ import { formatCurrency } from '@/src/utils/currency';
 import { addMinutes, generateTimeSlots } from '@/src/utils/time';
 import { openOutreach, type OutreachChannel } from '@/src/lib/sleepingClients';
 import { useProfessionPack } from '@/src/hooks/useProfessionPack';
+import { syncUpdateEvent, syncDeleteEvent } from '@/src/lib/calendarSync';
 
 const statusLabels: Record<string, { label: string; color: string }> = {
   scheduled: { label: 'Запланировано', color: '#7C5DFA' },
@@ -125,7 +126,14 @@ export default function AppointmentDetailScreen() {
   };
 
   const handleCancel = () => {
-    confirm('Отменить запись?', 'Запись будет помечена как отменённая', () => { setStatus(appointment.id, 'cancelled'); Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning); }, 'Отменить', true);
+    confirm('Отменить запись?', 'Запись будет помечена как отменённая', () => {
+      setStatus(appointment.id, 'cancelled');
+      // Удаляем из системного календаря — мастер не хочет видеть «зомби» записи.
+      if (appointment.calendarEventId) {
+        syncDeleteEvent(appointment.calendarEventId);
+      }
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    }, 'Отменить', true);
   };
 
   const handleRebook = (weeks: number) => {
@@ -148,11 +156,23 @@ export default function AppointmentDetailScreen() {
     if (!rescheduleTime) return;
     const duration = service?.duration ?? 60;
     const newEnd = addMinutes(rescheduleTime, duration);
-    updateAppointment(appointment.id, {
+    const updated = {
       date: toDateKey(rescheduleDate),
       startTime: rescheduleTime,
       endTime: newEnd,
-    });
+    };
+    updateAppointment(appointment.id, updated);
+
+    // Sync обновлённое событие в системный календарь.
+    if (appointment.calendarEventId && client && service) {
+      syncUpdateEvent(
+        appointment.calendarEventId,
+        { ...appointment, ...updated },
+        client.name,
+        service.name,
+      );
+    }
+
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     toast.success('Запись перенесена');
     setShowReschedule(false);

@@ -17,4 +17,7 @@ export interface Appointment {
   address?: string;
   photos?: string[]; // URI локальных фото
   reminderNotificationId?: string; // id запланированного локального уведомления
+  /** id события в системном календаре (iOS Calendar / Google Calendar)
+   *  если включён calendar sync. null = не синхронизировано. */
+  calendarEventId?: string;
 }

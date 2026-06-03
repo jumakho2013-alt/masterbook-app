@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   Banknote,
   Star,
+  CalendarSync,
 } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
 import { GlassCard, Avatar, Divider, CustomAlert } from '@/src/components/ui';
@@ -211,6 +212,13 @@ function ProfileScreen() {
               label="Ссылка для отзывов"
               subtitle="После визита — попросить отзыв"
               onPress={() => router.push('/settings/review-link')}
+            />
+            <Divider style={{ marginVertical: 0, marginLeft: 52 }} />
+            <MenuItem
+              icon={<CalendarSync size={20} color={colors.primary} />}
+              label="Календарь устройства"
+              subtitle="Синхронизация с iPhone / Google Calendar"
+              onPress={() => router.push('/settings/calendar-sync')}
             />
           </GlassCard>
         </View>

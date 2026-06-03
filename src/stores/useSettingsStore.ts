@@ -33,6 +33,9 @@ interface SettingsState {
   /** URL для запроса отзыва: Yandex Maps / Google Maps / 2GIS / Instagram.
    *  null = пусто, фича «попросить отзыв» неактивна. */
   reviewLinkUrl: string | null;
+  /** Синхронизация записей в системный календарь (iOS Calendar / Google).
+   *  По умолчанию false — включается явно в settings. */
+  calendarSyncEnabled: boolean;
 
   setTheme: (theme: ThemeSetting) => void;
   setWorkHours: (start: string, end: string) => void;
@@ -48,6 +51,7 @@ interface SettingsState {
   setFirstUseAt: (iso: string | null) => void;
   dismissChecklist: () => void;
   setReviewLinkUrl: (url: string | null) => void;
+  setCalendarSyncEnabled: (enabled: boolean) => void;
   /** Полный сброс к дефолтам (используется при signOut / deleteAccount).
    *  Сохраняет тему (UI preference) — это про устройство, не про аккаунт.
    *  Валюту тоже сохраняем — она привязана к региону, не к юзеру. */
@@ -82,6 +86,7 @@ export const useSettingsStore = create<SettingsState>()(
       firstUseAt: null,
       checklistDismissedAt: null,
       reviewLinkUrl: null,
+      calendarSyncEnabled: false,
       ...defaultSettingsForAccount,
 
       setTheme: (theme) => set({ theme }),
@@ -99,6 +104,7 @@ export const useSettingsStore = create<SettingsState>()(
       setFirstUseAt: (iso) => set({ firstUseAt: iso }),
       dismissChecklist: () => set({ checklistDismissedAt: new Date().toISOString() }),
       setReviewLinkUrl: (url) => set({ reviewLinkUrl: url }),
+      setCalendarSyncEnabled: (enabled) => set({ calendarSyncEnabled: enabled }),
 
       reset: () =>
         set({
@@ -107,6 +113,7 @@ export const useSettingsStore = create<SettingsState>()(
           firstUseAt: null,
           checklistDismissedAt: null,
           reviewLinkUrl: null,
+          calendarSyncEnabled: false,
         }),
     }),
     {
