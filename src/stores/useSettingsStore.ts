@@ -24,6 +24,12 @@ interface SettingsState {
    *  никогда не засевал / уже очистил). Используется чтобы показать в UI
    *  кнопку «Очистить демо» только когда демо реально есть. */
   demoDataSeededAt: string | null;
+  /** ISO timestamp первого использования приложения. Установится при
+   *  первом завершении онбординга. Используется для авто-скрытия
+   *  «Старт недели» через 7 дней. */
+  firstUseAt: string | null;
+  /** Если пользователь явно закрыл «Старт недели» — больше не показывать. */
+  checklistDismissedAt: string | null;
 
   setTheme: (theme: ThemeSetting) => void;
   setWorkHours: (start: string, end: string) => void;
@@ -36,6 +42,8 @@ interface SettingsState {
   setBiometricLock: (enabled: boolean) => void;
   setCurrency: (currency: CurrencyCode) => void;
   setDemoDataSeededAt: (iso: string | null) => void;
+  setFirstUseAt: (iso: string | null) => void;
+  dismissChecklist: () => void;
   /** Полный сброс к дефолтам (используется при signOut / deleteAccount).
    *  Сохраняет тему (UI preference) — это про устройство, не про аккаунт.
    *  Валюту тоже сохраняем — она привязана к региону, не к юзеру. */
@@ -67,6 +75,8 @@ export const useSettingsStore = create<SettingsState>()(
       theme: 'system',
       currency: 'RUB' as CurrencyCode,
       demoDataSeededAt: null,
+      firstUseAt: null,
+      checklistDismissedAt: null,
       ...defaultSettingsForAccount,
 
       setTheme: (theme) => set({ theme }),
@@ -81,8 +91,16 @@ export const useSettingsStore = create<SettingsState>()(
       setBiometricLock: (enabled) => set({ biometricLock: enabled }),
       setCurrency: (currency) => set({ currency }),
       setDemoDataSeededAt: (iso) => set({ demoDataSeededAt: iso }),
+      setFirstUseAt: (iso) => set({ firstUseAt: iso }),
+      dismissChecklist: () => set({ checklistDismissedAt: new Date().toISOString() }),
 
-      reset: () => set({ ...defaultSettingsForAccount, demoDataSeededAt: null }),
+      reset: () =>
+        set({
+          ...defaultSettingsForAccount,
+          demoDataSeededAt: null,
+          firstUseAt: null,
+          checklistDismissedAt: null,
+        }),
     }),
     {
       name: 'masterbook-settings',

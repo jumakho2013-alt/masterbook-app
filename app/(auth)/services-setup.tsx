@@ -73,6 +73,7 @@ export default function ServicesSetupScreen() {
       }
 
       setOnboarded(true);
+      markFirstUseIfNeeded();
       router.replace('/(tabs)');
     } finally {
       setLoading(false);
@@ -81,7 +82,17 @@ export default function ServicesSetupScreen() {
 
   const skip = () => {
     setOnboarded(true);
+    markFirstUseIfNeeded();
     router.replace('/(tabs)');
+  };
+
+  // Stamp firstUseAt ровно один раз — нужен для авто-скрытия «Старт недели»
+  // после 7 дней.
+  const markFirstUseIfNeeded = () => {
+    const settings = useSettingsStore.getState();
+    if (!settings.firstUseAt) {
+      settings.setFirstUseAt(new Date().toISOString());
+    }
   };
 
   return (

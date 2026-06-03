@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { Check, ChevronRight, Sparkles } from 'lucide-react-native';
+import { Check, ChevronRight, Sparkles, X } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/src/theme';
 import { GlassCard } from '@/src/components/ui';
@@ -38,6 +38,9 @@ export function FirstWeekChecklist() {
   const apptCount = useAppointmentStore((s) => s.appointments.length);
   const workHours = useSettingsStore((s) => s.workHours);
   const biometricLock = useSettingsStore((s) => s.biometricLock);
+  const firstUseAt = useSettingsStore((s) => s.firstUseAt);
+  const checklistDismissedAt = useSettingsStore((s) => s.checklistDismissedAt);
+  const dismissChecklist = useSettingsStore((s) => s.dismissChecklist);
 
   // Деривация done-флага per item-id. Маппинг знает только этот компонент,
   // pack-данные остаются чисто декларативными.
@@ -72,6 +75,16 @@ export function FirstWeekChecklist() {
   // Скрываем когда все выполнено — мастер уже onboarded.
   if (items.length === 0 || doneCount === items.length) return null;
 
+  // Скрываем если юзер явно закрыл крестиком.
+  if (checklistDismissedAt) return null;
+
+  // Скрываем после 7 дней с firstUseAt — мастер уже не «новый».
+  if (firstUseAt) {
+    const ageMs = Date.now() - new Date(firstUseAt).getTime();
+    const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
+    if (ageMs > SEVEN_DAYS) return null;
+  }
+
   const progressPct = (doneCount / items.length) * 100;
 
   return (
@@ -95,9 +108,23 @@ export function FirstWeekChecklist() {
               Старт недели
             </Text>
           </View>
-          <Text style={[typo.small, { color: colors.textSecondary }]}>
-            {doneCount} из {items.length}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Text style={[typo.small, { color: colors.textSecondary }]}>
+              {doneCount} из {items.length}
+            </Text>
+            <Pressable
+              onPress={() => {
+                Haptics.selectionAsync();
+                dismissChecklist();
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Скрыть чеклист"
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              style={{ marginLeft: 4 }}
+            >
+              <X size={14} color={colors.textTertiary} />
+            </Pressable>
+          </View>
         </View>
 
         {/* Progress bar */}
