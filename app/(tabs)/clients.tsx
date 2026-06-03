@@ -6,7 +6,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Plus, Users, Moon, ArrowUpDown } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
 import { SearchBar, EmptyState, Divider, GlassCard, Badge, LiquidGlass } from '@/src/components/ui';
-import { ClientRow } from '@/src/components/ClientRow';
+import { SwipeableClientRow } from '@/src/components/SwipeableClientRow';
 import { useClientStore } from '@/src/stores/useClientStore';
 import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useServiceStore } from '@/src/stores/useServiceStore';
@@ -230,7 +230,7 @@ function ClientsScreen() {
           />
         }
         renderItem={({ item }) => (
-          <ClientRow
+          <SwipeableClientRow
             client={item}
             lastVisitDate={lastVisitMap[item.id]}
             onPress={() => router.push(`/client/${item.id}`)}

@@ -16,6 +16,7 @@ import { RouterErrorBoundary } from '@/src/components/ErrorScreen';
 import { seedDevDataIfNeeded } from '@/src/lib/devSeed';
 import { initCrashReporter } from '@/src/lib/crashReporter';
 import { useNotificationDeepLink } from '@/src/hooks/useNotificationDeepLink';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
 // Запускаем сразу — должно быть до первого React-рендера, иначе crash до
@@ -92,12 +93,14 @@ export default function RootLayout() {
   if (!fontsLoaded) return null;
 
   return (
-    <ThemeProvider>
-      <ToastProvider>
-        <BiometricGate>
-          <RootInner />
-        </BiometricGate>
-      </ToastProvider>
-    </ThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider>
+        <ToastProvider>
+          <BiometricGate>
+            <RootInner />
+          </BiometricGate>
+        </ToastProvider>
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }
