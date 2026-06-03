@@ -16,6 +16,9 @@ interface AppointmentState {
   getTodayAppointments: () => Appointment[];
   getByDate: (date: string) => Appointment[];
   getByClient: (clientId: string) => Appointment[];
+  /** Полный сброс in-memory state. Параллельно отменяет все локальные
+   *  напоминания (иначе уведомления переживут logout). */
+  reset: () => void;
 }
 
 function cancelReminderSafely(id?: string) {
@@ -88,6 +91,16 @@ export const useAppointmentStore = create<AppointmentState>()(
         get()
           .appointments.filter((a) => a.clientId === clientId)
           .sort((a, b) => b.date.localeCompare(a.date)),
+
+      reset: () => {
+        // Отменяем все запланированные локальные напоминания. Без этого
+        // уведомления продолжают приходить даже после logout — крайне
+        // конфузно для следующего пользователя на устройстве.
+        for (const a of get().appointments) {
+          cancelReminderSafely(a.reminderNotificationId);
+        }
+        set({ appointments: [] });
+      },
     }),
     {
       name: 'masterbook-appointments',

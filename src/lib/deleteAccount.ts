@@ -1,52 +1,92 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/src/lib/supabase';
 import { useAuthStore } from '@/src/stores/useAuthStore';
+import { useClientStore } from '@/src/stores/useClientStore';
+import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
+import { useFinanceStore } from '@/src/stores/useFinanceStore';
+import { useServiceStore } from '@/src/stores/useServiceStore';
+import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { cancelAllNotifications } from '@/src/lib/notifications';
 
 /**
- * Удаление аккаунта — обязательное требование App Store (Guideline 5.1.1(v)):
- * если приложение поддерживает регистрацию, должно поддерживать и удаление
- * без обращения в поддержку.
+ * Результат удаления аккаунта.
  *
- * Порядок (важен — если Supabase упадёт, локальные данные всё равно нужно
- * стереть, иначе пользователь остаётся со старыми следами после re-install):
+ *   ok=true                                 → серверный + локальный wipe прошли.
+ *   ok=true,  serverDeleteFailed=true       → локальные данные стёрты, но RPC
+ *                                             не удалила запись в auth.users.
+ *                                             UI ОБЯЗАН показать пользователю
+ *                                             что нужно дописать в support.
+ *                                             Apple Guideline 5.1.1(v): можно
+ *                                             выйти, но мы не вправе обмануть
+ *                                             что аккаунт полностью удалён.
+ *   ok=false                                → произошла фатальная ошибка
+ *                                             (даже локальный wipe не успел).
+ */
+export type DeleteAccountResult =
+  | { ok: true; serverDeleteFailed: false }
+  | { ok: true; serverDeleteFailed: true; serverError: string }
+  | { ok: false; error: string };
+
+/**
+ * Удаление аккаунта — обязательное требование App Store (Guideline 5.1.1(v))
+ * и Google Play (Data deletion). Если приложение поддерживает регистрацию,
+ * должно поддерживать и удаление без обращения в поддержку.
+ *
+ * Порядок (если Supabase упадёт, локальные данные всё равно стираем —
+ * иначе пользователь остаётся со следами после re-install):
  *
  *   1. Отменить все запланированные локальные уведомления.
- *   2. Попросить бэкенд удалить пользователя (Supabase RPC `delete_user`).
- *      Если RPC не существует — подтверждаем по текущей сессии через
- *      admin.deleteUser невозможно из клиента, поэтому используем RPC
- *      функцию, которую должен завести мастер в своём Supabase (SQL в
- *      `supabase-schema.sql`).
+ *   2. Попросить бэкенд удалить запись (Supabase RPC `delete_user`).
+ *      Раньше ошибка тут молча писалась в console.warn — это противоречило
+ *      Apple 5.1.1(v): user думал что удалил, а строка в auth.users живёт.
+ *      Теперь ошибку RPC возвращаем наверх как serverDeleteFailed, UI
+ *      обязан сообщить.
  *   3. supabase.auth.signOut() — чистит локальную сессию.
- *   4. AsyncStorage.clear() — стирает все zustand-stores, кэш настроек,
- *      onboarded флаг и т.д.
- *   5. Сбросить in-memory Zustand store (auth).
+ *   4. Сбросить in-memory zustand-сторы (всех 6 слоёв) — иначе следующий
+ *      пользователь на устройстве увидит данные удалённого аккаунта до
+ *      перезапуска приложения.
+ *   5. AsyncStorage.clear() — стирает все persisted blobs.
  */
-export async function deleteAccount(): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function deleteAccount(): Promise<DeleteAccountResult> {
+  let serverError: string | null = null;
+
   try {
-    // 1. Notifications
+    // 1. Уведомления
     await cancelAllNotifications().catch(() => {});
 
-    // 2. Ask backend to drop the user row. We ship a stub RPC in
-    // `supabase-schema.sql`; if the project hasn't applied it, the call
-    // returns an error — we log and continue to ensure local wipe still
-    // happens.
+    // 2. Удаление на сервере. RPC `delete_user` определена в
+    //    supabase-schema.sql; если проект её не применил — вернётся ошибка,
+    //    которую мы пробрасываем наверх (но локальный wipe всё равно делаем).
     const { error: rpcError } = await supabase.rpc('delete_user');
     if (rpcError) {
-      console.warn('[deleteAccount] RPC delete_user failed:', rpcError.message);
-      // Не падаем — локальный wipe важнее.
+      serverError = rpcError.message;
     }
 
-    // 3. Sign out
+    // 3. Sign out (чистит локальную секрет-сессию). Не падаем если уже
+    //    разлогинены / нет сети.
     await supabase.auth.signOut().catch(() => {});
 
-    // 4. AsyncStorage wipe
+    // 4. In-memory reset всех сторов (auth + бизнес). Делаем ДО
+    //    AsyncStorage.clear() чтобы любые активные подписки/listener'ы
+    //    видели пустое состояние а не дёргали ключи которые сейчас исчезнут.
+    useClientStore.getState().reset();
+    useAppointmentStore.getState().reset();
+    useFinanceStore.getState().reset();
+    useServiceStore.getState().reset();
+    useSettingsStore.getState().reset();
+    useAuthStore.getState().reset();
+    // useAuthStore.reset() сбрасывает только onboarding-поля; user/session
+    // явно обнуляем:
+    useAuthStore.setState({ user: null, session: null });
+
+    // 5. AsyncStorage — стираем все persisted blobs (masterbook-clients,
+    //    -appointments, -finances, -services, -settings, -auth).
     await AsyncStorage.clear();
 
-    // 5. In-memory reset
-    useAuthStore.getState().reset();
-
-    return { ok: true };
+    if (serverError) {
+      return { ok: true, serverDeleteFailed: true, serverError };
+    }
+    return { ok: true, serverDeleteFailed: false };
   } catch (err) {
     return {
       ok: false,

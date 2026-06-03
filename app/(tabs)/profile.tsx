@@ -88,7 +88,13 @@ export default function ProfileScreen() {
   const themeLabel = theme === 'light' ? 'Светлая' : theme === 'dark' ? 'Тёмная' : 'Системная';
 
   const handleSignOut = () => {
-    confirm('Выйти?', 'Вы будете перенаправлены на экран входа', () => signOut(), 'Выйти', true);
+    confirm(
+      'Выйти из аккаунта?',
+      'Данные на этом устройстве будут стёрты (облачная синхронизация будет в следующем обновлении). Сделать экспорт перед выходом — Профиль → Безопасность и данные → Экспорт.',
+      () => signOut(),
+      'Выйти',
+      true,
+    );
   };
 
   const handleReset = () => {
@@ -138,20 +144,26 @@ export default function ProfileScreen() {
           </View>
         </Animated.View>
 
-        {/* PRO Banner */}
+        {/* Roadmap teaser — без упоминания цены: реальный IAP ещё не подключён,
+            Apple Guideline 3.1.1 запрещает рекламировать платные тиры без StoreKit. */}
         <Animated.View entering={FadeInDown.delay(150)} style={{ paddingHorizontal: 16, marginBottom: sp.lg }}>
           <TouchableOpacity
             activeOpacity={0.8}
-            onPress={() => info('MasterBook PRO', '$3.99/мес\n\n✓ Безлимит клиентов\n✓ Без рекламы\n✓ Авто-напоминания\n✓ Онлайн-запись\n✓ Финансовые отчёты\n✓ Экспорт данных')}
+            onPress={() =>
+              info(
+                'Скоро в MasterBook',
+                'Мы добавляем:\n\n• Безлимит клиентов\n• Облачная синхронизация\n• Онлайн-запись для клиентов\n• Финансовые отчёты и PDF для самозанятых\n• Экспорт фото работ\n\nХочешь попробовать первым — напиши на support@masterbook.app',
+              )
+            }
           >
             <GlassCard elevated style={{ ...styles.proBanner, borderColor: colors.primary + '30' }}>
               <View style={[styles.proIcon, { backgroundColor: colors.primarySoft, borderRadius: br.md }]}>
                 <Crown size={24} color={colors.primary} />
               </View>
               <View style={{ flex: 1, marginLeft: sp.md }}>
-                <Text style={[typo.bodyBold, { color: colors.primary }]}>Перейти на PRO</Text>
+                <Text style={[typo.bodyBold, { color: colors.primary }]}>Что добавим дальше</Text>
                 <Text style={[typo.caption, { color: colors.textSecondary, marginTop: 2 }]}>
-                  Безлимит клиентов, без рекламы, авто-напоминания
+                  Облачная синхронизация, онлайн-запись, отчёты
                 </Text>
               </View>
               <ChevronRight size={18} color={colors.primary} />
@@ -172,7 +184,7 @@ export default function ProfileScreen() {
             <MenuItem
               icon={<Clock size={20} color={colors.primary} />}
               label="Рабочее время"
-              onPress={() => router.push('/settings/work-hours' as any)}
+              onPress={() => router.push('/settings/work-hours')}
             />
             <Divider style={{ marginVertical: 0, marginLeft: 52 }} />
             <MenuItem
@@ -193,7 +205,7 @@ export default function ProfileScreen() {
               icon={<ShieldCheck size={20} color={colors.primary} />}
               label="Безопасность и данные"
               subtitle="Face ID, экспорт, удаление аккаунта"
-              onPress={() => router.push('/settings/account' as any)}
+              onPress={() => router.push('/settings/account')}
             />
             <Divider style={{ marginVertical: 0, marginLeft: 52 }} />
             <MenuItem

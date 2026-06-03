@@ -11,6 +11,8 @@ interface FinanceState {
   deleteEntry: (id: string) => void;
   getByPeriod: (start: string, end: string) => FinanceEntry[];
   getSummary: (start: string, end: string) => FinanceSummary;
+  /** Полный сброс in-memory state (используется при signOut / deleteAccount) */
+  reset: () => void;
 }
 
 export const useFinanceStore = create<FinanceState>()(
@@ -42,6 +44,8 @@ export const useFinanceStore = create<FinanceState>()(
           .reduce((sum, e) => sum + e.amount, 0);
         return { income, expense, net: income - expense, count: period.length };
       },
+
+      reset: () => set({ entries: [] }),
     }),
     {
       name: 'masterbook-finances',

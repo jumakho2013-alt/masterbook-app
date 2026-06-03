@@ -24,6 +24,11 @@ export function BiometricGate({ children }: { children: React.ReactNode }) {
   const [kind, setKind] = useState<BiometricKind>('unknown');
   const [locked, setLocked] = useState<boolean>(() => biometricLock && !!session);
   const lastStateRef = useRef<AppStateStatus>(AppState.currentState);
+  // Защита от race-condition: если authenticate() ещё не завершён, второй
+  // вызов unlock() (например, из AppState listener + useEffect одновременно)
+  // создаст параллельный prompt — на iOS это приводит к моментальному
+  // ошибочному отказу обоих, на Android к "Authentication busy".
+  const inFlightRef = useRef(false);
 
   // Определяем тип биометрии для лейблов и иконки. Не блокируем — пока идёт
   // определение, lock-screen просто покажет дефолтный текст.
@@ -57,8 +62,15 @@ export function BiometricGate({ children }: { children: React.ReactNode }) {
   }, [biometricLock, session]);
 
   const unlock = useCallback(async () => {
-    const res = await authenticate(`Вход по ${biometricLabel(kind)}`);
-    if (res.success) setLocked(false);
+    // Guard: один in-flight prompt в любой момент времени.
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
+    try {
+      const res = await authenticate(`Вход по ${biometricLabel(kind)}`);
+      if (res.success) setLocked(false);
+    } finally {
+      inFlightRef.current = false;
+    }
   }, [kind]);
 
   // Автоматически вызываем prompt при монтировании экрана — чтобы

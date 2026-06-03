@@ -3,13 +3,19 @@ import { View, Text, StyleSheet, ScrollView, Keyboard, Pressable } from 'react-n
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { BookOpen } from 'lucide-react-native';
+import { BookOpen, Check } from 'lucide-react-native';
+import * as WebBrowser from 'expo-web-browser';
 import { useTheme } from '@/src/theme';
 import { Button, Input, CustomAlert } from '@/src/components/ui';
 import { useAlert } from '@/src/hooks/useAlert';
 import { useAuthStore } from '@/src/stores/useAuthStore';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { signUpSchema } from '@/src/lib/validation';
+
+// Ссылка на каноническую версию политики конфиденциальности.
+// Должна совпадать с тем что подаётся в Google Play Data Safety / App Store
+// privacy URL. Файл-источник: docs/privacy.md (GitHub Pages).
+const PRIVACY_POLICY_URL = 'https://jumakho2013-alt.github.io/masterbook-privacy/';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -24,9 +30,29 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ name?: string; email?: string; password?: string }>({});
+  // 152-ФЗ требует явное согласие на обработку персональных данных ДО любой
+  // обработки (в т.ч. до отправки на сервер). Default false → кнопка
+  // "Зарегистрироваться" недоступна пока не отмечено.
+  const [consent, setConsent] = useState(false);
+  const setConsentGiven = useAuthStore((s) => s.setConsentGiven);
+
+  const openPrivacyPolicy = () => {
+    // expo-web-browser открывает SFSafariViewController / Custom Tabs —
+    // пользователь не выходит из приложения, нет риска фишинг-perception.
+    WebBrowser.openBrowserAsync(PRIVACY_POLICY_URL).catch(() => {
+      showError('Не удалось открыть', 'Скопируйте ссылку: ' + PRIVACY_POLICY_URL);
+    });
+  };
 
   const handleRegister = async () => {
     Keyboard.dismiss();
+    if (!consent) {
+      showError(
+        'Нужно согласие',
+        'Чтобы продолжить, отметьте согласие на обработку персональных данных.',
+      );
+      return;
+    }
     const parsed = signUpSchema.safeParse({ name, email, password });
     if (!parsed.success) {
       const fieldErrors: typeof errors = {};
@@ -45,6 +71,9 @@ export default function RegisterScreen() {
     if (error) {
       showError('Ошибка', error);
     } else {
+      // Фиксируем факт согласия с timestamp — для журнала
+      // обработки персональных данных (152-ФЗ ст. 9).
+      setConsentGiven(new Date().toISOString());
       setMasterName(parsed.data.name);
       router.replace('/');
     }
@@ -90,13 +119,47 @@ export default function RegisterScreen() {
             secureTextEntry
           />
 
+          {/* 152-ФЗ согласие на обработку персональных данных.
+              Без этого галочки кнопка "Зарегистрироваться" недоступна —
+              это обязательное требование для российских пользователей. */}
+          <Pressable
+            onPress={() => setConsent((v) => !v)}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: consent }}
+            accessibilityLabel="Согласие на обработку персональных данных"
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={styles.consentRow}
+          >
+            <View
+              style={[
+                styles.checkbox,
+                {
+                  borderColor: consent ? colors.primary : colors.border,
+                  backgroundColor: consent ? colors.primary : 'transparent',
+                },
+              ]}
+            >
+              {consent && <Check size={14} color={colors.white} strokeWidth={3} />}
+            </View>
+            <Text style={[typo.caption, { color: colors.textSecondary, flex: 1, lineHeight: 18 }]}>
+              Я согласен(а) на обработку персональных данных в соответствии с{' '}
+              <Text
+                onPress={openPrivacyPolicy}
+                style={{ color: colors.primary, textDecorationLine: 'underline' }}
+              >
+                Политикой конфиденциальности
+              </Text>
+            </Text>
+          </Pressable>
+
           <Button
             title="Зарегистрироваться"
             onPress={handleRegister}
             loading={loading}
+            disabled={!consent}
             size="lg"
             fullWidth
-            style={{ marginTop: sp.md }}
+            style={{ marginTop: sp.sm }}
           />
         </Animated.View>
 
@@ -121,4 +184,20 @@ const styles = StyleSheet.create({
   logoIcon: { width: 80, height: 80, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
   form: { gap: 16 },
   footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 32 },
+  consentRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginTop: 8,
+    paddingVertical: 4,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 5,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 1,
+  },
 });

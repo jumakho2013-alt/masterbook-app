@@ -19,7 +19,6 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.masterbook.app",
-      "buildNumber": "1",
       "usesAppleSignIn": true,
       "associatedDomains": [],
       "infoPlist": {
@@ -54,7 +53,7 @@
     },
     "android": {
       "package": "com.masterbook.app",
-      "versionCode": 1,
+      "allowBackup": false,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#7C5DFA"

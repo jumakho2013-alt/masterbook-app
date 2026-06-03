@@ -177,7 +177,7 @@ export default function NewAppointmentScreen() {
       60,
     )
       .then((notifId) => {
-        if (notifId) updateAppointment(appt.id, { reminderNotificationId: notifId } as never);
+        if (notifId) updateAppointment(appt.id, { reminderNotificationId: notifId });
       })
       .catch(() => {
         // User might have declined notifications — don't fail the booking.

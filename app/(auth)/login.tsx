@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { BookOpen } from 'lucide-react-native';
+import * as WebBrowser from 'expo-web-browser';
 import { useTheme } from '@/src/theme';
 import { Button, Input, CustomAlert } from '@/src/components/ui';
 import { AppleSignInButton } from '@/src/components/AppleSignInButton';
@@ -17,12 +18,30 @@ import {
   formatRetryDuration,
 } from '@/src/lib/authRateLimit';
 
+// Каноническая Privacy Policy — должна совпадать с register.tsx.
+const PRIVACY_POLICY_URL = 'https://jumakho2013-alt.github.io/masterbook-privacy/';
+
 export default function LoginScreen() {
   const router = useRouter();
   const { colors, typography: typo, spacing: sp } = useTheme();
   const signIn = useAuthStore((s) => s.signIn);
+  const setConsentGiven = useAuthStore((s) => s.setConsentGiven);
+  const dataConsentGivenAt = useAuthStore((s) => s.dataConsentGivenAt);
 
   const { alertConfig, error: showError, info } = useAlert();
+
+  const openPrivacyPolicy = () => {
+    WebBrowser.openBrowserAsync(PRIVACY_POLICY_URL).catch(() => {
+      showError('Не удалось открыть', 'Скопируйте ссылку: ' + PRIVACY_POLICY_URL);
+    });
+  };
+
+  // Фиксируем "implicit" согласие при логине — пользователь нажал кнопку
+  // авторизации под disclaimer'ом, это даёт нам timestamp для журнала
+  // 152-ФЗ. Если согласие уже зафиксировано на register — не перезаписываем.
+  const recordConsentIfNeeded = () => {
+    if (!dataConsentGivenAt) setConsentGiven(new Date().toISOString());
+  };
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -65,6 +84,7 @@ export default function LoginScreen() {
       }
     } else {
       await resetAuthRateLimit();
+      recordConsentIfNeeded();
       router.replace('/');
     }
   };
@@ -120,14 +140,36 @@ export default function LoginScreen() {
           {/* Apple Sign-In — рендерится только на iOS, где доступен. */}
           <AppleSignInButton
             style={{ marginTop: sp.md }}
-            onSuccess={() => router.replace('/')}
+            onSuccess={() => {
+              recordConsentIfNeeded();
+              router.replace('/');
+            }}
             onError={(msg) => showError('Apple Sign-In', msg)}
           />
+
+          {/* 152-ФЗ disclaimer. Apple HIG не разрешает чекбокс прямо над Sign in
+              with Apple, поэтому используем "implicit consent": нажимая кнопку
+              входа/регистрации, пользователь соглашается. Текст обязателен,
+              ссылка обязательна, иначе RU-ревью не пропустит. */}
+          <Text
+            style={[
+              typo.small,
+              { color: colors.textTertiary, textAlign: 'center', marginTop: sp.md, lineHeight: 16 },
+            ]}
+          >
+            Нажимая «Войти», вы соглашаетесь с{' '}
+            <Text
+              onPress={openPrivacyPolicy}
+              style={{ color: colors.primary, textDecorationLine: 'underline' }}
+            >
+              обработкой персональных данных
+            </Text>
+          </Text>
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(400).duration(600)} style={styles.footer}>
           <Text style={[typo.body, { color: colors.textSecondary }]}>Нет аккаунта?</Text>
-          <Pressable onPress={() => router.push('/(auth)/register' as any)}>
+          <Pressable onPress={() => router.push('/(auth)/register')}>
             <Text style={[typo.bodyBold, { color: colors.primary, marginLeft: 6 }]}>
               Зарегистрироваться
             </Text>

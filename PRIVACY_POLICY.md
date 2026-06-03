@@ -3,7 +3,7 @@
 **Last updated: April 16, 2026**
 **Последнее обновление: 16 апреля 2026**
 
-> Каноническая версия публикуется на GitHub Pages: <https://USERNAME.github.io/masterbook/privacy/>
+> Каноническая версия публикуется на GitHub Pages: <https://jumakho2013-alt.github.io/masterbook-privacy/>
 > Этот файл — копия в репозитории для истории и проверки pull request-ами.
 
 ---

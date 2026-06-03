@@ -18,7 +18,7 @@ export default function AccountSettingsScreen() {
   const biometricLock = useSettingsStore((s) => s.biometricLock);
   const setBiometricLock = useSettingsStore((s) => s.setBiometricLock);
 
-  const { alertConfig, info, error: showError, confirm } = useAlert();
+  const { alertConfig, info, error: showError, confirm, show } = useAlert();
 
   const [kind, setKind] = useState<BiometricKind>('unknown');
   const [exporting, setExporting] = useState(false);
@@ -89,6 +89,19 @@ export default function AccountSettingsScreen() {
           return;
         }
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        if (res.serverDeleteFailed) {
+          // Локальный wipe прошёл, но запись на сервере осталась.
+          // Apple Guideline 5.1.1(v): нельзя сделать вид что аккаунт удалён —
+          // нужно прозрачно сказать пользователю что делать. Redirect только
+          // после того как пользователь прочитает и закроет alert.
+          show(
+            'Локально удалено, не на сервере',
+            `Данные с устройства стёрты. На сервере удаление не удалось:\n\n${res.serverError}\n\nНапиши на support@masterbook.app — мы удалим запись вручную в течение 24 часов.`,
+            [{ text: 'Понятно', onPress: () => router.replace('/') }],
+            'warning',
+          );
+          return;
+        }
         // После wipe — ведём на логин (Index перенаправит, т.к. сессии нет).
         router.replace('/');
       },

@@ -39,10 +39,33 @@ jest.mock('@/src/lib/notifications', () => ({
 }));
 
 const resetAuthMock = jest.fn();
+const setAuthStateMock = jest.fn();
 jest.mock('@/src/stores/useAuthStore', () => ({
   useAuthStore: {
     getState: () => ({ reset: resetAuthMock }),
+    setState: (s: unknown) => setAuthStateMock(s),
   },
+}));
+
+const resetClientMock = jest.fn();
+const resetAppointmentMock = jest.fn();
+const resetFinanceMock = jest.fn();
+const resetServiceMock = jest.fn();
+const resetSettingsMock = jest.fn();
+jest.mock('@/src/stores/useClientStore', () => ({
+  useClientStore: { getState: () => ({ reset: resetClientMock }) },
+}));
+jest.mock('@/src/stores/useAppointmentStore', () => ({
+  useAppointmentStore: { getState: () => ({ reset: resetAppointmentMock }) },
+}));
+jest.mock('@/src/stores/useFinanceStore', () => ({
+  useFinanceStore: { getState: () => ({ reset: resetFinanceMock }) },
+}));
+jest.mock('@/src/stores/useServiceStore', () => ({
+  useServiceStore: { getState: () => ({ reset: resetServiceMock }) },
+}));
+jest.mock('@/src/stores/useSettingsStore', () => ({
+  useSettingsStore: { getState: () => ({ reset: resetSettingsMock }) },
 }));
 
 import { deleteAccount } from '../deleteAccount';
@@ -56,40 +79,55 @@ describe('deleteAccount', () => {
     signOutMock.mockImplementation(async () => ({ error: null }));
     cancelAllNotificationsMock.mockClear();
     resetAuthMock.mockClear();
+    setAuthStateMock.mockClear();
+    resetClientMock.mockClear();
+    resetAppointmentMock.mockClear();
+    resetFinanceMock.mockClear();
+    resetServiceMock.mockClear();
+    resetSettingsMock.mockClear();
   });
 
   it('returns ok on happy path and calls all steps in order', async () => {
     const result = await deleteAccount();
-    expect(result).toEqual({ ok: true });
-    // Порядок важен: нотификации → RPC → signOut → storage → reset.
+    expect(result).toEqual({ ok: true, serverDeleteFailed: false });
+    // Порядок важен: нотификации → RPC → signOut → resets → storage.clear.
     expect(cancelAllNotificationsMock).toHaveBeenCalled();
     expect(rpcMock).toHaveBeenCalledWith('delete_user');
     expect(signOutMock).toHaveBeenCalled();
-    expect(asyncStorageClearMock).toHaveBeenCalled();
+    expect(resetClientMock).toHaveBeenCalled();
+    expect(resetAppointmentMock).toHaveBeenCalled();
+    expect(resetFinanceMock).toHaveBeenCalled();
+    expect(resetServiceMock).toHaveBeenCalled();
+    expect(resetSettingsMock).toHaveBeenCalled();
     expect(resetAuthMock).toHaveBeenCalled();
+    expect(setAuthStateMock).toHaveBeenCalledWith({ user: null, session: null });
+    expect(asyncStorageClearMock).toHaveBeenCalled();
 
+    // Все business-resets должны произойти ДО AsyncStorage.clear() —
+    // активные подписки видят пустое in-memory состояние перед тем как
+    // персистенс уйдёт.
     const order = [
       cancelAllNotificationsMock.mock.invocationCallOrder[0],
       rpcMock.mock.invocationCallOrder[0],
       signOutMock.mock.invocationCallOrder[0],
-      asyncStorageClearMock.mock.invocationCallOrder[0],
+      resetClientMock.mock.invocationCallOrder[0],
       resetAuthMock.mock.invocationCallOrder[0],
+      asyncStorageClearMock.mock.invocationCallOrder[0],
     ];
     expect(order).toEqual([...order].sort((a, b) => a - b));
   });
 
-  it('still wipes local data even if Supabase RPC fails', async () => {
+  it('returns serverDeleteFailed=true if Supabase RPC fails (Apple 5.1.1(v) honesty)', async () => {
     rpcMock.mockImplementationOnce(async () => ({ error: { message: 'rpc missing' } }));
-    const consoleWarn = jest.spyOn(console, 'warn').mockImplementation(() => {});
 
     const result = await deleteAccount();
-    expect(result).toEqual({ ok: true });
-    // Критично: AsyncStorage всё равно очищается. Иначе после
-    // переустановки пользователь увидит старые данные.
+    // Раньше silent fail в console.warn создавал illusion of deletion.
+    // Теперь возвращаем флаг чтобы UI прозрачно сказал пользователю.
+    expect(result).toEqual({ ok: true, serverDeleteFailed: true, serverError: 'rpc missing' });
+    // Локальный wipe всё равно выполнен.
     expect(asyncStorageClearMock).toHaveBeenCalled();
+    expect(resetClientMock).toHaveBeenCalled();
     expect(resetAuthMock).toHaveBeenCalled();
-
-    consoleWarn.mockRestore();
   });
 
   it('does not throw even if signOut fails silently', async () => {
@@ -99,7 +137,7 @@ describe('deleteAccount', () => {
 
     const result = await deleteAccount();
     // signOut обёрнут в .catch(() => {}) — не ломает остальной поток.
-    expect(result).toEqual({ ok: true });
+    expect(result).toEqual({ ok: true, serverDeleteFailed: false });
     expect(asyncStorageClearMock).toHaveBeenCalled();
   });
 
@@ -113,5 +151,16 @@ describe('deleteAccount', () => {
     if (!result.ok) {
       expect(result.error).toContain('disk full');
     }
+  });
+
+  it('wipes ALL business stores (cross-account contamination guard)', async () => {
+    await deleteAccount();
+    // Если хотя бы один store не сброшен — следующий пользователь на
+    // устройстве увидит данные удалённого аккаунта в памяти до перезапуска.
+    expect(resetClientMock).toHaveBeenCalledTimes(1);
+    expect(resetAppointmentMock).toHaveBeenCalledTimes(1);
+    expect(resetFinanceMock).toHaveBeenCalledTimes(1);
+    expect(resetServiceMock).toHaveBeenCalledTimes(1);
+    expect(resetSettingsMock).toHaveBeenCalledTimes(1);
   });
 });

@@ -13,6 +13,8 @@ interface ServiceState {
   deleteService: (id: string) => void;
   getService: (id: string) => Service | undefined;
   loadTemplates: (specializationId: string) => void;
+  /** Полный сброс in-memory state (используется при signOut / deleteAccount) */
+  reset: () => void;
 }
 
 export const useServiceStore = create<ServiceState>()(
@@ -46,6 +48,8 @@ export const useServiceStore = create<ServiceState>()(
         }));
         set({ services });
       },
+
+      reset: () => set({ services: [] }),
     }),
     {
       name: 'masterbook-services',

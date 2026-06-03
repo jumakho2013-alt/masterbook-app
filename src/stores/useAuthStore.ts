@@ -4,6 +4,27 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/src/lib/supabase';
 import type { ProfessionCategory } from '@/src/types';
 import type { User, Session } from '@supabase/supabase-js';
+import { useClientStore } from '@/src/stores/useClientStore';
+import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
+import { useFinanceStore } from '@/src/stores/useFinanceStore';
+import { useServiceStore } from '@/src/stores/useServiceStore';
+import { useSettingsStore } from '@/src/stores/useSettingsStore';
+
+/**
+ * Очистка ВСЕХ in-memory сторов кроме auth — нужна при signOut и deleteAccount
+ * чтобы не было cross-account contamination (пользователь A → logout →
+ * пользователь B на том же устройстве не должен видеть данные A).
+ *
+ * Не вызывает auth.reset() — это делается отдельно вокруг этой функции,
+ * после вызова supabase.auth.signOut() чтобы избежать гонки с session listener.
+ */
+function wipeBusinessStores() {
+  useClientStore.getState().reset();
+  useAppointmentStore.getState().reset();
+  useFinanceStore.getState().reset();
+  useServiceStore.getState().reset();
+  useSettingsStore.getState().reset();
+}
 
 interface AuthState {
   // Supabase auth
@@ -15,6 +36,10 @@ interface AuthState {
   onboarded: boolean;
   professionCategory: ProfessionCategory | null;
   specializationId: string | null;
+  /** ISO timestamp согласия на обработку персональных данных (152-ФЗ ст. 9).
+   *  null = согласие ещё не дано. Сохраняется в audit-целях — если
+   *  Роскомнадзор запросит подтверждение, у нас есть дата. */
+  dataConsentGivenAt: string | null;
 
   // Auth actions
   signUp: (email: string, password: string, name: string) => Promise<{ error?: string }>;
@@ -26,6 +51,7 @@ interface AuthState {
   // App actions
   setOnboarded: (value: boolean) => void;
   setProfession: (category: ProfessionCategory, specializationId: string) => void;
+  setConsentGiven: (timestamp: string) => void;
   reset: () => void;
 }
 
@@ -39,6 +65,7 @@ export const useAuthStore = create<AuthState>()(
       onboarded: false,
       professionCategory: null,
       specializationId: null,
+      dataConsentGivenAt: null,
 
       signUp: async (email, password, name) => {
         const { data, error } = await supabase.auth.signUp({
@@ -74,7 +101,15 @@ export const useAuthStore = create<AuthState>()(
       },
 
       signOut: async () => {
-        await supabase.auth.signOut();
+        // Сначала чистим бизнес-сторы (клиенты/записи/финансы/услуги/настройки)
+        // — это включает отмену всех локальных push-напоминаний.
+        // Делаем ДО signOut() чтобы listener supabase.auth не успел вызвать
+        // checkSession и перерендерить экраны со старыми данными.
+        wipeBusinessStores();
+        await supabase.auth.signOut().catch(() => {
+          // Если сетевая ошибка — токен всё равно невалидируется на следующий
+          // запрос. Не падаем; локальный wipe важнее.
+        });
         set({
           user: null,
           session: null,
@@ -108,8 +143,14 @@ export const useAuthStore = create<AuthState>()(
       setOnboarded: (value) => set({ onboarded: value }),
       setProfession: (category, specializationId) =>
         set({ professionCategory: category, specializationId }),
+      setConsentGiven: (timestamp) => set({ dataConsentGivenAt: timestamp }),
       reset: () =>
-        set({ onboarded: false, professionCategory: null, specializationId: null }),
+        set({
+          onboarded: false,
+          professionCategory: null,
+          specializationId: null,
+          dataConsentGivenAt: null,
+        }),
     }),
     {
       name: 'masterbook-auth',
@@ -118,6 +159,7 @@ export const useAuthStore = create<AuthState>()(
         onboarded: state.onboarded,
         professionCategory: state.professionCategory,
         specializationId: state.specializationId,
+        dataConsentGivenAt: state.dataConsentGivenAt,
       }),
     },
   ),

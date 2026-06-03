@@ -15,6 +15,8 @@ interface ClientState {
   getClient: (id: string) => Client | undefined;
   searchClients: (query: string) => Client[];
   canAddClient: () => boolean;
+  /** Полный сброс in-memory state (используется при signOut / deleteAccount) */
+  reset: () => void;
 }
 
 export const useClientStore = create<ClientState>()(
@@ -55,6 +57,8 @@ export const useClientStore = create<ClientState>()(
       },
 
       canAddClient: () => get().clients.length < FREE_CLIENT_LIMIT,
+
+      reset: () => set({ clients: [] }),
     }),
     {
       name: 'masterbook-clients',

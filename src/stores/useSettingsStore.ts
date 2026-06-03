@@ -25,6 +25,9 @@ interface SettingsState {
   updateFieldConfig: (updates: Partial<FieldConfig>) => void;
   setMasterName: (name: string) => void;
   setBiometricLock: (enabled: boolean) => void;
+  /** Полный сброс к дефолтам (используется при signOut / deleteAccount).
+   *  Сохраняет тему (UI preference) — это про устройство, не про аккаунт. */
+  reset: () => void;
 }
 
 const defaultFieldConfig: FieldConfig = {
@@ -36,17 +39,21 @@ const defaultFieldConfig: FieldConfig = {
   durationRange: { min: 30, max: 480 },
 };
 
+const defaultSettingsForAccount = {
+  workHours: { start: '09:00', end: '20:00' },
+  workDays: [1, 2, 3, 4, 5, 6], // Mon-Sat
+  breakTime: { enabled: true, start: '13:00', end: '14:00' },
+  bufferMinutes: 15,
+  fieldConfig: defaultFieldConfig,
+  masterName: '',
+  biometricLock: false,
+};
+
 export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
       theme: 'system',
-      workHours: { start: '09:00', end: '20:00' },
-      workDays: [1, 2, 3, 4, 5, 6], // Mon-Sat
-      breakTime: { enabled: true, start: '13:00', end: '14:00' },
-      bufferMinutes: 15,
-      fieldConfig: defaultFieldConfig,
-      masterName: '',
-      biometricLock: false,
+      ...defaultSettingsForAccount,
 
       setTheme: (theme) => set({ theme }),
       setWorkHours: (start, end) => set({ workHours: { start, end } }),
@@ -58,6 +65,8 @@ export const useSettingsStore = create<SettingsState>()(
         set((s) => ({ fieldConfig: { ...s.fieldConfig, ...updates } })),
       setMasterName: (name) => set({ masterName: name }),
       setBiometricLock: (enabled) => set({ biometricLock: enabled }),
+
+      reset: () => set(defaultSettingsForAccount),
     }),
     {
       name: 'masterbook-settings',
