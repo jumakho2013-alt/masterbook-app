@@ -22,6 +22,8 @@ export function BiometricGate({ children }: { children: React.ReactNode }) {
   const biometricLock = useSettingsStore((s) => s.biometricLock);
   const session = useAuthStore((s) => s.session);
 
+  const signOut = useAuthStore((s) => s.signOut);
+
   const [kind, setKind] = useState<BiometricKind>('unknown');
   const [locked, setLocked] = useState<boolean>(() => biometricLock && !!session);
   const lastStateRef = useRef<AppStateStatus>(AppState.currentState);
@@ -30,6 +32,11 @@ export function BiometricGate({ children }: { children: React.ReactNode }) {
   // создаст параллельный prompt — на iOS это приводит к моментальному
   // ошибочному отказу обоих, на Android к "Authentication busy".
   const inFlightRef = useRef(false);
+  // Окно подавления авто-перелока. Сам системный prompt уводит приложение в
+  // background и возвращает в active — без этого окна AppState-listener
+  // мгновенно перелочил бы экран ПОСЛЕ успешной разблокировки (юзер вводит
+  // пароль → разблок → тут же снова просит пароль → бесконечная петля).
+  const suppressRelockUntilRef = useRef(0);
 
   // Определяем тип биометрии для лейблов и иконки. Не блокируем — пока идёт
   // определение, lock-screen просто покажет дефолтный текст.
@@ -37,13 +44,11 @@ export function BiometricGate({ children }: { children: React.ReactNode }) {
     getBiometricKind().then(setKind);
   }, []);
 
-  // Если пользователь включил/выключил защиту — обновляем lock-state.
+  // Lock-state следует за настройкой и наличием сессии. ВАЖНО: если сессии
+  // нет (например, юзер нажал «Выйти» на самом lock-экране) — снимаем блок,
+  // иначе человек остаётся заперт на пустом экране без выхода.
   useEffect(() => {
-    if (!biometricLock) {
-      setLocked(false);
-      return;
-    }
-    if (session) setLocked(true);
+    setLocked(biometricLock && !!session);
   }, [biometricLock, session]);
 
   // Повторно запрашиваем биометрию каждый раз, когда приложение возвращается
@@ -54,6 +59,10 @@ export function BiometricGate({ children }: { children: React.ReactNode }) {
       lastStateRef.current = next;
       if (!biometricLock) return;
       if (!session) return;
+      // Переход в background/inactive вызван НАШИМ же системным prompt'ом —
+      // не перелочиваем (иначе петля после успешной разблокировки).
+      if (inFlightRef.current) return;
+      if (Date.now() < suppressRelockUntilRef.current) return;
       // background/inactive → active
       if ((prev === 'background' || prev === 'inactive') && next === 'active') {
         setLocked(true);
@@ -68,7 +77,12 @@ export function BiometricGate({ children }: { children: React.ReactNode }) {
     inFlightRef.current = true;
     try {
       const res = await authenticate(`Вход по ${biometricLabel(kind)}`);
-      if (res.success) setLocked(false);
+      if (res.success) {
+        // Гасим возможный «хвостовой» переход в active от закрытия prompt'а,
+        // чтобы listener не перелочил экран сразу после успеха.
+        suppressRelockUntilRef.current = Date.now() + 2000;
+        setLocked(false);
+      }
     } finally {
       inFlightRef.current = false;
     }
@@ -102,6 +116,21 @@ export function BiometricGate({ children }: { children: React.ReactNode }) {
         <Icon size={22} color={colors.white} />
         <Text style={[typo.bodyBold, { color: colors.white, marginLeft: 10 }]}>
           Разблокировать
+        </Text>
+      </Pressable>
+
+      {/* Аварийный выход: если биометрия/пароль не срабатывают — не оставляем
+          человека запертым. «Выйти» очищает сессию → откроется экран входа.
+          Данные в облаке (если синхронизация была) сохранятся. */}
+      <Pressable
+        onPress={() => signOut()}
+        accessibilityRole="button"
+        accessibilityLabel="Выйти из аккаунта"
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        style={{ marginTop: sp.lg }}
+      >
+        <Text style={[typo.caption, { color: colors.textTertiary, textDecorationLine: 'underline' }]}>
+          Не получается войти? Выйти из аккаунта
         </Text>
       </Pressable>
     </View>
