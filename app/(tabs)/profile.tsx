@@ -210,7 +210,7 @@ function ProfileScreen() {
             <MenuItem
               icon={<Star size={20} color={colors.primary} />}
               label="Ссылка для отзывов"
-              subtitle="После визита — попросить отзыв"
+              subtitle="Yandex Maps / 2GIS — клиенту после визита"
               onPress={() => router.push('/settings/review-link')}
             />
             <Divider style={{ marginVertical: 0, marginLeft: 52 }} />
