@@ -10,6 +10,7 @@ import {
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
+import { persistImageToAppDir } from '@/src/lib/photoStorage';
 import * as Clipboard from 'expo-clipboard';
 import { useTheme } from '@/src/theme';
 import { GlassCard, IconButton, Button, Badge, Divider, CustomAlert, useToast } from '@/src/components/ui';
@@ -202,7 +203,8 @@ export default function AppointmentDetailScreen() {
         selectionLimit: 5,
       });
       if (!result.canceled && result.assets.length > 0) {
-        const newUris = result.assets.map((a) => a.uri);
+        // Копируем в постоянную папку — иначе после чистки кэша фото пропадут.
+        const newUris = result.assets.map((a) => persistImageToAppDir(a.uri));
         const existing = appointment.photos ?? [];
         updateAppointment(appointment.id, { photos: [...existing, ...newUris] });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

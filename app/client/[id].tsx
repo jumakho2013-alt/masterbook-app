@@ -10,6 +10,7 @@ import {
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
 import * as ImagePicker from 'expo-image-picker';
+import { persistImageToAppDir } from '@/src/lib/photoStorage';
 import { useTheme } from '@/src/theme';
 import { Avatar, Badge, GlassCard, Divider, IconButton, Button, CustomAlert, useToast } from '@/src/components/ui';
 import { useAlert } from '@/src/hooks/useAlert';
@@ -133,7 +134,9 @@ export default function ClientDetailScreen() {
         aspect: [1, 1],
       });
       if (!result.canceled && result.assets[0]) {
-        updateClient(client.id, { photoUri: result.assets[0].uri });
+        // Копируем в постоянную папку — иначе после чистки кэша фото пропадёт.
+        const persisted = persistImageToAppDir(result.assets[0].uri);
+        updateClient(client.id, { photoUri: persisted });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         toast.success('Фото обновлено');
       }
