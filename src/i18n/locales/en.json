@@ -83,7 +83,9 @@
     "vsPrevPeriod": "%{sign} %{percent}% vs last period",
     "incomeMinusExpense": "Income − Expense",
     "hoursValue": "%{h} h",
-    "addOperation": "Add transaction"
+    "addOperation": "Add transaction",
+    "inProfit": "In profit",
+    "inLoss": "In the red"
   },
   "profile": {
     "title": "Profile",

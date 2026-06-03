@@ -83,7 +83,9 @@
     "vsPrevPeriod": "%{sign} %{percent}% к прошлому периоду",
     "incomeMinusExpense": "Доход − Расход",
     "hoursValue": "%{h} ч",
-    "addOperation": "Добавить операцию"
+    "addOperation": "Добавить операцию",
+    "inProfit": "В плюсе",
+    "inLoss": "В минусе"
   },
   "profile": {
     "title": "Профиль",

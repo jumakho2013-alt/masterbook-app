@@ -4,8 +4,6 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ArrowLeft,
-  TrendingUp,
-  TrendingDown,
   UserPlus,
   CalendarCheck,
   CalendarHeart,
@@ -14,7 +12,7 @@ import {
   Scissors,
 } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
-import { GlassCard, IconButton, Divider } from '@/src/components/ui';
+import { GlassCard, IconButton, Divider, StatusPill } from '@/src/components/ui';
 import { useClientStore } from '@/src/stores/useClientStore';
 import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useFinanceStore } from '@/src/stores/useFinanceStore';
@@ -89,15 +87,12 @@ export default function InsightsScreen() {
             {formatCurrency(insights.revenueThisMonth)}
           </Text>
           {insights.revenueDeltaPct !== null && (
-            <View style={[styles.deltaRow, { marginTop: 6 }]}>
-              {deltaPositive ? (
-                <TrendingUp size={16} color={colors.success} />
-              ) : (
-                <TrendingDown size={16} color={colors.danger} />
-              )}
-              <Text style={[typo.caption, { color: deltaPositive ? colors.success : colors.danger }]}>
-                {deltaPositive ? '+' : ''}{insights.revenueDeltaPct}% к прошлому месяцу
-              </Text>
+            <View style={{ marginTop: 8 }}>
+              <StatusPill
+                label={`${deltaPositive ? '+' : ''}${insights.revenueDeltaPct}% к прошлому месяцу`}
+                tone={deltaPositive ? 'good' : 'bad'}
+                icon={deltaPositive ? 'up' : 'down'}
+              />
             </View>
           )}
         </GlassCard>
@@ -201,7 +196,6 @@ const styles = StyleSheet.create({
   },
   heroCard: { marginBottom: 12 },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  deltaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   tile: { width: '47%', flexGrow: 1, paddingVertical: 16 },
   infoCard: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 12 },

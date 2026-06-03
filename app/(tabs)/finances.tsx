@@ -156,6 +156,26 @@ function FinancesScreen() {
     return { avgCheck, hours, topClients, popularService, totalAppts: periodAppts.length };
   }, [allAppointments, range, clients, services]);
 
+  // Дневные ряды для мини-спарклайнов на карточках Доход/Расход.
+  const sparks = useMemo(() => {
+    const days: string[] = [];
+    const cur = new Date(range.start);
+    const end = new Date(range.end);
+    // Защита от бесконечного цикла на кривых датах.
+    let guard = 0;
+    while (cur <= end && guard < 400) {
+      days.push(toDateKey(new Date(cur)));
+      cur.setDate(cur.getDate() + 1);
+      guard += 1;
+    }
+    const sumFor = (key: string, type: 'income' | 'expense') =>
+      allEntries.filter((e) => e.date === key && e.type === type).reduce((s, e) => s + e.amount, 0);
+    return {
+      income: days.map((k) => sumFor(k, 'income')),
+      expense: days.map((k) => sumFor(k, 'expense')),
+    };
+  }, [allEntries, range]);
+
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 600);
@@ -197,6 +217,11 @@ function FinancesScreen() {
             icon={<Wallet size={20} color={colors.primary} />}
             value={summary.net}
             accentColor={colors.primary}
+            status={
+              summary.income > 0 || summary.expense > 0
+                ? { label: summary.net >= 0 ? tr('finances.inProfit') : tr('finances.inLoss'), tone: summary.net >= 0 ? 'good' : 'bad' }
+                : undefined
+            }
             sub={
               summary.incomeDiff !== 0
                 ? tr('finances.vsPrevPeriod', { sign: summary.incomeDiff > 0 ? '↗' : '↘', percent: Math.abs(summary.incomeDiff) })
@@ -214,6 +239,7 @@ function FinancesScreen() {
               icon={<TrendingUp size={18} color={colors.success} />}
               value={summary.income}
               accentColor={colors.success}
+              spark={sparks.income}
               onPress={() => router.push({ pathname: '/finance/report', params: { kind: 'income', period } })}
             />
           </View>
@@ -223,6 +249,7 @@ function FinancesScreen() {
               icon={<TrendingDown size={18} color={colors.danger} />}
               value={summary.expense}
               accentColor={colors.danger}
+              spark={sparks.expense}
               onPress={() => router.push({ pathname: '/finance/report', params: { kind: 'expense', period } })}
             />
           </View>

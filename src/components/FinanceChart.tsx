@@ -124,9 +124,16 @@ export function FinanceChart({ entries, days }: FinanceChartProps) {
 
       <Svg width={CHART_W} height={CHART_H}>
         <Defs>
+          {/* Заливка области: насыщеннее вверху, в ноль внизу. */}
           <LinearGradient id="incomeFill" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor={colors.success} stopOpacity="0.35" />
-            <Stop offset="1" stopColor={colors.success} stopOpacity="0.02" />
+            <Stop offset="0" stopColor={colors.success} stopOpacity="0.42" />
+            <Stop offset="0.7" stopColor={colors.success} stopOpacity="0.08" />
+            <Stop offset="1" stopColor={colors.success} stopOpacity="0" />
+          </LinearGradient>
+          {/* Горизонтальный градиент линии: изумруд → золото (брендовая гамма). */}
+          <LinearGradient id="incomeStroke" x1="0" y1="0" x2="1" y2="0">
+            <Stop offset="0" stopColor={colors.success} />
+            <Stop offset="1" stopColor={colors.accent} />
           </LinearGradient>
         </Defs>
 
@@ -144,12 +151,22 @@ export function FinanceChart({ entries, days }: FinanceChartProps) {
           <>
             {/* Income area fill */}
             <Path d={incomeArea} fill="url(#incomeFill)" />
-            {/* Income line */}
+            {/* Soft glow — широкая полупрозрачная копия линии под основной. */}
             <Path
               d={incomeLine}
               fill="none"
               stroke={colors.success}
-              strokeWidth="2.5"
+              strokeWidth="7"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+              opacity={0.16}
+            />
+            {/* Income line — градиентный штрих изумруд→золото */}
+            <Path
+              d={incomeLine}
+              fill="none"
+              stroke="url(#incomeStroke)"
+              strokeWidth="3"
               strokeLinejoin="round"
               strokeLinecap="round"
             />
@@ -165,20 +182,26 @@ export function FinanceChart({ entries, days }: FinanceChartProps) {
                 opacity={0.8}
               />
             )}
-            {/* Markers — точка на каждом дне, большая на сегодня */}
-            {data.map((d, i) =>
-              d.income > 0 ? (
-                <Circle
-                  key={i}
-                  cx={px(i)}
-                  cy={py(d.income)}
-                  r={d.isToday ? 5 : 3}
-                  fill={colors.success}
-                  stroke={colors.surface}
-                  strokeWidth={d.isToday ? 2 : 0}
-                />
-              ) : null,
-            )}
+            {/* Маркер последней точки с «гало» — как индикатор текущего
+                значения в health-app (без точек на каждом дне → чище). */}
+            {(() => {
+              const lastIdx = n - 1;
+              const lastVal = data[lastIdx]?.income ?? 0;
+              if (lastVal <= 0) return null;
+              return (
+                <>
+                  <Circle cx={px(lastIdx)} cy={py(lastVal)} r={9} fill={colors.accent} opacity={0.18} />
+                  <Circle
+                    cx={px(lastIdx)}
+                    cy={py(lastVal)}
+                    r={4}
+                    fill={colors.accent}
+                    stroke={colors.surface}
+                    strokeWidth={2}
+                  />
+                </>
+              );
+            })()}
           </>
         )}
       </Svg>

@@ -13,3 +13,5 @@ export { CustomAlert } from './CustomAlert';
 export type { AlertConfig, AlertButton } from './CustomAlert';
 export { ToastProvider, useToast } from './Toast';
 export { CountUp } from './CountUp';
+export { StatusPill } from './StatusPill';
+export type { StatusTone } from './StatusPill';

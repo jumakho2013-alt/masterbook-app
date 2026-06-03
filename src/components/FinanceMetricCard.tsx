@@ -5,7 +5,8 @@ import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-na
 import { ArrowUpRight, ChevronRight } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/src/theme';
-import { CountUp } from '@/src/components/ui';
+import { CountUp, StatusPill, type StatusTone } from '@/src/components/ui';
+import { MiniSparkline } from '@/src/components/MiniSparkline';
 import { useReduceMotion } from '@/src/hooks/useReduceMotion';
 import { formatCurrency } from '@/src/utils/currency';
 
@@ -27,6 +28,10 @@ interface FinanceMetricCardProps {
   onPress?: () => void;
   /** Variant — large (полная ширина hero) или compact (треть/половина строки). */
   variant?: 'large' | 'compact';
+  /** Мини-спарклайн в правом верхнем углу (намёк на тренд, как в референсе). */
+  spark?: number[];
+  /** Статус-пилл под числом («✓ В плюсе», «Норма»). */
+  status?: { label: string; tone?: StatusTone };
 }
 
 /**
@@ -48,6 +53,8 @@ export function FinanceMetricCard({
   accentColor,
   onPress,
   variant = 'compact',
+  spark,
+  status,
 }: FinanceMetricCardProps) {
   const { colors, typography: typo, borderRadius: br, isDark } = useTheme();
   const reduceMotion = useReduceMotion();
@@ -135,22 +142,28 @@ export function FinanceMetricCard({
           >
             {icon}
           </View>
-          {onPress &&
-            (variant === 'large' ? (
-              <View
-                style={[
-                  styles.tapHint,
-                  { backgroundColor: accentColor + '18', borderRadius: br.sm },
-                ]}
-              >
-                <Text style={[typo.small, { color: accentColor, fontFamily: typo.bodyBold.fontFamily }]}>
-                  Подробнее
-                </Text>
-                <ArrowUpRight size={14} color={accentColor} />
-              </View>
-            ) : (
-              <ChevronRight size={16} color={accentColor} />
-            ))}
+          {spark && spark.length >= 2 ? (
+            <MiniSparkline
+              data={spark}
+              color={accentColor}
+              width={variant === 'large' ? 104 : 64}
+              height={variant === 'large' ? 36 : 28}
+            />
+          ) : onPress && variant === 'large' ? (
+            <View
+              style={[
+                styles.tapHint,
+                { backgroundColor: accentColor + '18', borderRadius: br.sm },
+              ]}
+            >
+              <Text style={[typo.small, { color: accentColor, fontFamily: typo.bodyBold.fontFamily }]}>
+                Подробнее
+              </Text>
+              <ArrowUpRight size={14} color={accentColor} />
+            </View>
+          ) : onPress ? (
+            <ChevronRight size={16} color={accentColor} />
+          ) : null}
         </View>
 
         <Text
@@ -176,6 +189,12 @@ export function FinanceMetricCard({
         ) : (
           <Text style={[valueStyle, { color: accentColor, marginTop: 4 }]}>{value}</Text>
         )}
+
+        {status ? (
+          <View style={{ marginTop: 8 }}>
+            <StatusPill label={status.label} tone={status.tone} />
+          </View>
+        ) : null}
 
         {sub ? (
           <Text style={[typo.caption, { color: colors.textSecondary, marginTop: 4 }]}>{sub}</Text>
