@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, type ViewStyle } from 'react-native';
-import Svg, { Defs, LinearGradient, Rect, Stop, Path, Circle, G } from 'react-native-svg';
-import { useTheme } from '@/src/theme';
+import Svg, { Defs, LinearGradient, Rect, Stop, Path } from 'react-native-svg';
 
 interface MasterBookLogoProps {
   /** Размер квадратной иконки. Default 64. */
@@ -12,49 +11,40 @@ interface MasterBookLogoProps {
 }
 
 /**
- * In-app логотип MasterBook — SVG-версия app-icon (opt4).
+ * In-app логотип MasterBook — SVG-версия app-icon.
  *
- * Используется на:
- *   - login.tsx, register.tsx, welcome.tsx — hero на auth screens
- *   - BiometricGate.tsx — поверх блок-экрана
+ * Концепция: записная книга с золотой закладкой.
+ *   • Страница с тремя строками (текст / записи)
+ *   • Золотая лента-закладка справа = «отмечено важное»
+ *   • Семантически работает на MasterBook (книга мастера)
+ *   • Универсально для всех профессий (не только бьюти)
  *
- * Когда `withBackground=true` — рисует полную иконку с gradient-фоном
- * (как app icon). Когда `false` — только белая M с золотой точкой (для
- * вставки внутри primary-фона / glass-карточки).
+ * Используется на login.tsx, register.tsx, welcome.tsx, BiometricGate.tsx.
  */
 export function MasterBookLogo({ size = 64, withBackground = true, style }: MasterBookLogoProps) {
-  const { colors } = useTheme();
-
-  // ViewBox у нас всегда 1024 — SVG scale возьмёт на себя.
   const VB = 1024;
 
   return (
     <View style={[{ width: size, height: size }, style]}>
       <Svg width={size} height={size} viewBox={`0 0 ${VB} ${VB}`}>
-        {withBackground && (
-          <Defs>
-            <LinearGradient id="mbBg" x1="0" y1="0" x2="717" y2="1024" gradientUnits="userSpaceOnUse">
-              <Stop offset="0" stopColor="#A892FF" />
-              <Stop offset="1" stopColor="#5A3FD9" />
-            </LinearGradient>
-            <LinearGradient id="mbGlint" x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0" stopColor="#FFFFFF" stopOpacity="0.10" />
-              <Stop offset="1" stopColor="#FFFFFF" stopOpacity="0" />
-            </LinearGradient>
-            <LinearGradient id="mbM" x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0" stopColor="#FFFFFF" />
-              <Stop offset="1" stopColor="#F0E9FF" />
-            </LinearGradient>
-          </Defs>
-        )}
-        {!withBackground && (
-          <Defs>
-            <LinearGradient id="mbM" x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0" stopColor={colors.white} />
-              <Stop offset="1" stopColor={colors.white} stopOpacity="0.9" />
-            </LinearGradient>
-          </Defs>
-        )}
+        <Defs>
+          <LinearGradient id="mbBg" x1="0" y1="0" x2="717" y2="1024" gradientUnits="userSpaceOnUse">
+            <Stop offset="0" stopColor="#A892FF" />
+            <Stop offset="1" stopColor="#5A3FD9" />
+          </LinearGradient>
+          <LinearGradient id="mbGlint" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor="#FFFFFF" stopOpacity="0.10" />
+            <Stop offset="1" stopColor="#FFFFFF" stopOpacity="0" />
+          </LinearGradient>
+          <LinearGradient id="mbCard" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor="#FFFFFF" />
+            <Stop offset="1" stopColor="#F5F1FB" />
+          </LinearGradient>
+          <LinearGradient id="mbRibbon" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor="#FFB84D" />
+            <Stop offset="1" stopColor="#E89A2D" />
+          </LinearGradient>
+        </Defs>
 
         {withBackground && (
           <>
@@ -63,16 +53,17 @@ export function MasterBookLogo({ size = 64, withBackground = true, style }: Mast
           </>
         )}
 
-        {/* M — thick rounded strokes */}
-        <G fill="url(#mbM)">
-          <Rect x="272" y="280" width="100" height="464" rx="50" />
-          <Rect x="652" y="280" width="100" height="464" rx="50" />
-          <Path d="M 322 280 L 384 280 L 542 568 L 480 568 Z" />
-          <Path d="M 702 280 L 640 280 L 482 568 L 544 568 Z" />
-        </G>
-
-        {/* Gold accent dot — символ «личный мастер» */}
-        <Circle cx="512" cy="660" r="22" fill="#FFB84D" />
+        {/* Card / page */}
+        <Rect x="232" y="200" width="560" height="680" rx="56" fill="url(#mbCard)" />
+        {/* Three lines of "writing" — abstract notes/entries */}
+        <Rect x="300" y="320" width="320" height="22" rx="11" fill="#D8D0EE" />
+        <Rect x="300" y="392" width="420" height="22" rx="11" fill="#D8D0EE" />
+        <Rect x="300" y="464" width="280" height="22" rx="11" fill="#D8D0EE" />
+        {/* Gold bookmark ribbon */}
+        <Path
+          d="M 620 200 L 620 740 L 692 680 L 764 740 L 764 200 Z"
+          fill="url(#mbRibbon)"
+        />
       </Svg>
     </View>
   );
