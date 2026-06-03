@@ -194,5 +194,16 @@
   },
   "onboarding": {
     "professionTitle": "What do you\ndo?"
+  },
+  "clientForm": {
+    "newTitle": "New client",
+    "name": "Name",
+    "namePlaceholder": "Maria Ivanova",
+    "phone": "Phone",
+    "phonePlaceholder": "+1 (555) 123-4567",
+    "addressOptional": "Address (optional)",
+    "addressPlaceholder": "123 Main St, apt 5",
+    "notesOptional": "Notes (optional)",
+    "notesPlaceholder": "Prefers matte top coat..."
   }
 }

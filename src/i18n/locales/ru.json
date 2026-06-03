@@ -194,5 +194,16 @@
   },
   "onboarding": {
     "professionTitle": "Чем вы\nзанимаетесь?"
+  },
+  "clientForm": {
+    "newTitle": "Новый клиент",
+    "name": "Имя",
+    "namePlaceholder": "Мария Иванова",
+    "phone": "Телефон",
+    "phonePlaceholder": "+7 (916) 123-45-67",
+    "addressOptional": "Адрес (необязательно)",
+    "addressPlaceholder": "ул. Ленина, д. 5, кв. 12",
+    "notesOptional": "Заметки (необязательно)",
+    "notesPlaceholder": "Любит матовый топ..."
   }
 }

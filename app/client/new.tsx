@@ -6,6 +6,7 @@ import { ArrowLeft } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
 import { Button, Input, IconButton, CustomAlert } from '@/src/components/ui';
 import { useAlert } from '@/src/hooks/useAlert';
+import { useT } from '@/src/hooks/useT';
 import { useClientStore } from '@/src/stores/useClientStore';
 import { clientSchema } from '@/src/lib/validation';
 
@@ -13,6 +14,7 @@ export default function NewClientScreen() {
   const router = useRouter();
   const { colors, typography: typo, spacing: sp } = useTheme();
   const addClient = useClientStore((s) => s.addClient);
+  const tr = useT();
 
   const { alertConfig } = useAlert();
 
@@ -56,43 +58,43 @@ export default function NewClientScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.topBar}>
         <IconButton icon={<ArrowLeft size={22} color={colors.text} />} onPress={() => router.back()} variant="ghost" />
-        <Text style={[typo.h3, { color: colors.text }]}>Новый клиент</Text>
+        <Text style={[typo.h3, { color: colors.text }]}>{tr('clientForm.newTitle')}</Text>
         <View style={{ width: 48 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
         <Input
-          label="Имя"
-          placeholder="Мария Иванова"
+          label={tr('clientForm.name')}
+          placeholder={tr('clientForm.namePlaceholder')}
           value={name}
-          onChangeText={(t) => { setName(t); setErrors((e) => ({ ...e, name: undefined })); }}
+          onChangeText={(v) => { setName(v); setErrors((e) => ({ ...e, name: undefined })); }}
           error={errors.name}
           autoFocus
         />
         <Input
-          label="Телефон"
-          placeholder="+7 (916) 123-45-67"
+          label={tr('clientForm.phone')}
+          placeholder={tr('clientForm.phonePlaceholder')}
           value={phone}
-          onChangeText={(t) => { setPhone(t); setErrors((e) => ({ ...e, phone: undefined })); }}
+          onChangeText={(v) => { setPhone(v); setErrors((e) => ({ ...e, phone: undefined })); }}
           error={errors.phone}
           keyboardType="phone-pad"
         />
         <Input
-          label="Адрес (необязательно)"
-          placeholder="ул. Ленина, д. 5, кв. 12"
+          label={tr('clientForm.addressOptional')}
+          placeholder={tr('clientForm.addressPlaceholder')}
           value={address}
           onChangeText={setAddress}
         />
         <Input
-          label="Заметки (необязательно)"
-          placeholder="Любит матовый топ..."
+          label={tr('clientForm.notesOptional')}
+          placeholder={tr('clientForm.notesPlaceholder')}
           value={notes}
           onChangeText={setNotes}
           multiline
         />
 
         <Button
-          title="Сохранить"
+          title={tr('common.save')}
           onPress={onSubmit}
           size="lg"
           fullWidth
