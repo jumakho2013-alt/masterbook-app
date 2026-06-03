@@ -48,6 +48,15 @@ function getMonthGrid(date: Date): (Date | null)[] {
 
 const WEEKDAY_LABELS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
+function plural(n: number, one: string, few: string, many: string): string {
+  const m10 = n % 10;
+  const m100 = n % 100;
+  if (m100 >= 11 && m100 <= 14) return many;
+  if (m10 === 1) return one;
+  if (m10 >= 2 && m10 <= 4) return few;
+  return many;
+}
+
 function CalendarScreen() {
   const router = useRouter();
   const { colors, typography: typo, borderRadius: br, spacing: sp } = useTheme();
@@ -64,15 +73,16 @@ function CalendarScreen() {
   const todayKey = toDateKey(new Date());
   const selectedKey = toDateKey(selectedDate);
 
-  // Days with appointments (for dots)
-  const daysWithAppts = useMemo(() => {
-    const set = new Set<string>();
-    allAppointments.forEach((a) => {
+  // Count per day — нужно для визуальной плотности (1 / 2-3 / 4+ → разная
+  // насыщенность точки в week-strip и фона ячейки в month-grid).
+  const apptCountByDay = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const a of allAppointments) {
       if (a.status === 'scheduled' || a.status === 'completed') {
-        set.add(a.date);
+        map[a.date] = (map[a.date] ?? 0) + 1;
       }
-    });
-    return set;
+    }
+    return map;
   }, [allAppointments]);
 
   const appointments = useMemo(
@@ -123,9 +133,18 @@ function CalendarScreen() {
         <View style={styles.headerActions}>
           <Pressable
             onPress={goToToday}
-            style={[styles.todayBtn, { backgroundColor: colors.primarySoft, borderRadius: br.sm }]}
+            accessibilityRole="button"
+            accessibilityLabel="Перейти к сегодня"
+            hitSlop={{ top: 8, bottom: 8 }}
+            style={[
+              styles.todayBtn,
+              {
+                backgroundColor: colors.primary,
+                borderRadius: br.sm,
+              },
+            ]}
           >
-            <Text style={[typo.caption, { color: colors.primary, fontFamily: typo.bodyBold.fontFamily }]}>
+            <Text style={[typo.caption, { color: colors.white, fontFamily: typo.bodyBold.fontFamily }]}>
               Сегодня
             </Text>
           </Pressable>
@@ -149,7 +168,9 @@ function CalendarScreen() {
               const key = toDateKey(day);
               const selected = isSelectedDay(day);
               const today = isToday(day);
-              const hasAppts = daysWithAppts.has(key);
+              const count = apptCountByDay[key] ?? 0;
+              const dotCount = count >= 4 ? 3 : count;
+              const dotColor = selected ? colors.white : colors.primary;
 
               return (
                 <TouchableOpacity
@@ -180,13 +201,14 @@ function CalendarScreen() {
                   >
                     {getDayNumber(day)}
                   </Text>
-                  {hasAppts && (
-                    <View
-                      style={[
-                        styles.apptDot,
-                        { backgroundColor: selected ? colors.white : colors.primary },
-                      ]}
-                    />
+                  {/* Multi-dot density: 0 = пусто, 1/2/3 = точно столько,
+                      4+ = три точки (как «много»). Сразу видно busy days. */}
+                  {dotCount > 0 && (
+                    <View style={styles.dotRow}>
+                      {Array.from({ length: dotCount }).map((_, i) => (
+                        <View key={i} style={[styles.apptDot, { backgroundColor: dotColor }]} />
+                      ))}
+                    </View>
                   )}
                 </TouchableOpacity>
               );
@@ -226,19 +248,36 @@ function CalendarScreen() {
               const key = toDateKey(day);
               const selected = isSelectedDay(day);
               const today = isToday(day);
-              const hasAppts = daysWithAppts.has(key);
+              const count = apptCountByDay[key] ?? 0;
+              // Density background — чем больше записей, тем заметнее
+              // primarySoft в ячейке. Сразу видно busy days vs пустые.
+              const densityOpacity = selected
+                ? 0 // selected уже залит primary
+                : count >= 4
+                  ? 0.35
+                  : count >= 2
+                    ? 0.20
+                    : count >= 1
+                      ? 0.10
+                      : 0;
 
               return (
                 <Pressable
                   key={key}
                   onPress={() => setSelectedDate(day)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${day.getDate()}${count > 0 ? `, ${count} ${plural(count, 'запись', 'записи', 'записей')}` : ''}`}
                   style={styles.monthCell}
                 >
                   <View
                     style={[
                       styles.monthDayInner,
                       {
-                        backgroundColor: selected ? colors.primary : 'transparent',
+                        backgroundColor: selected
+                          ? colors.primary
+                          : densityOpacity > 0
+                            ? `${colors.primary}${Math.round(densityOpacity * 255).toString(16).padStart(2, '0')}`
+                            : 'transparent',
                         borderRadius: br.sm,
                       },
                     ]}
@@ -254,7 +293,7 @@ function CalendarScreen() {
                     >
                       {day.getDate()}
                     </Text>
-                    {hasAppts && (
+                    {count > 0 && (
                       <View
                         style={[
                           styles.monthDot,
@@ -312,7 +351,8 @@ const styles = StyleSheet.create({
   modeBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   weekStrip: { paddingHorizontal: 16, gap: 6 },
   dayCell: { width: 46, height: 68, alignItems: 'center', justifyContent: 'center', gap: 2 },
-  apptDot: { width: 4, height: 4, borderRadius: 2, marginTop: 2 },
+  apptDot: { width: 4, height: 4, borderRadius: 2 },
+  dotRow: { flexDirection: 'row', gap: 3, marginTop: 4 },
   monthView: { paddingHorizontal: 16 },
   monthNav: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   navBtn: { padding: 8 },
