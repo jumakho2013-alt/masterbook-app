@@ -134,14 +134,21 @@ export const useAuthStore = create<AuthState>()(
 
       checkSession: async () => {
         set({ loading: true });
-        const { data } = await supabase.auth.getSession();
-        if (data.session) {
-          set({
-            user: data.session.user,
-            session: data.session,
-            loading: false,
-          });
-        } else {
+        try {
+          const { data } = await supabase.auth.getSession();
+          if (data.session) {
+            set({
+              user: data.session.user,
+              session: data.session,
+              loading: false,
+            });
+          } else {
+            set({ user: null, session: null, loading: false });
+          }
+        } catch {
+          // Сеть упала / Supabase unreachable / env невалидный — НЕ зависаем
+          // на бесконечном спиннере. Просто считаем что сессии нет, юзер
+          // увидит login screen и сможет «Начать без аккаунта».
           set({ user: null, session: null, loading: false });
         }
       },
