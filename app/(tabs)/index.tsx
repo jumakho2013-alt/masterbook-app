@@ -8,6 +8,7 @@ import { useTheme } from '@/src/theme';
 import { EmptyState, GlassCard, CountUp, LiquidGlass, Button, useToast } from '@/src/components/ui';
 import { AppointmentCard } from '@/src/components/AppointmentCard';
 import { SleepingClientsCard } from '@/src/components/SleepingClientsCard';
+import { FirstWeekChecklist } from '@/src/components/FirstWeekChecklist';
 import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useClientStore } from '@/src/stores/useClientStore';
 import { useServiceStore } from '@/src/stores/useServiceStore';
@@ -227,6 +228,10 @@ function TodayScreen() {
                 );
               })}
             </View>
+
+            {/* Чеклист первой недели — gamified onboarding. Скрывается
+                автоматически когда все 5 пунктов выполнены. */}
+            <FirstWeekChecklist />
 
             {/* Спящие клиенты — nudge-блок. Возвращает null если все
                 клиенты активны, поэтому не съедает место без причины. */}

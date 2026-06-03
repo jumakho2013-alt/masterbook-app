@@ -69,6 +69,29 @@ export const serviceTemplates: Record<string, ServiceTemplate[]> = {
     { name: 'Сборка кухни', price: 100, duration: 480, color: color(1) },
     { name: 'Сборка кровати', price: 30, duration: 120, color: color(2) },
   ],
+  ac_repair: [
+    { name: 'Установка кондиционера', price: 80, duration: 240, color: color(0) },
+    { name: 'Заправка фреоном', price: 50, duration: 90, color: color(1) },
+    { name: 'Чистка кондиционера', price: 30, duration: 60, color: color(2) },
+    { name: 'Демонтаж', price: 30, duration: 90, color: color(3) },
+  ],
+  locksmith: [
+    { name: 'Вскрытие двери', price: 40, duration: 45, color: color(0) },
+    { name: 'Замена замка', price: 35, duration: 90, color: color(1) },
+    { name: 'Установка дверной ручки', price: 15, duration: 30, color: color(2) },
+    { name: 'Изготовление дубликата ключа', price: 5, duration: 15, color: color(3) },
+  ],
+  painter: [
+    { name: 'Покраска стен (м²)', price: 5, duration: 30, color: color(0) },
+    { name: 'Покраска потолка (м²)', price: 4, duration: 30, color: color(1) },
+    { name: 'Шпаклёвка (м²)', price: 6, duration: 45, color: color(2) },
+    { name: 'Покраска окон', price: 25, duration: 90, color: color(3) },
+  ],
+  tiler: [
+    { name: 'Укладка плитки (м²)', price: 20, duration: 120, color: color(0) },
+    { name: 'Затирка швов (м²)', price: 5, duration: 30, color: color(1) },
+    { name: 'Демонтаж старой плитки (м²)', price: 8, duration: 60, color: color(2) },
+  ],
 
   // Education
   tutor: [

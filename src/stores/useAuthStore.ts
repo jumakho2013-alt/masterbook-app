@@ -60,6 +60,11 @@ interface AuthState {
   /** Активирует local-only режим: устанавливает флаг + consent timestamp
    *  (юзер согласился перед нажатием) и обходит signup. */
   enableLocalOnly: () => void;
+  /** Перезапуск онбординга (выбор профессии заново). НЕ трогает session,
+   *  localOnlyMode, consent — юзер остаётся залогиненным, просто проходит
+   *  выбор профессии и услуг ещё раз. Используется кнопкой «Сменить
+   *  профессию» в Profile. */
+  restartOnboarding: () => void;
   reset: () => void;
 }
 
@@ -168,6 +173,14 @@ export const useAuthStore = create<AuthState>()(
         set({
           localOnlyMode: true,
           dataConsentGivenAt: new Date().toISOString(),
+        }),
+      restartOnboarding: () =>
+        set({
+          onboarded: false,
+          professionCategory: null,
+          specializationId: null,
+          // НЕ трогаем: session, localOnlyMode, dataConsentGivenAt, user.
+          // Юзер просто заново выбирает профессию.
         }),
       reset: () =>
         set({

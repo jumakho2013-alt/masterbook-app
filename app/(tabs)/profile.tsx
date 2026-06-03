@@ -28,6 +28,7 @@ import { SUPPORTED_CURRENCIES } from '@/src/utils/currency';
 import { useClientStore } from '@/src/stores/useClientStore';
 import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useFinanceStore } from '@/src/stores/useFinanceStore';
+import { useServiceStore } from '@/src/stores/useServiceStore';
 import { useTabBarOffset } from '@/src/hooks/useTabBarOffset';
 import { getSpecialization } from '@/src/data/professions';
 import { formatCurrency } from '@/src/utils/currency';
@@ -65,8 +66,9 @@ function ProfileScreen() {
   const setTheme = useSettingsStore((s) => s.setTheme);
   const currency = useSettingsStore((s) => s.currency);
   const currencyMeta = SUPPORTED_CURRENCIES.find((c) => c.code === currency);
-  const reset = useAuthStore((s) => s.reset);
+  const restartOnboarding = useAuthStore((s) => s.restartOnboarding);
   const signOut = useAuthStore((s) => s.signOut);
+  const resetServices = useServiceStore((s) => s.reset);
 
   const { alertConfig, info, confirm } = useAlert();
 
@@ -102,7 +104,20 @@ function ProfileScreen() {
   };
 
   const handleReset = () => {
-    confirm('Начать заново?', 'Все данные будут сброшены. Вы пройдёте онбординг заново.', () => reset(), 'Сбросить', true);
+    confirm(
+      'Сменить профессию?',
+      'Список твоих услуг будет очищен — для новой профессии подгрузятся свои шаблоны. Клиенты, записи и финансы останутся на месте.',
+      () => {
+        // Сбрасываем услуги (они были под старую профессию) и состояние
+        // онбординга. session/localOnlyMode НЕ трогаем — юзер остаётся
+        // залогиненным. Затем явно навигируем в profession picker.
+        resetServices();
+        restartOnboarding();
+        router.replace('/(auth)/profession');
+      },
+      'Сменить',
+      true,
+    );
   };
 
   return (
