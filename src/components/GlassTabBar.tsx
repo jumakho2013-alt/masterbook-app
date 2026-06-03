@@ -2,7 +2,6 @@ import React from 'react';
 import { View, Pressable, Text, StyleSheet, Platform } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, withSequence } from 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/src/theme';
 import {
@@ -94,12 +93,9 @@ export function GlassTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const bottomPad = Math.max(insets.bottom, Platform.OS === 'ios' ? 8 : 6);
 
-  const canBlur = Platform.OS === 'ios';
-  // Tint veil — deepens the blurred background so text never sits on a
-  // muddy backdrop. Tuned per colour scheme.
-  const veil = isDark ? 'rgba(19,19,26,0.55)' : 'rgba(255,255,255,0.65)';
-  // Top-edge specular — a thin, bright glint catching the rim of the bar.
-  const specTop = isDark ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.6)';
+  // DARK: ровный solid surface (без blur/specular — давало мутность).
+  // LIGHT: лёгкое стекло поверх контента.
+  const useBlur = Platform.OS === 'ios' && !isDark;
 
   return (
     <View
@@ -107,33 +103,19 @@ export function GlassTabBar({ state, navigation }: BottomTabBarProps) {
         styles.container,
         {
           paddingBottom: bottomPad,
-          borderTopColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.6)',
-          backgroundColor: canBlur ? 'transparent' : colors.surface,
+          borderTopColor: colors.border,
+          backgroundColor: useBlur ? 'transparent' : colors.surface,
         },
       ]}
     >
-      {canBlur && (
-        <BlurView
-          tint={isDark ? 'dark' : 'light'}
-          intensity={80}
-          style={StyleSheet.absoluteFill}
-        />
-      )}
-      {/* Veil — pulls the blurred content toward the theme surface */}
-      <View
-        pointerEvents="none"
-        style={[StyleSheet.absoluteFill, { backgroundColor: veil }]}
-      />
-      {/* Specular — a thin glint on the top rim that reads as "liquid" */}
-      {canBlur && (
-        <LinearGradient
-          pointerEvents="none"
-          colors={[specTop, 'rgba(255,255,255,0)']}
-          locations={[0, 1]}
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 0.4 }}
-          style={StyleSheet.absoluteFill}
-        />
+      {useBlur && (
+        <>
+          <BlurView tint="light" intensity={80} style={StyleSheet.absoluteFill} />
+          <View
+            pointerEvents="none"
+            style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(255,255,255,0.65)' }]}
+          />
+        </>
       )}
       <View style={styles.row}>
         {state.routes.map((route, index) => {

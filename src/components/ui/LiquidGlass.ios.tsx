@@ -1,21 +1,23 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '@/src/theme';
 import { applyAlpha, type LiquidGlassProps } from './LiquidGlass.shared';
 
 /**
- * iOS implementation — четырёхслойный liquid-glass:
- *   1. BlurView backdrop (настоящее размытие контента за поверхностью)
- *   2. Tint veil (прозрачный бренд или нейтральный)
- *   3. Тонкий edge-glint на верхней кромке (имитирует преломление света
- *      только по самому краю — НЕ растягивается до центра, иначе на
- *      однотонных тёмных фонах превращается в банальный top-to-bottom
- *      градиент и выдаёт флэт-дизайн)
- *   4. Inner rim — hairline граница изнутри
+ * iOS implementation.
  *
- * Android использует отдельный файл без BlurView.
+ * ВАЖНО (фидбек юзера «замазка сверху-снизу»): blur + specular-glint на
+ * однотонном тёмном фоне создавали грязный вертикальный градиент на больших
+ * карточках. Поэтому:
+ *
+ *   • DARK theme → РОВНАЯ solid заливка surface, без blur, без specular.
+ *     Чистая карточка как в Telegram/iOS Settings dark. Никаких пятен.
+ *   • LIGHT theme → стекло (blur + лёгкий veil) — там оно реально красиво
+ *     и не создаёт грязи на светлом фоне.
+ *
+ * tint (брендовая заливка — «Сейчас идёт», FAB) работает в обеих темах
+ * как ровный полупрозрачный цвет.
  */
 export function LiquidGlass({
   children,
@@ -24,44 +26,45 @@ export function LiquidGlass({
   tintStrength = 0.22,
   intensity = 85,
   variant = 'raised',
-  noSpecular = false,
+  noSpecular: _noSpecular = false,
   noRim = false,
   style,
   padding,
 }: LiquidGlassProps) {
-  const { isDark, borderRadius: br, shadows: sh } = useTheme();
+  const { colors, isDark, borderRadius: br, shadows: sh } = useTheme();
 
   const resolvedRadius = radius ?? br.lg;
   const shadowStyle =
     variant === 'ambient' ? undefined : variant === 'floating' ? sh.lg : sh.sm;
 
-  const veil =
-    tint !== undefined
-      ? applyAlpha(tint, tintStrength)
-      : isDark
-        ? // Премиум-dark: тонированный indigo veil соответствует новой
-          // палитре surface #1F2235. Высокий opacity 0.55 — карточки
-          // ДОЛЖНЫ чётко читаться как elevated над background, а не
-          // «прозрачное стекло на тёмном». Это решает фидбек юзера
-          // «карточки сливаются с фоном».
-          'rgba(31,34,53,0.65)'
-        : 'rgba(255,255,255,0.38)';
-
-  // Edge glint — только самая верхняя кромка (до 12% высоты).
-  // Для tinted поверхностей (primary / brand) специально слабее — иначе
-  // на однотонной заливке читается как простой градиент, а не как блик.
   const hasTint = tint !== undefined;
-  const glintStart = isDark
-    ? hasTint
-      ? 'rgba(255,255,255,0.14)'
-      : 'rgba(255,255,255,0.22)'
-    : hasTint
-      ? 'rgba(255,255,255,0.28)'
-      : 'rgba(255,255,255,0.5)';
-  const glintEnd = 'rgba(255,255,255,0)';
 
-  // Rim — тонкая граница карточки, на dark поднимаем для чёткости границ.
-  const rimColor = isDark ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.85)';
+  // ----- DARK: ровный solid surface (или tint), без blur/specular -----
+  if (isDark) {
+    const bg = hasTint ? applyAlpha(tint, Math.min(1, tintStrength + 0.06)) : colors.surface;
+    return (
+      <View
+        style={[
+          shadowStyle,
+          {
+            borderRadius: resolvedRadius,
+            backgroundColor: bg,
+            borderWidth: noRim ? 0 : StyleSheet.hairlineWidth,
+            borderColor: colors.border,
+            overflow: 'hidden',
+          },
+          padding !== undefined ? { padding } : null,
+          style,
+        ]}
+      >
+        {children}
+      </View>
+    );
+  }
+
+  // ----- LIGHT: настоящее стекло (blur + лёгкий veil), без грязного glint -----
+  const veil = hasTint ? applyAlpha(tint, tintStrength) : 'rgba(255,255,255,0.55)';
+  const rimColor = 'rgba(255,255,255,0.85)';
 
   return (
     <View
@@ -76,28 +79,8 @@ export function LiquidGlass({
         style,
       ]}
     >
-      <BlurView
-        tint={isDark ? 'dark' : 'light'}
-        intensity={intensity}
-        style={StyleSheet.absoluteFill}
-      />
-
-      <View
-        pointerEvents="none"
-        style={[StyleSheet.absoluteFill, { backgroundColor: veil }]}
-      />
-
-      {!noSpecular && (
-        <LinearGradient
-          pointerEvents="none"
-          colors={[glintStart, glintEnd]}
-          locations={[0, 0.12]}
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 1 }}
-          style={StyleSheet.absoluteFill}
-        />
-      )}
-
+      <BlurView tint="light" intensity={intensity} style={StyleSheet.absoluteFill} />
+      <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: veil }]} />
       {!noRim && (
         <View
           pointerEvents="none"
@@ -111,7 +94,6 @@ export function LiquidGlass({
           ]}
         />
       )}
-
       {children}
     </View>
   );
