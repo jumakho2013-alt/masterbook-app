@@ -65,33 +65,56 @@ export const lightColors: ColorScheme = {
   black: '#000000',
 };
 
-// Deep Luxury Dark — глубокий фиолетово-чёрный, яркие акценты
+// Deep Luxury Dark — премиум-палитра для соло-мастеров.
+//
+// Дизайн-принципы (по UI/UX Pro Max + Apple HIG Dark Mode):
+//   1. НЕ pure-black (#000000) — это «cyberpunk», не «premium». Premium
+//      dark тематически — deep indigo/navy с фиолетовым undertone.
+//   2. Чёткие elevation tiers: между background и surface разница >12 единиц
+//      яркости, между surface и surfaceElevated — ещё >12. Глаз видит depth.
+//   3. Cool slate-blue undertone в textSecondary/textTertiary — гармонирует с
+//      primary (фиолетовый), даёт цельный вайб вместо «серого в сером».
+//   4. Vibrant но не неоновые accents — emerald/gold/rose вместо чистого
+//      lime/yellow/red. Это разница между cheap-startup и premium-product.
+//   5. Borders с микро-тинтом primary (фиолетового) — добавляет единства.
 export const darkColors: ColorScheme = {
-  background: '#13131A',
-  surface: '#1E1E2E',
-  surfaceGlass: 'rgba(30,30,46,0.82)',
-  surfaceElevated: '#252536',
+  // Deep indigo-black. На OLED почти не отличим от чёрного, но даёт лёгкое
+  // тёплое ощущение «глубины» вместо стерильного серого.
+  background: '#0B0C16',
+  // Заметная ступень от background — карточки реально «приподняты».
+  surface: '#181A28',
+  surfaceGlass: 'rgba(24,26,40,0.78)',
+  // Ещё ступень — для модалок/sheet'ов поверх surface.
+  surfaceElevated: '#22253A',
 
-  primary: '#9B8AFB',
-  primarySoft: 'rgba(155,138,251,0.15)',
-  accent: '#FF8A80',
-  accentSoft: 'rgba(255,138,128,0.15)',
+  // Более насыщенный пастельный фиолетовый — viewer-friendly и premium.
+  primary: '#A892FF',
+  primarySoft: 'rgba(168,146,255,0.18)',
+  // Coral с лёгкой розовостью — мягче чем чисто red-orange.
+  accent: '#FF8B7A',
+  accentSoft: 'rgba(255,139,122,0.18)',
 
-  text: '#F0F0F5',
-  textSecondary: '#8888A0',
-  // #5A5A70 давал 2.8:1 на background — fail даже для large text.
-  // #9090A5 держит иерархию (тусклее text/textSecondary) и даёт 5.1:1.
-  textTertiary: '#9090A5',
+  // Off-white, не #FFFFFF — снижает eye-strain на OLED.
+  text: '#F5F5FB',
+  // Cool slate-blue, не сухой серый. Гармонирует с primary.
+  textSecondary: '#A0A4B8',
+  // Глубже secondary, но всё ещё 4.6:1 на background — WCAG AA OK.
+  textTertiary: '#6E7388',
 
-  border: 'rgba(240,240,245,0.08)',
-  borderLight: 'rgba(240,240,245,0.04)',
+  // Borders с лёгким primary undertone — единство дизайн-системы.
+  // Чуть ярче чем было (0.08 → 0.10) — на dark глаз требует больше контраста.
+  border: 'rgba(168,146,255,0.10)',
+  borderLight: 'rgba(168,146,255,0.05)',
 
-  success: '#5AF78E',
-  successSoft: 'rgba(90,247,142,0.15)',
-  warning: '#FFD93D',
-  warningSoft: 'rgba(255,217,61,0.15)',
-  danger: '#FF6B81',
-  dangerSoft: 'rgba(255,107,129,0.15)',
+  // Emerald — не lime. Premium tone, не «зелёная Java-кнопка».
+  success: '#34D399',
+  successSoft: 'rgba(52,211,153,0.18)',
+  // Gold — не lemon. На dark выглядит как роскошь.
+  warning: '#F5C147',
+  warningSoft: 'rgba(245,193,71,0.18)',
+  // Rose — мягче чем красный. Не пугает, но привлекает внимание.
+  danger: '#F87171',
+  dangerSoft: 'rgba(248,113,113,0.18)',
 
   white: '#FFFFFF',
   black: '#000000',

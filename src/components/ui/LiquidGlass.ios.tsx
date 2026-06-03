@@ -39,7 +39,11 @@ export function LiquidGlass({
     tint !== undefined
       ? applyAlpha(tint, tintStrength)
       : isDark
-        ? 'rgba(30,30,46,0.32)'
+        ? // Премиум-dark: тонированный indigo veil, соответствует новой
+          // палитре (surface #181A28). Чуть выше opacity (0.40 vs 0.32) —
+          // на BlurView хочется чтобы поверхность читалась как «гладкое
+          // стекло на тёмном», не как «прозрачная плёнка».
+          'rgba(24,26,40,0.40)'
         : 'rgba(255,255,255,0.38)';
 
   // Edge glint — только самая верхняя кромка (до 12% высоты).

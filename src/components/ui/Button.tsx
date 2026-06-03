@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { useTheme } from '@/src/theme';
+import { useReduceMotion } from '@/src/hooks/useReduceMotion';
 import * as Haptics from 'expo-haptics';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -36,6 +37,7 @@ export function Button({
   accessibilityLabel,
 }: ButtonProps) {
   const { colors, typography: typo, borderRadius: br, shadows: sh } = useTheme();
+  const reduceMotion = useReduceMotion();
   const scale = useSharedValue(1);
 
   const animStyle = useAnimatedStyle(() => ({
@@ -43,10 +45,12 @@ export function Button({
   }));
 
   const handlePressIn = () => {
+    if (reduceMotion) return;
     scale.value = withSpring(0.96, { damping: 15, stiffness: 400 });
   };
 
   const handlePressOut = () => {
+    if (reduceMotion) return;
     scale.value = withSpring(1, { damping: 15, stiffness: 400 });
   };
 

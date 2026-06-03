@@ -3,7 +3,7 @@ import { useColorScheme } from 'react-native';
 import { lightColors, darkColors, type ColorScheme } from './colors';
 import { typography } from './typography';
 import { spacing, borderRadius } from './spacing';
-import { shadows } from './shadows';
+import { makeShadows, type Shadows } from './shadows';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
 
 export interface Theme {
@@ -11,7 +11,7 @@ export interface Theme {
   typography: typeof typography;
   spacing: typeof spacing;
   borderRadius: typeof borderRadius;
-  shadows: typeof shadows;
+  shadows: Shadows;
   isDark: boolean;
 }
 
@@ -32,7 +32,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       typography,
       spacing,
       borderRadius,
-      shadows,
+      // Theme-aware shadows: чёрный с высоким opacity на dark, мягкий
+      // тёмный с низким opacity на light. Иначе тени невидимы на dark.
+      shadows: makeShadows(isDark),
       isDark,
     }),
     [isDark],
