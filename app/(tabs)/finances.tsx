@@ -7,6 +7,7 @@ import { TrendingUp, TrendingDown, Wallet, ArrowUp, ArrowDown, Trophy, Clock, Sc
 import { useTheme } from '@/src/theme';
 import { GlassCard, Divider, Avatar, CountUp, LiquidGlass } from '@/src/components/ui';
 import { FinanceChart } from '@/src/components/FinanceChart';
+import { FinanceMetricCard } from '@/src/components/FinanceMetricCard';
 import { useFinanceStore } from '@/src/stores/useFinanceStore';
 import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useClientStore } from '@/src/stores/useClientStore';
@@ -185,112 +186,68 @@ function FinancesScreen() {
           ))}
         </View>
 
-        {/* Summary cards — каждая tappable, открывает детальный отчёт */}
-        <View style={styles.summaryRow}>
+        {/* === HERO: Чистая прибыль — large card во всю ширину === */}
+        <View style={{ paddingHorizontal: 16, marginBottom: 12 }}>
+          <FinanceMetricCard
+            variant="large"
+            label="Чистая прибыль"
+            icon={<Wallet size={20} color={colors.primary} />}
+            value={summary.net}
+            accentColor={colors.primary}
+            sub={
+              summary.incomeDiff !== 0
+                ? `${summary.incomeDiff > 0 ? '↗' : '↘'} ${Math.abs(summary.incomeDiff)}% к прошлому периоду`
+                : 'Доход − Расход'
+            }
+            onPress={() => router.push({ pathname: '/finance/report', params: { kind: 'net', period } })}
+          />
+        </View>
+
+        {/* === 2 compact: Доход + Расход === */}
+        <View style={{ flexDirection: 'row', paddingHorizontal: 16, gap: 10, marginBottom: 10 }}>
           <View style={{ flex: 1 }}>
-            <Pressable
+            <FinanceMetricCard
+              label="Доход"
+              icon={<TrendingUp size={18} color={colors.success} />}
+              value={summary.income}
+              accentColor={colors.success}
               onPress={() => router.push({ pathname: '/finance/report', params: { kind: 'income', period } })}
-              accessibilityRole="button"
-              accessibilityLabel="Отчёт по доходам"
-            >
-              <GlassCard style={styles.summaryCard}>
-                <TrendingUp size={18} color={colors.success} />
-                <Text style={[typo.small, { color: colors.textSecondary, marginTop: 4 }]}>Доход</Text>
-                <CountUp
-                  value={summary.income}
-                  style={{ ...typo.h3, color: colors.success }}
-                  formatter={(n) => formatCurrency(Math.round(n))}
-                />
-                {summary.incomeDiff !== 0 && (
-                  <View style={styles.diffRow}>
-                    {summary.incomeDiff > 0 ? (
-                      <ArrowUp size={11} color={colors.success} />
-                    ) : (
-                      <ArrowDown size={11} color={colors.danger} />
-                    )}
-                    <Text
-                      style={[
-                        typo.small,
-                        { color: summary.incomeDiff > 0 ? colors.success : colors.danger, marginLeft: 2 },
-                      ]}
-                    >
-                      {Math.abs(summary.incomeDiff)}%
-                    </Text>
-                  </View>
-                )}
-              </GlassCard>
-            </Pressable>
+            />
           </View>
           <View style={{ flex: 1 }}>
-            <Pressable
+            <FinanceMetricCard
+              label="Расход"
+              icon={<TrendingDown size={18} color={colors.danger} />}
+              value={summary.expense}
+              accentColor={colors.danger}
               onPress={() => router.push({ pathname: '/finance/report', params: { kind: 'expense', period } })}
-              accessibilityRole="button"
-              accessibilityLabel="Отчёт по расходам"
-            >
-              <GlassCard style={styles.summaryCard}>
-                <TrendingDown size={18} color={colors.danger} />
-                <Text style={[typo.small, { color: colors.textSecondary, marginTop: 4 }]}>Расход</Text>
-                <CountUp
-                  value={summary.expense}
-                  style={{ ...typo.h3, color: colors.danger }}
-                  formatter={(n) => formatCurrency(Math.round(n))}
-                />
-              </GlassCard>
-            </Pressable>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Pressable
-              onPress={() => router.push({ pathname: '/finance/report', params: { kind: 'net', period } })}
-              accessibilityRole="button"
-              accessibilityLabel="Отчёт по чистой прибыли"
-            >
-              <GlassCard style={styles.summaryCard}>
-                <Wallet size={18} color={colors.primary} />
-                <Text style={[typo.small, { color: colors.textSecondary, marginTop: 4 }]}>Чистыми</Text>
-                <CountUp
-                  value={summary.net}
-                  style={{ ...typo.h3, color: colors.text }}
-                  formatter={(n) => formatCurrency(Math.round(n))}
-                />
-              </GlassCard>
-            </Pressable>
+            />
           </View>
         </View>
 
-        {/* Analytics row — каждая карточка тоже tappable */}
-        <Animated.View entering={FadeInDown.duration(400)} style={styles.analyticsRow}>
-          <Pressable
-            style={{ flex: 1 }}
-            onPress={() => router.push({ pathname: '/finance/report', params: { kind: 'avgCheck', period } })}
-            accessibilityRole="button"
-            accessibilityLabel="Отчёт по среднему чеку"
-          >
-            <GlassCard style={styles.analyticsCard}>
-              <Wallet size={16} color={colors.primary} />
-              <CountUp
-                value={analytics.avgCheck}
-                style={{ ...typo.h3, color: colors.text, marginTop: 4 }}
-                formatter={(n) => formatCurrency(Math.round(n))}
-              />
-              <Text style={[typo.small, { color: colors.textSecondary }]}>Средний чек</Text>
-            </GlassCard>
-          </Pressable>
-          <Pressable
-            style={{ flex: 1 }}
-            onPress={() => router.push({ pathname: '/finance/report', params: { kind: 'hours', period } })}
-            accessibilityRole="button"
-            accessibilityLabel="Отчёт по отработанным часам"
-          >
-            <GlassCard style={styles.analyticsCard}>
-              <Clock size={16} color={colors.accent} />
-              <CountUp
-                value={analytics.hours}
-                style={{ ...typo.h3, color: colors.text, marginTop: 4 }}
-                suffix=" ч"
-              />
-              <Text style={[typo.small, { color: colors.textSecondary }]}>Отработано</Text>
-            </GlassCard>
-          </Pressable>
+        {/* === 2 compact: Средний чек + Отработано === */}
+        <Animated.View
+          entering={FadeInDown.duration(400)}
+          style={{ flexDirection: 'row', paddingHorizontal: 16, gap: 10, marginBottom: 12 }}
+        >
+          <View style={{ flex: 1 }}>
+            <FinanceMetricCard
+              label="Средний чек"
+              icon={<Wallet size={18} color={colors.primary} />}
+              value={analytics.avgCheck}
+              accentColor={colors.primary}
+              onPress={() => router.push({ pathname: '/finance/report', params: { kind: 'avgCheck', period } })}
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <FinanceMetricCard
+              label="Отработано"
+              icon={<Clock size={18} color={colors.accent} />}
+              value={`${analytics.hours} ч`}
+              accentColor={colors.accent}
+              onPress={() => router.push({ pathname: '/finance/report', params: { kind: 'hours', period } })}
+            />
+          </View>
         </Animated.View>
 
         {/* Top 3 clients */}
