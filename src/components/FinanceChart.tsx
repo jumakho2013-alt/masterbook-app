@@ -1,6 +1,15 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useMemo } from 'react';
+import { View, Text, StyleSheet, useWindowDimensions } from 'react-native';
+import Svg, {
+  Defs,
+  LinearGradient,
+  Stop,
+  Path,
+  Circle,
+  Line as SvgLine,
+} from 'react-native-svg';
 import { useTheme } from '@/src/theme';
+import { formatCurrencyShort } from '@/src/utils/currency';
 import type { FinanceEntry } from '@/src/types';
 
 interface FinanceChartProps {
@@ -8,64 +17,196 @@ interface FinanceChartProps {
   days: number;
 }
 
+/**
+ * Premium area-line chart дохода по дням.
+ *
+ * Дизайн по UI/UX Pro Max (chart domain, «Trend Over Time»):
+ *   • Smooth area chart с gradient fill (тут — success/emerald)
+ *   • Fill opacity gradient: 35% вверху → 0% внизу
+ *   • Точки-маркеры на каждом дне с большой точкой на «сегодня»
+ *   • Baseline тонкая линия + подпись max-значения
+ *   • Расход — отдельная тонкая danger-линия поверх (без fill, чтобы не
+ *     спорить с income-областью)
+ *
+ * Catmull-Rom → Bezier для плавности кривой (не ломаные линии).
+ */
 export function FinanceChart({ entries, days }: FinanceChartProps) {
-  const { colors, typography: typo, borderRadius: br } = useTheme();
+  const { colors, typography: typo } = useTheme();
+  const { width: screenW } = useWindowDimensions();
 
-  // Build daily totals
-  const dailyData: { date: string; dayNum: string; income: number; expense: number }[] = [];
-  const now = new Date();
+  // Ширина = ширина экрана минус горизонтальные паддинги (16+16) и
+  // padding GlassCard (20+20). Высота фиксирована.
+  const CHART_W = screenW - 32 - 40;
+  const CHART_H = 130;
+  const PAD_TOP = 16;
+  const PAD_BOTTOM = 24;
+  const innerH = CHART_H - PAD_TOP - PAD_BOTTOM;
 
-  for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(now);
-    d.setDate(d.getDate() - i);
-    const key = d.toISOString().slice(0, 10);
-    const dayNum = d.getDate().toString();
+  const data = useMemo(() => {
+    const out: { dayNum: string; income: number; expense: number; isToday: boolean }[] = [];
+    const now = new Date();
+    const todayKey = now.toISOString().slice(0, 10);
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      const dayEntries = entries.filter((e) => e.date === key);
+      out.push({
+        dayNum: d.getDate().toString(),
+        income: dayEntries.filter((e) => e.type === 'income').reduce((s, e) => s + e.amount, 0),
+        expense: dayEntries.filter((e) => e.type === 'expense').reduce((s, e) => s + e.amount, 0),
+        isToday: key === todayKey,
+      });
+    }
+    // Месяц (30д) — группируем по 5 чтобы не было каши
+    if (days > 14) {
+      const grouped: typeof out = [];
+      for (let i = 0; i < out.length; i += 5) {
+        const chunk = out.slice(i, i + 5);
+        grouped.push({
+          dayNum: `${chunk[0].dayNum}`,
+          income: chunk.reduce((s, c) => s + c.income, 0),
+          expense: chunk.reduce((s, c) => s + c.expense, 0),
+          isToday: chunk.some((c) => c.isToday),
+        });
+      }
+      return grouped;
+    }
+    return out;
+  }, [entries, days]);
 
-    const dayEntries = entries.filter((e) => e.date === key);
-    const income = dayEntries.filter((e) => e.type === 'income').reduce((s, e) => s + e.amount, 0);
-    const expense = dayEntries.filter((e) => e.type === 'expense').reduce((s, e) => s + e.amount, 0);
+  const maxValue = Math.max(...data.map((d) => Math.max(d.income, d.expense)), 1);
 
-    dailyData.push({ date: key, dayNum, income, expense });
-  }
+  const n = data.length;
+  const stepX = n > 1 ? CHART_W / (n - 1) : CHART_W;
 
-  // For month view (30 days), group by ~3 day chunks to avoid cramping
-  const isMonth = days > 14;
-  const displayData = isMonth ? groupByChunks(dailyData, 5) : dailyData;
+  // helper: координата точки
+  const px = (i: number) => i * stepX;
+  const py = (v: number) => PAD_TOP + innerH - (v / maxValue) * innerH;
 
-  const maxValue = Math.max(
-    ...displayData.map((d) => Math.max(d.income, d.expense)),
-    1,
-  );
+  // Catmull-Rom → Bezier smooth path
+  const buildSmoothPath = (vals: number[]): string => {
+    if (vals.length === 0) return '';
+    if (vals.length === 1) return `M ${px(0)} ${py(vals[0])}`;
+    const pts = vals.map((v, i) => ({ x: px(i), y: py(v) }));
+    let d = `M ${pts[0].x} ${pts[0].y}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[i - 1] ?? pts[i];
+      const p1 = pts[i];
+      const p2 = pts[i + 1];
+      const p3 = pts[i + 2] ?? p2;
+      const c1x = p1.x + (p2.x - p0.x) / 6;
+      const c1y = p1.y + (p2.y - p0.y) / 6;
+      const c2x = p2.x - (p3.x - p1.x) / 6;
+      const c2y = p2.y - (p3.y - p1.y) / 6;
+      d += ` C ${c1x} ${c1y}, ${c2x} ${c2y}, ${p2.x} ${p2.y}`;
+    }
+    return d;
+  };
 
-  const BAR_HEIGHT = 100;
+  const incomeLine = buildSmoothPath(data.map((d) => d.income));
+  const incomeArea =
+    incomeLine +
+    ` L ${px(n - 1)} ${PAD_TOP + innerH} L ${px(0)} ${PAD_TOP + innerH} Z`;
+  const hasExpense = data.some((d) => d.expense > 0);
+  const expenseLine = hasExpense ? buildSmoothPath(data.map((d) => d.expense)) : '';
+
+  const empty = data.every((d) => d.income === 0 && d.expense === 0);
 
   return (
     <View style={styles.container}>
-      <View style={styles.barsRow}>
-        {displayData.map((day, i) => {
-          const incomeH = (day.income / maxValue) * BAR_HEIGHT;
-          const expenseH = (day.expense / maxValue) * BAR_HEIGHT;
+      {/* Max-value подпись сверху справа */}
+      {!empty && (
+        <Text style={[typo.small, { color: colors.textTertiary, alignSelf: 'flex-end', marginBottom: 4 }]}>
+          макс {formatCurrencyShort(maxValue)}
+        </Text>
+      )}
 
-          return (
-            <View key={i} style={styles.barGroup}>
-              <View style={styles.barsWrap}>
-                {day.income > 0 && (
-                  <View style={[styles.bar, { height: Math.max(incomeH, 4), backgroundColor: colors.success, borderRadius: 4 }]} />
-                )}
-                {day.expense > 0 && (
-                  <View style={[styles.bar, { height: Math.max(expenseH, 4), backgroundColor: colors.danger, opacity: 0.5, borderRadius: 4 }]} />
-                )}
-                {day.income === 0 && day.expense === 0 && (
-                  <View style={[styles.bar, { height: 4, backgroundColor: colors.border, borderRadius: 2 }]} />
-                )}
-              </View>
-              <Text style={[typo.small, { color: colors.textTertiary, marginTop: 8, fontSize: 9 }]}>
-                {day.dayNum}
-              </Text>
-            </View>
-          );
-        })}
+      <Svg width={CHART_W} height={CHART_H}>
+        <Defs>
+          <LinearGradient id="incomeFill" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor={colors.success} stopOpacity="0.35" />
+            <Stop offset="1" stopColor={colors.success} stopOpacity="0.02" />
+          </LinearGradient>
+        </Defs>
+
+        {/* Baseline */}
+        <SvgLine
+          x1="0"
+          y1={PAD_TOP + innerH}
+          x2={CHART_W}
+          y2={PAD_TOP + innerH}
+          stroke={colors.border}
+          strokeWidth="1"
+        />
+
+        {!empty && (
+          <>
+            {/* Income area fill */}
+            <Path d={incomeArea} fill="url(#incomeFill)" />
+            {/* Income line */}
+            <Path
+              d={incomeLine}
+              fill="none"
+              stroke={colors.success}
+              strokeWidth="2.5"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+            />
+            {/* Expense line (тонкая, danger, dashed) */}
+            {hasExpense && (
+              <Path
+                d={expenseLine}
+                fill="none"
+                stroke={colors.danger}
+                strokeWidth="1.5"
+                strokeDasharray="4 4"
+                strokeLinejoin="round"
+                opacity={0.8}
+              />
+            )}
+            {/* Markers — точка на каждом дне, большая на сегодня */}
+            {data.map((d, i) =>
+              d.income > 0 ? (
+                <Circle
+                  key={i}
+                  cx={px(i)}
+                  cy={py(d.income)}
+                  r={d.isToday ? 5 : 3}
+                  fill={colors.success}
+                  stroke={colors.surface}
+                  strokeWidth={d.isToday ? 2 : 0}
+                />
+              ) : null,
+            )}
+          </>
+        )}
+      </Svg>
+
+      {/* X-axis day labels */}
+      <View style={[styles.xAxis, { width: CHART_W }]}>
+        {data.map((d, i) => (
+          <Text
+            key={i}
+            style={[
+              typo.small,
+              {
+                color: d.isToday ? colors.success : colors.textTertiary,
+                fontSize: 9,
+                fontFamily: d.isToday ? typo.bodyBold.fontFamily : typo.small.fontFamily,
+              },
+            ]}
+          >
+            {d.dayNum}
+          </Text>
+        ))}
       </View>
+
+      {empty && (
+        <Text style={[typo.caption, { color: colors.textTertiary, textAlign: 'center', marginTop: -70, marginBottom: 50 }]}>
+          Пока нет данных за период
+        </Text>
+      )}
 
       {/* Legend */}
       <View style={styles.legend}>
@@ -73,65 +214,31 @@ export function FinanceChart({ entries, days }: FinanceChartProps) {
           <View style={[styles.legendDot, { backgroundColor: colors.success }]} />
           <Text style={[typo.small, { color: colors.textSecondary }]}>Доход</Text>
         </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: colors.danger, opacity: 0.5 }]} />
-          <Text style={[typo.small, { color: colors.textSecondary }]}>Расход</Text>
-        </View>
+        {hasExpense && (
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDash, { backgroundColor: colors.danger }]} />
+            <Text style={[typo.small, { color: colors.textSecondary }]}>Расход</Text>
+          </View>
+        )}
       </View>
     </View>
   );
 }
 
-function groupByChunks(
-  data: { date: string; dayNum: string; income: number; expense: number }[],
-  size: number,
-) {
-  const result: { date: string; dayNum: string; income: number; expense: number }[] = [];
-  for (let i = 0; i < data.length; i += size) {
-    const chunk = data.slice(i, i + size);
-    const income = chunk.reduce((s, d) => s + d.income, 0);
-    const expense = chunk.reduce((s, d) => s + d.expense, 0);
-    const firstDay = chunk[0].dayNum;
-    const lastDay = chunk[chunk.length - 1].dayNum;
-    result.push({
-      date: chunk[0].date,
-      dayNum: `${firstDay}-${lastDay}`,
-      income,
-      expense,
-    });
-  }
-  return result;
-}
-
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: 8,
+    paddingVertical: 4,
   },
-  barsRow: {
+  xAxis: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-around',
-    height: 130,
-    paddingHorizontal: 4,
-  },
-  barGroup: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  barsWrap: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 3,
-  },
-  bar: {
-    width: 10,
-    minWidth: 8,
+    justifyContent: 'space-between',
+    marginTop: 2,
   },
   legend: {
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 24,
-    marginTop: 14,
+    marginTop: 12,
   },
   legendItem: {
     flexDirection: 'row',
@@ -139,8 +246,13 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   legendDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  legendDash: {
+    width: 14,
+    height: 2,
+    borderRadius: 1,
   },
 });
