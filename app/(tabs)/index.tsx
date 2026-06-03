@@ -9,6 +9,7 @@ import { EmptyState, GlassCard, CountUp, LiquidGlass, Button, useToast } from '@
 import { AppointmentCard } from '@/src/components/AppointmentCard';
 import { SleepingClientsCard } from '@/src/components/SleepingClientsCard';
 import { FirstWeekChecklist } from '@/src/components/FirstWeekChecklist';
+import { MasterBookLogo } from '@/src/components/MasterBookLogo';
 import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useClientStore } from '@/src/stores/useClientStore';
 import { useServiceStore } from '@/src/stores/useServiceStore';
@@ -159,11 +160,16 @@ function TodayScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <View style={styles.header}>
-        <Text style={[typo.h1, { color: colors.text }]}>Сегодня</Text>
-        <Text style={[typo.body, { color: colors.textSecondary, marginTop: 2, textTransform: 'capitalize' }]}>
-          {formatDateFull(new Date())}
-        </Text>
+      <View style={[styles.header, styles.headerRow]}>
+        <View style={{ flex: 1 }}>
+          <Text style={[typo.h1, { color: colors.text }]}>Сегодня</Text>
+          <Text style={[typo.body, { color: colors.textSecondary, marginTop: 2, textTransform: 'capitalize' }]}>
+            {formatDateFull(new Date())}
+          </Text>
+        </View>
+        {/* Маленький логотип справа — поддерживает brand identity на главном
+            экране. Не интерактивный, чисто визуальная подпись. */}
+        <MasterBookLogo size={44} />
       </View>
 
       <FlatList
@@ -381,6 +387,7 @@ function TodayScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 16 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   forecastInline: {
     flexDirection: 'row',
     alignItems: 'center',
