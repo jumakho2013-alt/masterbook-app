@@ -6,10 +6,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import {
   ArrowLeft, Clock, User, Scissors, CalendarPlus,
-  MoveRight, StickyNote, Check, X, CameraIcon,
+  MoveRight, StickyNote, Check, X, CameraIcon, MessageCircle,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
+import * as Clipboard from 'expo-clipboard';
 import { useTheme } from '@/src/theme';
 import { GlassCard, IconButton, Button, Badge, Divider, CustomAlert, useToast } from '@/src/components/ui';
 import { useAlert } from '@/src/hooks/useAlert';
@@ -21,6 +22,8 @@ import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { formatDate, formatTimeRange, toDateKey } from '@/src/utils/date';
 import { formatCurrency } from '@/src/utils/currency';
 import { addMinutes, generateTimeSlots } from '@/src/utils/time';
+import { openOutreach, type OutreachChannel } from '@/src/lib/sleepingClients';
+import { useProfessionPack } from '@/src/hooks/useProfessionPack';
 
 const statusLabels: Record<string, { label: string; color: string }> = {
   scheduled: { label: 'Запланировано', color: '#7C5DFA' },
@@ -163,6 +166,48 @@ export default function AppointmentDetailScreen() {
     toast.success('Заметка сохранена');
   };
 
+  // Sheet с выбором канала. Показывается тапом «Напомнить клиенту».
+  const [reminderSheetOpen, setReminderSheetOpen] = useState(false);
+  const masterName = useSettingsStore((s) => s.masterName);
+  const { pack } = useProfessionPack();
+
+  const buildReminderMessage = (): string => {
+    if (!client || !service) return '';
+    // Используем pack.reminderTemplate.beforeAppointment с подстановкой.
+    const template = pack.reminderTemplate.beforeAppointment;
+    const firstName = client.name.split(' ')[0] || client.name;
+    const date = formatDate(appointment.date);
+    const time = appointment.startTime;
+    const sig = masterName ? `\n\n— ${masterName}` : '';
+    return (
+      template
+        .replace('{client}', firstName)
+        .replace('{day}', date)
+        .replace('{time}', time)
+        .replace('{service}', service.name.toLowerCase()) + sig
+    );
+  };
+
+  const remindClient = () => {
+    setReminderSheetOpen(true);
+  };
+
+  const sendReminder = async (channel: OutreachChannel) => {
+    if (!client) return;
+    Haptics.selectionAsync();
+    const msg = buildReminderMessage();
+    if (channel === 'telegram') {
+      try {
+        await Clipboard.setStringAsync(msg);
+        toast.success('Сообщение скопировано');
+      } catch {
+        /* безопасно: пользователь сможет ввести вручную */
+      }
+    }
+    await openOutreach(channel, client.phone, msg);
+    setReminderSheetOpen(false);
+  };
+
   // Date picker days
   const reschedDays = Array.from({ length: 14 }, (_, i) => {
     const d = new Date();
@@ -232,10 +277,39 @@ export default function AppointmentDetailScreen() {
         {appointment.status === 'scheduled' && (
           <Animated.View entering={FadeInDown.delay(200)}>
             {!showReschedule ? (
-              <View style={[styles.actions, { marginTop: sp.lg }]}>
-                <Button title="Завершить" onPress={handleComplete} variant="primary" size="lg" style={{ flex: 1 }} />
-                <Button title="Перенести" onPress={() => setShowReschedule(true)} variant="secondary" size="lg" style={{ flex: 1 }} />
-              </View>
+              <>
+                {/* Напомнить клиенту через мессенджер — главная gap-фича
+                    из конкурентного анализа. Использует тот же openOutreach
+                    что и SleepingClientsCard (WhatsApp/Telegram/SMS). */}
+                {client?.phone ? (
+                  <Pressable
+                    onPress={() => remindClient()}
+                    accessibilityRole="button"
+                    accessibilityLabel="Напомнить клиенту о записи"
+                    style={[
+                      styles.remindRow,
+                      {
+                        backgroundColor: colors.primarySoft,
+                        borderRadius: br.md,
+                        marginTop: sp.lg,
+                      },
+                    ]}
+                  >
+                    <MessageCircle size={18} color={colors.primary} />
+                    <Text style={[typo.bodyBold, { color: colors.primary, marginLeft: 10, flex: 1 }]}>
+                      Напомнить клиенту
+                    </Text>
+                    <Text style={[typo.small, { color: colors.primary, opacity: 0.7 }]}>
+                      WhatsApp · SMS
+                    </Text>
+                  </Pressable>
+                ) : null}
+
+                <View style={[styles.actions, { marginTop: sp.md }]}>
+                  <Button title="Завершить" onPress={handleComplete} variant="primary" size="lg" style={{ flex: 1 }} />
+                  <Button title="Перенести" onPress={() => setShowReschedule(true)} variant="secondary" size="lg" style={{ flex: 1 }} />
+                </View>
+              </>
             ) : (
               /* Reschedule picker */
               <GlassCard elevated style={{ marginTop: sp.lg }}>
@@ -345,9 +419,106 @@ export default function AppointmentDetailScreen() {
         <View style={{ height: 40 }} />
       </ScrollView>
       <CustomAlert {...alertConfig} />
+
+      {/* Reminder channel picker — bottom sheet */}
+      <ReminderSheet
+        visible={reminderSheetOpen}
+        onClose={() => setReminderSheetOpen(false)}
+        clientName={client?.name ?? ''}
+        message={buildReminderMessage()}
+        onSend={sendReminder}
+        onCopy={async () => {
+          await Clipboard.setStringAsync(buildReminderMessage());
+          toast.success('Сообщение скопировано');
+          setReminderSheetOpen(false);
+        }}
+      />
     </SafeAreaView>
   );
 }
+
+import { Modal, Pressable as RNPressable } from 'react-native';
+import { Send, Phone as PhoneIcon, Copy as CopyIcon } from 'lucide-react-native';
+
+function ReminderSheet({
+  visible, onClose, clientName, message, onSend, onCopy,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  clientName: string;
+  message: string;
+  onSend: (channel: OutreachChannel) => void;
+  onCopy: () => void;
+}) {
+  const { colors, typography: typo, spacing: sp, borderRadius: br } = useTheme();
+  if (!visible) return null;
+  return (
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <View style={remStyles.backdrop}>
+        <RNPressable style={{ flex: 1 }} onPress={onClose} accessibilityLabel="Закрыть" />
+        <View style={[
+          remStyles.sheet,
+          { backgroundColor: colors.background, borderTopLeftRadius: br.lg, borderTopRightRadius: br.lg },
+        ]}>
+          <View style={remStyles.handleWrap}>
+            <View style={[remStyles.handle, { backgroundColor: colors.border }]} />
+          </View>
+          <View style={{ paddingHorizontal: sp.lg, paddingBottom: sp.md }}>
+            <Text style={[typo.h3, { color: colors.text }]} numberOfLines={1}>
+              Напомнить {clientName.split(' ')[0]}
+            </Text>
+            <Text style={[typo.caption, { color: colors.textSecondary, marginTop: 4 }]}>
+              Выбери канал. Текст уже подготовлен.
+            </Text>
+          </View>
+          <View style={[remStyles.preview, { backgroundColor: colors.surfaceElevated, borderRadius: br.md, marginHorizontal: sp.lg }]}>
+            <Text style={[typo.body, { color: colors.text }]}>{message}</Text>
+          </View>
+          <View style={[remStyles.actionRow, { paddingHorizontal: sp.lg, paddingTop: sp.md, paddingBottom: sp.lg }]}>
+            <RemActionBtn label="WhatsApp" bg="#25D36615" iconColor="#25D366"
+              icon={<MessageCircle size={20} color="#25D366" />} onPress={() => onSend('whatsapp')} />
+            <RemActionBtn label="Telegram" bg="#0088CC15" iconColor="#0088CC"
+              icon={<Send size={20} color="#0088CC" />} onPress={() => onSend('telegram')} />
+            <RemActionBtn label="SMS" bg={colors.successSoft} iconColor={colors.success}
+              icon={<PhoneIcon size={20} color={colors.success} />} onPress={() => onSend('sms')} />
+            <RemActionBtn label="Копир." bg={colors.primarySoft} iconColor={colors.primary}
+              icon={<CopyIcon size={20} color={colors.primary} />} onPress={onCopy} />
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+function RemActionBtn({ label, icon, bg, iconColor: _i, onPress }: {
+  label: string; icon: React.ReactNode; bg: string; iconColor: string; onPress: () => void;
+}) {
+  const { colors, typography: typo } = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={[remStyles.actionBtn, { backgroundColor: bg }]}
+    >
+      {icon}
+      <Text style={[typo.small, { color: colors.text, marginTop: 4 }]}>{label}</Text>
+    </Pressable>
+  );
+}
+
+const remStyles = StyleSheet.create({
+  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
+  sheet: { paddingTop: 0 },
+  handleWrap: { alignItems: 'center', paddingVertical: 10 },
+  handle: { width: 40, height: 4, borderRadius: 2 },
+  preview: { padding: 14 },
+  actionRow: { flexDirection: 'row', gap: 8 },
+  actionBtn: {
+    flex: 1, alignItems: 'center', justifyContent: 'center',
+    paddingVertical: 12, borderRadius: 12,
+  },
+});
 
 function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   const { colors, typography: typo } = useTheme();
@@ -371,6 +542,12 @@ const styles = StyleSheet.create({
   sectionHeader: { flexDirection: 'row', alignItems: 'center' },
   notesBox: { padding: 16, minHeight: 60 },
   actions: { flexDirection: 'row', gap: 12 },
+  remindRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
   dateChip: { paddingHorizontal: 14, paddingVertical: 8 },
   timeSlotsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   timeSlot: { paddingHorizontal: 14, paddingVertical: 10, minWidth: 60, alignItems: 'center' },
