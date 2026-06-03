@@ -21,6 +21,16 @@ import { nowMinutesOfDay, timeToMinutes } from '@/src/utils/time';
 import { seedSampleData } from '@/src/lib/sampleData';
 import { useProfessionPack } from '@/src/hooks/useProfessionPack';
 
+/** Русские склонения числительных. */
+function plural(n: number, one: string, few: string, many: string): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 14) return many;
+  if (mod10 === 1) return one;
+  if (mod10 >= 2 && mod10 <= 4) return few;
+  return many;
+}
+
 type Filter = 'upcoming' | 'completed' | 'all';
 
 const FILTER_LABELS: Record<Filter, string> = {
@@ -134,33 +144,45 @@ function TodayScreen() {
         }
         ListHeaderComponent={
           <>
-            {/* Forecast cards */}
-            <Animated.View entering={reduceMotion ? undefined : FadeInDown.duration(400)} style={[styles.forecastRow, { marginBottom: sp.md }]}>
-              <GlassCard style={styles.forecastCard}>
-                <TrendingUp size={16} color={colors.success} />
-                <Text style={[typo.small, { color: colors.textSecondary, marginTop: 4 }]}>Сегодня</Text>
-                <CountUp
-                  value={forecast.todayIncome}
-                  style={{ ...typo.h3, color: colors.success }}
-                  formatter={(n) => formatCurrency(Math.round(n))}
-                />
-                <Text style={[typo.small, { color: colors.textTertiary }]}>
-                  {forecast.todayCount} записей
-                </Text>
-              </GlassCard>
-              <GlassCard style={styles.forecastCard}>
-                <Calendar size={16} color={colors.primary} />
-                <Text style={[typo.small, { color: colors.textSecondary, marginTop: 4 }]}>За неделю</Text>
-                <CountUp
-                  value={forecast.weekIncome}
-                  style={{ ...typo.h3, color: colors.primary }}
-                  formatter={(n) => formatCurrency(Math.round(n))}
-                />
-                <Text style={[typo.small, { color: colors.textTertiary }]}>
-                  {forecast.weekCount} записей
-                </Text>
-              </GlassCard>
-            </Animated.View>
+            {/* Compact forecast — один блок, не два больших.
+                Показываем числа только если есть записи. Если 0 — мягкая
+                подсказка вместо нулей-кричалок. */}
+            {forecast.todayCount > 0 || forecast.weekCount > 0 ? (
+              <Animated.View
+                entering={reduceMotion ? undefined : FadeInDown.duration(400)}
+                style={{ marginBottom: sp.md }}
+              >
+                <GlassCard style={styles.forecastInline}>
+                  <View style={styles.forecastSegment}>
+                    <Text style={[typo.small, { color: colors.textTertiary, textTransform: 'uppercase', letterSpacing: 0.6 }]}>
+                      Сегодня
+                    </Text>
+                    <CountUp
+                      value={forecast.todayIncome}
+                      style={{ ...typo.h3, color: colors.text, marginTop: 2 }}
+                      formatter={(n) => formatCurrency(Math.round(n))}
+                    />
+                    <Text style={[typo.small, { color: colors.textSecondary, marginTop: 2 }]}>
+                      {forecast.todayCount} {plural(forecast.todayCount, 'запись', 'записи', 'записей')}
+                    </Text>
+                  </View>
+                  <View style={[styles.forecastDivider, { backgroundColor: colors.border }]} />
+                  <View style={styles.forecastSegment}>
+                    <Text style={[typo.small, { color: colors.textTertiary, textTransform: 'uppercase', letterSpacing: 0.6 }]}>
+                      За неделю
+                    </Text>
+                    <CountUp
+                      value={forecast.weekIncome}
+                      style={{ ...typo.h3, color: colors.primary, marginTop: 2 }}
+                      formatter={(n) => formatCurrency(Math.round(n))}
+                    />
+                    <Text style={[typo.small, { color: colors.textSecondary, marginTop: 2 }]}>
+                      {forecast.weekCount} {plural(forecast.weekCount, 'запись', 'записи', 'записей')}
+                    </Text>
+                  </View>
+                </GlassCard>
+              </Animated.View>
+            ) : null}
 
             {/* "Сейчас" indicator — branded liquid glass with primary tint */}
             {currentAppointment && currentClient && currentService && (
@@ -196,38 +218,46 @@ function TodayScreen() {
               </Animated.View>
             )}
 
-            {/* Filter chips */}
-            <View style={[styles.filterRow, { marginBottom: sp.md }]}>
-              {(Object.keys(FILTER_LABELS) as Filter[]).map((key) => {
-                const active = filter === key;
-                return (
-                  <Pressable
-                    key={key}
-                    onPress={() => setFilter(key)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Фильтр: ${FILTER_LABELS[key]}`}
-                    accessibilityState={{ selected: active }}
-                    hitSlop={{ top: 6, bottom: 6 }}
-                    style={[
-                      styles.filterChip,
-                      {
-                        backgroundColor: active ? colors.primary : colors.surfaceElevated,
-                        borderRadius: br.sm,
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        typo.caption,
-                        { color: active ? colors.white : colors.textSecondary },
-                      ]}
-                    >
-                      {FILTER_LABELS[key]}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
+            {/* Filter chips — показываем только при ≥6 записях.
+                При меньшем — список и так короткий, фильтры лишний шум. */}
+            {(() => {
+              const todayApptsRaw = appointments.filter((a) => a.date === todayKey);
+              const shouldShowFilters = todayApptsRaw.length >= 6 || filter !== 'upcoming';
+              if (!shouldShowFilters) return null;
+              return (
+                <View style={[styles.filterRow, { marginBottom: sp.md }]}>
+                  {(Object.keys(FILTER_LABELS) as Filter[]).map((key) => {
+                    const active = filter === key;
+                    return (
+                      <Pressable
+                        key={key}
+                        onPress={() => setFilter(key)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Фильтр: ${FILTER_LABELS[key]}`}
+                        accessibilityState={{ selected: active }}
+                        hitSlop={{ top: 6, bottom: 6 }}
+                        style={[
+                          styles.filterChip,
+                          {
+                            backgroundColor: active ? colors.primary : colors.surfaceElevated,
+                            borderRadius: br.sm,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            typo.caption,
+                            { color: active ? colors.white : colors.textSecondary },
+                          ]}
+                        >
+                          {FILTER_LABELS[key]}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              );
+            })()}
 
             {/* Чеклист первой недели — gamified onboarding. Скрывается
                 автоматически когда все 5 пунктов выполнены. */}
@@ -318,8 +348,20 @@ function TodayScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 16 },
-  forecastRow: { flexDirection: 'row', gap: 12 },
-  forecastCard: { flex: 1, alignItems: 'flex-start', paddingVertical: 16 },
+  forecastInline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+  },
+  forecastSegment: {
+    flex: 1,
+    alignItems: 'flex-start',
+  },
+  forecastDivider: {
+    width: 1,
+    height: 36,
+    marginHorizontal: 16,
+  },
   nowCard: {
     flexDirection: 'row',
     alignItems: 'center',
