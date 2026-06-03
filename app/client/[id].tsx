@@ -18,6 +18,7 @@ import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useServiceStore } from '@/src/stores/useServiceStore';
 import { formatDate, formatTimeRange, daysSince } from '@/src/utils/date';
 import { formatCurrency } from '@/src/utils/currency';
+import { openAddressInMaps } from '@/src/lib/openMaps';
 import type { ClientTag } from '@/src/types';
 
 const tagLabels: Record<string, { label: string; color: string }> = {
@@ -298,17 +299,16 @@ export default function ClientDetailScreen() {
               </View>
             )}
 
-            {/* Address */}
+            {/* Address — тап открывает Apple Maps / Google Maps с маршрутом */}
             {!editing && client.address ? (
               <Pressable
                 onPress={async () => {
-                  const query = encodeURIComponent(client.address!);
-                  try {
-                    await Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${query}`);
-                  } catch {
-                    showError('Ошибка', 'Не удалось открыть карты');
-                  }
+                  const ok = await openAddressInMaps(client.address!);
+                  if (!ok) showError('Ошибка', 'Не удалось открыть карты');
                 }}
+                accessibilityRole="button"
+                accessibilityLabel={`Открыть маршрут к адресу ${client.address}`}
+                accessibilityHint="Откроется приложение карт"
                 style={{ paddingHorizontal: 16, marginBottom: sp.md }}
               >
                 <GlassCard>
@@ -317,7 +317,9 @@ export default function ClientDetailScreen() {
                       <MapPin size={18} color={colors.primary} />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={[typo.small, { color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5 }]}>Адрес</Text>
+                      <Text style={[typo.small, { color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5 }]}>
+                        Адрес · тап для маршрута
+                      </Text>
                       <Text style={[typo.body, { color: colors.text, marginTop: 2 }]}>{client.address}</Text>
                     </View>
                   </View>
