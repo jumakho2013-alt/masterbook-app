@@ -226,6 +226,13 @@ function ProfileScreen() {
         <View style={{ paddingHorizontal: 16, marginBottom: sp.md }}>
           <GlassCard style={{ padding: 0 }}>
             <MenuItem
+              icon={<TrendingUp size={20} color={colors.primary} />}
+              label="Аналитика"
+              subtitle="Выручка, новые клиенты, лучший день"
+              onPress={() => router.push('/insights')}
+            />
+            <Divider style={{ marginVertical: 0, marginLeft: 52 }} />
+            <MenuItem
               icon={<Scissors size={20} color={colors.primary} />}
               label="Мои услуги"
               subtitle={`${stats.totalClients > 0 ? 'Прайс-лист и длительности' : 'Создай свой прайс'}`}
