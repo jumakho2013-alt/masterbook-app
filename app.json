@@ -99,7 +99,7 @@
         "expo-notifications",
         {
           "icon": "./assets/images/icon.png",
-          "color": "#7C5DFA",
+          "color": "#059669",
           "defaultChannel": "reminders"
         }
       ],
