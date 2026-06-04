@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, type ViewStyle } from 'react-native';
-import Svg, { Defs, LinearGradient, Rect, Stop, Path, Circle, G } from 'react-native-svg';
+import Svg, { Defs, LinearGradient, Rect, Stop, Path, Circle, G, ClipPath } from 'react-native-svg';
 
 interface MasterBookLogoProps {
   /** Размер квадратной иконки. Default 64. */
@@ -21,7 +21,7 @@ interface MasterBookLogoProps {
  * Семантически работает на MasterBook (книга мастера).
  * Универсально для всех профессий — не только бьюти.
  */
-export function MasterBookLogo({ size = 64, withBackground = true, style }: MasterBookLogoProps) {
+export function MasterBookLogo({ size = 64, withBackground = false, style }: MasterBookLogoProps) {
   const VB = 1024;
 
   return (
@@ -38,13 +38,17 @@ export function MasterBookLogo({ size = 64, withBackground = true, style }: Mast
           </LinearGradient>
           <LinearGradient id="mbCard" x1="0" y1="0" x2="0" y2="1">
             <Stop offset="0" stopColor="#FFFFFF" />
-            <Stop offset="1" stopColor="#F3EEFA" />
+            <Stop offset="1" stopColor="#EAF5EF" />
           </LinearGradient>
           <LinearGradient id="mbRibbon" x1="0" y1="0" x2="0.3" y2="1">
             <Stop offset="0" stopColor="#FFC766" />
             <Stop offset="0.5" stopColor="#FFB84D" />
             <Stop offset="1" stopColor="#D88A20" />
           </LinearGradient>
+          {/* Лента обрезается по форме листа — не торчит за скруглённый угол. */}
+          <ClipPath id="mbCardClip">
+            <Rect x="200" y="180" width="624" height="720" rx="64" />
+          </ClipPath>
         </Defs>
 
         {withBackground && (
@@ -58,17 +62,17 @@ export function MasterBookLogo({ size = 64, withBackground = true, style }: Mast
         <Rect x="200" y="180" width="624" height="720" rx="64" fill="url(#mbCard)" />
 
         {/* 4 lines of "writing" — varied opacity for hierarchy */}
-        <Rect x="280" y="320" width="360" height="22" rx="11" fill="#CFC4EC" />
-        <Rect x="280" y="400" width="460" height="22" rx="11" fill="#CFC4EC" opacity="0.88" />
-        <Rect x="280" y="480" width="300" height="22" rx="11" fill="#CFC4EC" opacity="0.75" />
-        <Rect x="280" y="560" width="380" height="22" rx="11" fill="#CFC4EC" opacity="0.62" />
+        <Rect x="280" y="320" width="360" height="22" rx="11" fill="#C7E6D8" />
+        <Rect x="280" y="400" width="460" height="22" rx="11" fill="#C7E6D8" opacity="0.88" />
+        <Rect x="280" y="480" width="300" height="22" rx="11" fill="#C7E6D8" opacity="0.75" />
+        <Rect x="280" y="560" width="380" height="22" rx="11" fill="#C7E6D8" opacity="0.62" />
 
-        {/* Highlighted entry — «today / marked» (purple dot + line) */}
-        <Circle cx="296" cy="720" r="20" fill="#A892FF" />
-        <Rect x="340" y="708" width="180" height="22" rx="11" fill="#A892FF" opacity="0.7" />
+        {/* Highlighted entry — «today / marked» (emerald dot + line) */}
+        <Circle cx="296" cy="720" r="20" fill="#2EE6A6" />
+        <Rect x="340" y="708" width="180" height="22" rx="11" fill="#2EE6A6" opacity="0.7" />
 
-        {/* Gold ribbon */}
-        <G>
+        {/* Gold ribbon — обрезана по форме листа (clip), верх вровень с краем */}
+        <G clipPath="url(#mbCardClip)">
           <Path
             d="M 620 180 L 620 824 L 712 750 L 804 824 L 804 180 Z"
             fill="url(#mbRibbon)"

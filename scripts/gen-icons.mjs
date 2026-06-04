@@ -1,69 +1,80 @@
-// Регенерация иконок: тот же глиф (книжка+закладка), но КРУПНЕЕ на зелёном фоне.
-// Источник глифа — adaptive-icon.png (глиф на прозрачном, максимальное разрешение).
-// Заодно меняются хэши файлов → Expo Go перестаёт показывать старый кэш.
+// Генерация иконок из ЧИСТОГО векторного глифа (как в MasterBookLogo):
+// книжка + золотая закладка ВРОВЕНЬ с верхом листа (не торчит), изумрудные
+// акценты. icon.png — на зелёном фоне (иконка обязана быть непрозрачной);
+// splash/adaptive — БЕЗ фона (прозрачный), книжка сама по себе.
 //
 // Запуск: node scripts/gen-icons.mjs
 import sharp from 'sharp';
 
 const DIR = 'assets/images';
-const SIZE = 1024;
 
-// Эмеральд-градиент фона (как в текущей иконке: светлее сверху-слева).
-const bgSvg = (size) => `<svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+// Тугой глиф (viewBox с маленьким полем вокруг книги). Лента сверху на уровне
+// верхнего края листа (y=180=card top) → ничего не выпирает.
+const glyphSvg = `<svg width="900" height="1031" viewBox="184 164 656 752" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#2FCB8E"/>
-      <stop offset="1" stop-color="#0A7F54"/>
+    <linearGradient id="card" x1="0" y1="164" x2="0" y2="916" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#EAF5EF"/>
     </linearGradient>
+    <linearGradient id="ribbon" x1="620" y1="0" x2="804" y2="824" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFC766"/><stop offset="0.5" stop-color="#FFB84D"/><stop offset="1" stop-color="#D88A20"/>
+    </linearGradient>
+    <clipPath id="cardClip"><rect x="200" y="180" width="624" height="720" rx="64"/></clipPath>
   </defs>
+  <rect x="200" y="180" width="624" height="720" rx="64" fill="url(#card)"/>
+  <rect x="280" y="320" width="360" height="22" rx="11" fill="#C7E6D8"/>
+  <rect x="280" y="400" width="460" height="22" rx="11" fill="#C7E6D8" opacity="0.88"/>
+  <rect x="280" y="480" width="300" height="22" rx="11" fill="#C7E6D8" opacity="0.75"/>
+  <rect x="280" y="560" width="380" height="22" rx="11" fill="#C7E6D8" opacity="0.62"/>
+  <circle cx="296" cy="720" r="20" fill="#2EE6A6"/>
+  <rect x="340" y="708" width="180" height="22" rx="11" fill="#2EE6A6" opacity="0.7"/>
+  <g clip-path="url(#cardClip)">
+    <path d="M 620 180 L 620 824 L 712 750 L 804 824 L 804 180 Z" fill="url(#ribbon)"/>
+    <rect x="624" y="184" width="6" height="640" rx="3" fill="rgba(255,255,255,0.35)"/>
+  </g>
+</svg>`;
+
+// Зелёный градиент-фон только для app-icon (нужна непрозрачность).
+const bgSvg = (size) => `<svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#2EE6A6"/><stop offset="1" stop-color="#047857"/>
+  </linearGradient></defs>
   <rect width="${size}" height="${size}" fill="url(#g)"/>
 </svg>`;
 
-// Тугой глиф без прозрачных полей (trim), чтобы контролировать его размер точно.
-async function tightGlyph() {
-  return sharp(`${DIR}/adaptive-icon.png`)
-    .trim({ threshold: 10 })
+async function glyphAt(box) {
+  return sharp(Buffer.from(glyphSvg))
+    .resize({ width: box, height: box, fit: 'inside' })
+    .png()
     .toBuffer();
 }
 
-async function fitGlyph(glyph, box) {
-  return sharp(glyph)
-    .resize({ width: box, height: box, fit: 'inside', withoutEnlargement: false })
-    .toBuffer();
+async function transparentWithGlyph(size, ratio, file) {
+  const g = await glyphAt(Math.round(size * ratio));
+  await sharp({
+    create: { width: size, height: size, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } },
+  })
+    .composite([{ input: g, gravity: 'center' }])
+    .png()
+    .toFile(`${DIR}/${file}`);
 }
 
 async function run() {
-  const glyph = await tightGlyph();
-  const gm = await sharp(glyph).metadata();
-  console.log('tight glyph:', gm.width + 'x' + gm.height);
+  const SIZE = 1024;
 
-  // icon.png — полноформатный зелёный квадрат, глиф ~88% (крупно).
-  const iconGlyph = await fitGlyph(glyph, Math.round(SIZE * 0.88));
+  // icon.png — зелёный фон + книжка ~88%.
+  const iconGlyph = await glyphAt(Math.round(SIZE * 0.88));
   await sharp(Buffer.from(bgSvg(SIZE)))
     .composite([{ input: iconGlyph, gravity: 'center' }])
     .png()
     .toFile(`${DIR}/icon.png`);
 
-  // adaptive-icon.png — глиф на прозрачном, ~72% (safe-zone Android), фон даёт config.
-  const adaptiveGlyph = await fitGlyph(glyph, Math.round(SIZE * 0.72));
-  await sharp({
-    create: { width: SIZE, height: SIZE, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } },
-  })
-    .composite([{ input: adaptiveGlyph, gravity: 'center' }])
-    .png()
-    .toFile(`${DIR}/adaptive-icon.png`);
+  // adaptive-icon.png — книжка на прозрачном (Android фон даёт config) ~72%.
+  await transparentWithGlyph(SIZE, 0.72, 'adaptive-icon.png');
 
-  // splash-icon.png — глиф почти во весь холст (~94%), чтобы на сплеше был крупным.
-  const SPLASH = 512;
-  const splashGlyph = await fitGlyph(glyph, Math.round(SPLASH * 0.94));
-  await sharp({
-    create: { width: SPLASH, height: SPLASH, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } },
-  })
-    .composite([{ input: splashGlyph, gravity: 'center' }])
-    .png()
-    .toFile(`${DIR}/splash-icon.png`);
+  // splash-icon.png — книжка на прозрачном (на тёмном сплеше) ~96%.
+  await transparentWithGlyph(512, 0.96, 'splash-icon.png');
 
-  console.log('done: icon / adaptive-icon / splash-icon regenerated');
+  console.log('done: icon (green bg) / adaptive / splash — clean glyph, ribbon flush');
 }
 
 run().catch((e) => {
