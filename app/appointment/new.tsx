@@ -64,6 +64,11 @@ export default function NewAppointmentScreen() {
   // новый клиент часто требует +30 мин, постоянный может уложиться меньше.
   // null = используем service.duration (дефолт).
   const [customDurationMinutes, setCustomDurationMinutes] = useState<number | null>(null);
+  // Своё время (фидбэк: «время как будто навязываем»). Мастер может выбрать
+  // ЛЮБОЙ час/минуту — даже вне рабочих часов и не кратно 30 мин.
+  const [customTimeMode, setCustomTimeMode] = useState(false);
+  const [customHour, setCustomHour] = useState<number | null>(null);
+  const [customMinute, setCustomMinute] = useState<number>(0);
 
   const searchClients = useClientStore((s) => s.searchClients);
   const allClients = useClientStore((s) => s.clients);
@@ -167,6 +172,39 @@ export default function NewAppointmentScreen() {
     const i = STEPS.indexOf(step);
     if (i > 0) setStep(STEPS[i - 1]);
     else router.back();
+  };
+
+  const pad2 = (n: number) => String(n).padStart(2, '0');
+
+  const openCustomTime = () => {
+    Haptics.selectionAsync();
+    // Сидируем час из начала рабочего дня — дальше мастер крутит как хочет.
+    if (customHour === null) {
+      setCustomHour(Math.floor(timeToMinutes(workHours.start) / 60));
+      setCustomMinute(0);
+    }
+    setCustomTimeMode(true);
+  };
+
+  const applyCustomTime = () => {
+    if (customHour === null) return;
+    const t = `${pad2(customHour)}:${pad2(customMinute)}`;
+    // Прошлое блокируем (нельзя записать в прошедшее сегодня), пересечение —
+    // тоже (защита от двойной записи). В остальном — любое время разрешено.
+    if (isSlotPast(t)) { showError(tr('appt.time.pastError')); return; }
+    // Модель слотов не умеет пересекать полночь (minutesToTime заворачивает по
+    // mod 1440, и Zod-refine endTime>startTime потом упал бы с невнятной
+    // ошибкой). Ловим заранее с понятным текстом. Проверяем ДО isSlotTaken —
+    // иначе addMinutes даст завёрнутый slotEnd и overlap посчитается криво.
+    const dur = customDurationMinutes ?? selectedService?.duration ?? 30;
+    // >= 1440: конец ровно в 00:00 тоже невалиден — endTime станет "00:00",
+    // а Zod-refine требует endTime > startTime (строкой "00:00" — минимум).
+    if (timeToMinutes(t) + dur >= 24 * 60) { showError(tr('appt.time.crossMidnight')); return; }
+    if (isSlotTaken(t)) { showError(tr('appt.time.takenError')); return; }
+    Haptics.selectionAsync();
+    setSelectedTime(t);
+    setCustomTimeMode(false);
+    next();
   };
 
   const confirm = async () => {
@@ -422,57 +460,176 @@ export default function NewAppointmentScreen() {
           </ScrollView>
 
           {/* Time slots */}
-          <ScrollView contentContainerStyle={styles.timeGrid}>
-            {timeSlots.map((t) => {
-              const taken = isSlotTaken(t);
-              const past = isSlotPast(t);
-              const disabled = taken || past;
-              const active = selectedTime === t;
-              return (
-                <TouchableOpacity
-                  key={t}
-                  onPress={() => {
-                    if (!disabled) {
-                      Haptics.selectionAsync();
-                      setSelectedTime(t);
-                      next();
-                    }
-                  }}
-                  disabled={disabled}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${t}${taken ? tr('appt.time.takenSuffix') : past ? tr('appt.time.pastSuffix') : ''}`}
-                  accessibilityState={{ selected: active, disabled }}
-                  style={[
-                    styles.timeSlot,
-                    {
-                      backgroundColor: active
-                        ? colors.primary
-                        : disabled
-                          ? colors.surfaceElevated
-                          : colors.surface,
-                      borderColor: active ? colors.primary : colors.border,
-                      borderRadius: 12,
-                      opacity: disabled ? 0.4 : 1,
-                    },
-                  ]}
-                >
-                  <Text
+          <ScrollView contentContainerStyle={styles.timeScroll}>
+            <View style={styles.timeGrid}>
+              {timeSlots.map((t) => {
+                const taken = isSlotTaken(t);
+                const past = isSlotPast(t);
+                const disabled = taken || past;
+                const active = selectedTime === t;
+                return (
+                  <TouchableOpacity
+                    key={t}
+                    onPress={() => {
+                      if (!disabled) {
+                        Haptics.selectionAsync();
+                        setSelectedTime(t);
+                        next();
+                      }
+                    }}
+                    disabled={disabled}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${t}${taken ? tr('appt.time.takenSuffix') : past ? tr('appt.time.pastSuffix') : ''}`}
+                    accessibilityState={{ selected: active, disabled }}
                     style={[
-                      typo.body,
+                      styles.timeSlot,
                       {
-                        color: disabled
-                          ? colors.textTertiary
-                          : active
-                            ? colors.white
-                            : colors.text,
+                        backgroundColor: active
+                          ? colors.primary
+                          : disabled
+                            ? colors.surfaceElevated
+                            : colors.surface,
+                        borderColor: active ? colors.primary : colors.border,
+                        borderRadius: 12,
+                        opacity: disabled ? 0.4 : 1,
                       },
                     ]}
                   >
-                    {t}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+                    <Text
+                      style={[
+                        typo.body,
+                        {
+                          color: disabled
+                            ? colors.textTertiary
+                            : active
+                              ? colors.white
+                              : colors.text,
+                        },
+                      ]}
+                    >
+                      {t}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+
+              {/* «Другое время» — любое время вне сетки/рабочих часов */}
+              {(() => {
+                const customActive = !!selectedTime && !timeSlots.includes(selectedTime);
+                const on = customTimeMode || customActive;
+                return (
+                  <TouchableOpacity
+                    onPress={openCustomTime}
+                    accessibilityRole="button"
+                    accessibilityLabel={tr('appt.time.custom')}
+                    accessibilityState={{ selected: on }}
+                    style={[
+                      styles.timeSlot,
+                      {
+                        backgroundColor: on ? colors.primary : colors.surface,
+                        borderColor: on ? colors.primary : colors.border,
+                        borderStyle: 'dashed',
+                        borderRadius: 12,
+                      },
+                    ]}
+                  >
+                    <Text style={[typo.body, { color: on ? colors.white : colors.primary }]}>
+                      {customActive ? selectedTime : tr('appt.time.custom')}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })()}
+            </View>
+
+            {/* Инлайн-пикер: часы + минуты, любое значение */}
+            {customTimeMode && (
+              <GlassCard style={styles.customCard}>
+                <Text style={[typo.caption, { color: colors.textSecondary }]}>
+                  {tr('appt.time.customHint')}
+                </Text>
+
+                <Text style={[typo.small, { color: colors.textTertiary, marginTop: sp.sm }]}>
+                  {tr('appt.time.customHours')}
+                </Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.pickerRow}
+                >
+                  {Array.from({ length: 24 }, (_, h) => h).map((h) => {
+                    const active = customHour === h;
+                    return (
+                      <TouchableOpacity
+                        key={h}
+                        onPress={() => {
+                          Haptics.selectionAsync();
+                          setCustomHour(h);
+                        }}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: active }}
+                        style={[
+                          styles.pickerChip,
+                          {
+                            backgroundColor: active ? colors.primary : colors.surfaceElevated,
+                            borderRadius: br.sm,
+                          },
+                        ]}
+                      >
+                        <Text style={[typo.body, { color: active ? colors.white : colors.text }]}>
+                          {pad2(h)}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+
+                <Text style={[typo.small, { color: colors.textTertiary, marginTop: sp.sm }]}>
+                  {tr('appt.time.customMinutes')}
+                </Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.pickerRow}
+                >
+                  {Array.from({ length: 12 }, (_, i) => i * 5).map((m) => {
+                    const active = customMinute === m;
+                    return (
+                      <TouchableOpacity
+                        key={m}
+                        onPress={() => {
+                          Haptics.selectionAsync();
+                          setCustomMinute(m);
+                        }}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: active }}
+                        style={[
+                          styles.pickerChip,
+                          {
+                            backgroundColor: active ? colors.primary : colors.surfaceElevated,
+                            borderRadius: br.sm,
+                          },
+                        ]}
+                      >
+                        <Text style={[typo.body, { color: active ? colors.white : colors.text }]}>
+                          {pad2(m)}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+
+                <Button
+                  title={
+                    customHour !== null
+                      ? `${tr('common.done')} · ${pad2(customHour)}:${pad2(customMinute)}`
+                      : tr('common.done')
+                  }
+                  onPress={applyCustomTime}
+                  disabled={customHour === null}
+                  style={{ marginTop: sp.md }}
+                />
+              </GlassCard>
+            )}
           </ScrollView>
         </Animated.View>
       )}
@@ -613,6 +770,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  timeScroll: {
+    paddingBottom: 24,
+  },
   timeGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -624,6 +784,22 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 18,
     borderWidth: 1,
+    alignItems: 'center',
+  },
+  customCard: {
+    marginHorizontal: 16,
+    marginTop: 4,
+  },
+  pickerRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingVertical: 8,
+    paddingRight: 8,
+  },
+  pickerChip: {
+    minWidth: 46,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     alignItems: 'center',
   },
   confirmWrap: {

@@ -112,7 +112,14 @@
     },
     "time": {
       "takenSuffix": ", taken",
-      "pastSuffix": ", past"
+      "pastSuffix": ", past",
+      "custom": "Custom time",
+      "customHint": "Any time — even outside working hours",
+      "customHours": "Hours",
+      "customMinutes": "Minutes",
+      "pastError": "That time has already passed",
+      "takenError": "That time overlaps another appointment",
+      "crossMidnight": "Appointment won't fit before midnight — pick an earlier time"
     },
     "confirm": {
       "duration": "Duration",
