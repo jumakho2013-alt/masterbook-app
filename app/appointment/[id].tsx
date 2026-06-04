@@ -38,7 +38,7 @@ const REBOOK_OPTIONS = [
 export default function AppointmentDetailScreen() {
   const router = useRouter();
   const tr = useT();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, reschedule } = useLocalSearchParams<{ id: string; reschedule?: string }>();
   const { colors, typography: typo, spacing: sp, borderRadius: br } = useTheme();
 
   const allAppointments = useAppointmentStore((s) => s.appointments);
@@ -58,7 +58,8 @@ export default function AppointmentDetailScreen() {
   const service = services.find((s) => s.id === appointment?.serviceId);
 
   // Local state
-  const [showReschedule, setShowReschedule] = useState(false);
+  // ?reschedule=1 (свайп «Перенести» на Today) — открываем сразу режим переноса.
+  const [showReschedule, setShowReschedule] = useState(reschedule === '1');
   const [rescheduleDate, setRescheduleDate] = useState<Date>(new Date());
   const [rescheduleTime, setRescheduleTime] = useState<string | null>(null);
   const [editingNotes, setEditingNotes] = useState(false);

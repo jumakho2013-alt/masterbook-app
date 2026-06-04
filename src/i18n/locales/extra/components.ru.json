@@ -49,6 +49,8 @@
     "clientOpenProfileHint": "Открыть профиль клиента",
     "swipeWaShort": "WA",
     "swipeCallShort": "Звонок",
+    "swipeReschedule": "Перенести",
+    "swipeCancel": "Отменить",
     "swipeWaFailed": "Не удалось открыть WhatsApp",
     "swipeCallTitle": "Звонок",
     "swipeCallFailed": "Не удалось начать звонок",

@@ -6,9 +6,8 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Plus, CalendarCheck, TrendingUp, Calendar } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
 import { EmptyState, GlassCard, CountUp, LiquidGlass, Button, useToast } from '@/src/components/ui';
-import { AppointmentCard } from '@/src/components/AppointmentCard';
+import { SwipeableAppointmentCard } from '@/src/components/SwipeableAppointmentCard';
 import { SleepingClientsCard } from '@/src/components/SleepingClientsCard';
-import { FirstWeekChecklist } from '@/src/components/FirstWeekChecklist';
 import { MasterBookLogo } from '@/src/components/MasterBookLogo';
 import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useClientStore } from '@/src/stores/useClientStore';
@@ -300,10 +299,6 @@ function TodayScreen() {
               );
             })()}
 
-            {/* Чеклист первой недели — gamified onboarding. Скрывается
-                автоматически когда все 5 пунктов выполнены. */}
-            <FirstWeekChecklist />
-
             {/* Спящие клиенты — nudge-блок. Возвращает null если все
                 клиенты активны, поэтому не съедает место без причины. */}
             <SleepingClientsCard />
@@ -370,7 +365,7 @@ function TodayScreen() {
         }
         renderItem={({ item, index }) => (
           <Animated.View entering={reduceMotion ? undefined : FadeInDown.delay(100 + index * 50).duration(400)}>
-            <AppointmentCard
+            <SwipeableAppointmentCard
               appointment={item}
               client={getClient(item.clientId)}
               service={getService(item.serviceId)}

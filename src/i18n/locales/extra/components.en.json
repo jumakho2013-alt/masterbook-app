@@ -49,6 +49,8 @@
     "clientOpenProfileHint": "Open client profile",
     "swipeWaShort": "WA",
     "swipeCallShort": "Call",
+    "swipeReschedule": "Reschedule",
+    "swipeCancel": "Cancel",
     "swipeWaFailed": "Couldn't open WhatsApp",
     "swipeCallTitle": "Call",
     "swipeCallFailed": "Couldn't start the call",
