@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView, Pressable } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInRight } from 'react-native-reanimated';
 import { X, ArrowLeft, Scissors } from 'lucide-react-native';
@@ -40,16 +40,23 @@ const STEP_TITLE_KEYS: Record<Step, string> = {
   confirm: 'appt.step.confirm',
 };
 
-const DATE_RANGE_DAYS = 30;
+const DATE_RANGE_DAYS = 120;
 
 export default function NewAppointmentScreen() {
   const router = useRouter();
   const tr = useT();
   const { colors, typography: typo, spacing: sp, borderRadius: br } = useTheme();
 
-  const [step, setStep] = useState<Step>('client');
+  // clientId-параметр: запись запущена из карточки клиента («Записать ещё»).
+  // Предвыбираем клиента и стартуем сразу с шага услуги.
+  const { clientId: preClientId } = useLocalSearchParams<{ clientId?: string }>();
+  const preClient = preClientId
+    ? useClientStore.getState().clients.find((c) => c.id === preClientId) ?? null
+    : null;
+
+  const [step, setStep] = useState<Step>(preClient ? 'service' : 'client');
   const [search, setSearch] = useState('');
-  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(preClient);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
@@ -366,16 +373,15 @@ export default function NewAppointmentScreen() {
                 <Pressable
                   key={key}
                   onPress={() => {
-                    if (!off) {
-                      Haptics.selectionAsync();
-                      setSelectedDate(d);
-                      setSelectedTime(null);
-                    }
+                    // Выходной день тоже можно выбрать (мастер сам решает —
+                    // вдруг разовый приём в воскресенье). Просто визуально тусклее.
+                    Haptics.selectionAsync();
+                    setSelectedDate(d);
+                    setSelectedTime(null);
                   }}
-                  disabled={off}
                   accessibilityRole="button"
                   accessibilityLabel={formatDate(d)}
-                  accessibilityState={{ selected: active, disabled: off }}
+                  accessibilityState={{ selected: active }}
                   style={[
                     styles.dateChip,
                     {
@@ -385,9 +391,9 @@ export default function NewAppointmentScreen() {
                           ? 'transparent'
                           : colors.surfaceElevated,
                       borderRadius: br.md,
-                      opacity: off ? 0.35 : 1,
-                      borderColor: off ? colors.border : 'transparent',
-                      borderWidth: off ? 1 : 0,
+                      opacity: off && !active ? 0.5 : 1,
+                      borderColor: off && !active ? colors.border : 'transparent',
+                      borderWidth: off && !active ? 1 : 0,
                     },
                   ]}
                 >

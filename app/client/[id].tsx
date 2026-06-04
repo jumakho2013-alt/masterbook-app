@@ -304,7 +304,7 @@ export default function ClientDetailScreen() {
                   <Send size={18} color="#0088cc" />
                   <Text style={[typo.caption, { color: '#0088cc' }]}>Telegram</Text>
                 </Pressable>
-                <Pressable style={[styles.actionBtn, { backgroundColor: colors.primary + '15' }]} onPress={() => router.push('/appointment/new')}>
+                <Pressable style={[styles.actionBtn, { backgroundColor: colors.primary + '15' }]} onPress={() => router.push({ pathname: '/appointment/new', params: { clientId: client.id } })}>
                   <Plus size={18} color={colors.primary} />
                   <Text style={[typo.caption, { color: colors.primary }]}>{tr('clientDetail.actionBook')}</Text>
                 </Pressable>
