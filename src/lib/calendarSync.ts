@@ -29,7 +29,7 @@ import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import type { Appointment } from '@/src/types';
 
 const MB_CALENDAR_TITLE = 'MasterBook';
-const MB_CALENDAR_COLOR = '#7C5DFA';
+const MB_CALENDAR_COLOR = '#059669'; // фирменный изумруд (был #7C5DFA — старая палитра)
 
 /** Cached id of our calendar — чтобы не делать getCalendars при каждой операции. */
 let cachedCalendarId: string | null = null;

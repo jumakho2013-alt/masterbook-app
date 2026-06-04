@@ -431,7 +431,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    shadowColor: '#7C5DFA',
+    shadowColor: '#10B981',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
@@ -456,8 +456,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 20,
     // Coloured drop-shadow matching the primary tint — gives the liquid
-    // glass surface a branded glow that anchors it to the theme.
-    shadowColor: '#7C5DFA',
+    // glass surface a branded emerald glow that anchors it to the theme.
+    shadowColor: '#10B981',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.35,
     shadowRadius: 20,

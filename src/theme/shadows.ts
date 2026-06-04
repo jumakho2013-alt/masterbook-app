@@ -50,11 +50,12 @@ function makeShadows(isDark: boolean) {
       android: { elevation: 8 },
       default: {},
     }),
-    /** Branded glow — primary purple. Один и тот же на light/dark
-     *  (на dark смотрится особенно красиво — фирменный halo). */
+    /** Branded glow — изумруд (фирменный halo). Подстраивается под тему:
+     *  ярче на dark, насыщеннее на light. Раньше был фиолетовый (#7C5DFA) —
+     *  наследие старой палитры, не совпадал с emerald-gold брендом. */
     glow: Platform.select({
       ios: {
-        shadowColor: '#7C5DFA',
+        shadowColor: isDark ? '#2EE6A6' : '#059669',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: isDark ? 0.5 : 0.3,
         shadowRadius: isDark ? 18 : 12,

@@ -22,12 +22,14 @@ export interface AlertConfig {
   onDismiss?: () => void;
 }
 
+// Иконки статусов. Цвет резолвится из темы в компоненте (раньше были
+// хардкод-хексы, в т.ч. фиолетовый #7C5DFA — наследие старой палитры).
 const ICONS = {
-  success: { Icon: CheckCircle, color: '#2ED573' },
-  warning: { Icon: AlertTriangle, color: '#FFA502' },
-  error: { Icon: XCircle, color: '#FF4757' },
-  info: { Icon: Info, color: '#7C5DFA' },
-  confirm: { Icon: HelpCircle, color: '#7C5DFA' },
+  success: CheckCircle,
+  warning: AlertTriangle,
+  error: XCircle,
+  info: Info,
+  confirm: HelpCircle,
 };
 
 export function CustomAlert({
@@ -41,7 +43,15 @@ export function CustomAlert({
   const { colors, typography: typo, borderRadius: br, spacing: sp } = useTheme();
 
   const resolvedButtons = buttons ?? [{ text: 'OK', style: 'default' as const }];
-  const iconInfo = ICONS[icon];
+  const IconCmp = ICONS[icon];
+  const iconColor =
+    icon === 'success'
+      ? colors.success
+      : icon === 'warning'
+        ? colors.warning
+        : icon === 'error'
+          ? colors.danger
+          : colors.primary; // info / confirm — фирменный изумруд
 
   const handlePress = (btn: AlertButton) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -70,8 +80,8 @@ export function CustomAlert({
           ]}
         >
           {/* Icon */}
-          <View style={[styles.iconWrap, { backgroundColor: iconInfo.color + '15' }]}>
-            <iconInfo.Icon size={32} color={iconInfo.color} />
+          <View style={[styles.iconWrap, { backgroundColor: iconColor + '15' }]}>
+            <IconCmp size={32} color={iconColor} />
           </View>
 
           {/* Title */}

@@ -72,7 +72,7 @@ export async function registerForPushNotifications(): Promise<boolean> {
         name: t('misc.notifChannel'),
         importance: Notifications.AndroidImportance.HIGH,
         vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#7C5DFA',
+        lightColor: '#059669', // фирменный изумруд (был #7C5DFA — старая палитра)
         sound: 'default',
       });
     }

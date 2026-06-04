@@ -500,7 +500,7 @@ const styles = StyleSheet.create({
   fabWrap: {
     position: 'absolute',
     right: 20,
-    shadowColor: '#7C5DFA',
+    shadowColor: '#10B981',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.35,
     shadowRadius: 20,
