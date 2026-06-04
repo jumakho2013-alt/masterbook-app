@@ -14,6 +14,12 @@ interface SettingsState {
   bufferMinutes: number; // 0, 15, 30
   fieldConfig: FieldConfig;
   masterName: string;
+  /** Локальный URI фото мастера в профиле (постоянная папка приложения,
+   *  persistImageToAppDir). null = показываем фирменный логотип MasterBook.
+   *  Хранится только локально — как и masterName, профиль не тянется обратно
+   *  через pullAll, поэтому облако не задействуем (иначе orphan-файлы + лишняя
+   *  миграция без cross-device выгоды). */
+  masterPhotoUri: string | null;
   /** Блокировка приложения биометрией (Face ID / Touch ID). */
   biometricLock: boolean;
   /** Валюта для отображения цен / дохода. Default RUB (СНГ-first).
@@ -58,6 +64,7 @@ interface SettingsState {
   setFieldConfig: (config: FieldConfig) => void;
   updateFieldConfig: (updates: Partial<FieldConfig>) => void;
   setMasterName: (name: string) => void;
+  setMasterPhotoUri: (uri: string | null) => void;
   setBiometricLock: (enabled: boolean) => void;
   setCurrency: (currency: CurrencyCode) => void;
   setDemoDataSeededAt: (iso: string | null) => void;
@@ -91,6 +98,7 @@ const defaultSettingsForAccount = {
   bufferMinutes: 15,
   fieldConfig: defaultFieldConfig,
   masterName: '',
+  masterPhotoUri: null as string | null,
   biometricLock: false,
 };
 
@@ -119,6 +127,7 @@ export const useSettingsStore = create<SettingsState>()(
       updateFieldConfig: (updates) =>
         set((s) => ({ fieldConfig: { ...s.fieldConfig, ...updates } })),
       setMasterName: (name) => set({ masterName: name }),
+      setMasterPhotoUri: (uri) => set({ masterPhotoUri: uri }),
       setBiometricLock: (enabled) => set({ biometricLock: enabled }),
       setCurrency: (currency) => set({ currency }),
       setDemoDataSeededAt: (iso) => set({ demoDataSeededAt: iso }),

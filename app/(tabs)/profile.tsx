@@ -1,5 +1,7 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Pressable } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -21,12 +23,15 @@ import {
   CalendarSync,
   Languages,
   BellRing,
+  Camera,
 } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
-import { GlassCard, Divider, CustomAlert } from '@/src/components/ui';
+import { GlassCard, Divider, CustomAlert, useToast } from '@/src/components/ui';
 import { MasterBookLogo } from '@/src/components/MasterBookLogo';
 import { SyncStatusCard } from '@/src/components/SyncStatusCard';
 import { flushPush } from '@/src/lib/cloudSync';
+import { persistImageToAppDir, deletePersistedImage } from '@/src/lib/photoStorage';
+import { useResolvedPhoto } from '@/src/lib/photoCloud';
 import { TRIAL_DAYS, PRO_PRICE } from '@/src/lib/iap';
 import { useAlert } from '@/src/hooks/useAlert';
 import { useT } from '@/src/hooks/useT';
@@ -91,6 +96,9 @@ function ProfileScreen() {
   const { colors, typography: typo, spacing: sp, borderRadius: br } = useTheme();
   const bottomOffset = useTabBarOffset(0);
   const masterName = useSettingsStore((s) => s.masterName);
+  const masterPhotoUri = useSettingsStore((s) => s.masterPhotoUri);
+  const setMasterPhotoUri = useSettingsStore((s) => s.setMasterPhotoUri);
+  const resolvedPhoto = useResolvedPhoto(masterPhotoUri);
   const specializationId = useAuthStore((s) => s.specializationId);
   const theme = useSettingsStore((s) => s.theme);
   const setTheme = useSettingsStore((s) => s.setTheme);
@@ -101,7 +109,8 @@ function ProfileScreen() {
   const signOut = useAuthStore((s) => s.signOut);
   const resetServices = useServiceStore((s) => s.reset);
 
-  const { alertConfig, info, confirm } = useAlert();
+  const { alertConfig, info, confirm, show, error: showAlertError } = useAlert();
+  const toast = useToast();
   const tr = useT();
 
   const clients = useClientStore((s) => s.clients);
@@ -175,6 +184,69 @@ function ProfileScreen() {
     );
   };
 
+  // Фото мастера в профиле. Тот же проверенный флоу, что у клиента:
+  // permission → picker → persistImageToAppDir (постоянная папка) → сохранить.
+  // Локально, без облака (см. комментарий у masterPhotoUri в useSettingsStore).
+  const pickPhoto = async () => {
+    // Весь флоу (включая permission-проверки) в одном try: pickPhoto зовётся
+    // fire-and-forget из onPress кнопки алерта — без обёртки любой throw из
+    // permission API стал бы unhandled rejection (личное правило #12).
+    try {
+      const perm = await ImagePicker.getMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        const req = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!req.granted) {
+          showAlertError(tr('profile.photoAccessTitle'), tr('profile.photoAccessBody'));
+          return;
+        }
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        quality: 0.7,
+        allowsEditing: true,
+        aspect: [1, 1],
+      });
+      if (!result.canceled && result.assets[0]) {
+        const prev = masterPhotoUri;
+        const persisted = persistImageToAppDir(result.assets[0].uri);
+        setMasterPhotoUri(persisted);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        toast.success(tr('profile.photoUpdated'));
+        // Прежний локальный файл больше не нужен — чистим, чтобы не копить в
+        // documentDirectory (cleanup-path; deletePersistedImage no-op для чужих uri).
+        if (prev && prev !== persisted) deletePersistedImage(prev);
+      }
+    } catch (err) {
+      showAlertError(tr('profile.photoError'), err instanceof Error ? err.message : String(err));
+    }
+  };
+
+  const removePhoto = () => {
+    const prev = masterPhotoUri;
+    setMasterPhotoUri(null);
+    if (prev) deletePersistedImage(prev);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    toast.success(tr('profile.photoRemoved'));
+  };
+
+  const onPhotoPress = () => {
+    // Нет фото — сразу пикер. Есть фото — выбор Заменить / Убрать (2 кнопки:
+    // CustomAlert раскладывает их в row с flex:1, третья бы сплющилась).
+    if (!masterPhotoUri) {
+      pickPhoto();
+      return;
+    }
+    show(
+      tr('profile.photoActionTitle'),
+      undefined,
+      [
+        { text: tr('profile.photoChange'), onPress: pickPhoto },
+        { text: tr('profile.photoRemove'), style: 'destructive', onPress: removePhoto },
+      ],
+      'info',
+    );
+  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]} edges={['top']}>
       <ScrollView contentContainerStyle={{ paddingBottom: bottomOffset + 24 }} showsVerticalScrollIndicator={false}>
@@ -187,7 +259,21 @@ function ProfileScreen() {
             самого мастера brand-identity > random color. */}
         <Animated.View entering={FadeInDown.delay(50)} style={{ paddingHorizontal: 16, marginBottom: sp.md }}>
           <GlassCard elevated style={styles.profileCard}>
-            <MasterBookLogo size={64} />
+            <Pressable
+              onPress={onPhotoPress}
+              accessibilityRole="button"
+              accessibilityLabel={masterPhotoUri ? tr('profile.photoChangeA11y') : tr('profile.photoAddA11y')}
+              style={styles.photoWrap}
+            >
+              {resolvedPhoto ? (
+                <Image source={{ uri: resolvedPhoto }} style={[styles.photo, { borderColor: colors.border }]} />
+              ) : (
+                <MasterBookLogo size={64} />
+              )}
+              <View style={[styles.cameraBadge, { backgroundColor: colors.primary, borderColor: colors.surface }]}>
+                <Camera size={11} color="#FFFFFF" />
+              </View>
+            </Pressable>
             <View style={{ marginLeft: sp.md, flex: 1 }}>
               <Text style={[typo.h3, { color: colors.text }]}>
                 {masterName || tr('profile.masterFallback')}
@@ -340,6 +426,27 @@ const styles = StyleSheet.create({
   profileCard: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  photoWrap: {
+    width: 64,
+    height: 64,
+  },
+  photo: {
+    width: 64,
+    height: 64,
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  cameraBadge: {
+    position: 'absolute',
+    right: -2,
+    bottom: -2,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
   },
   compactStatsRow: {
     flexDirection: 'row',
