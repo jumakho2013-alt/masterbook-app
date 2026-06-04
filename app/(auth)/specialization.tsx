@@ -10,12 +10,14 @@ import { GlassCard } from '@/src/components/ui';
 import { professionCategories, getDefaultFieldConfig } from '@/src/data/professions';
 import { useAuthStore } from '@/src/stores/useAuthStore';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
+import { useT } from '@/src/hooks/useT';
 import type { ProfessionCategory, Specialization } from '@/src/types';
 
 export default function SpecializationScreen() {
   const router = useRouter();
   const { categoryId } = useLocalSearchParams<{ categoryId: string }>();
   const { colors, typography: typo, spacing: sp } = useTheme();
+  const tr = useT();
   const setProfession = useAuthStore((s) => s.setProfession);
   const setFieldConfig = useSettingsStore((s) => s.setFieldConfig);
 
@@ -38,7 +40,7 @@ export default function SpecializationScreen() {
           {category.name}
         </Text>
         <Text style={[typo.body, { color: colors.textSecondary, marginTop: sp.xs }]}>
-          Выберите специализацию
+          {tr('misc.chooseSpecialization')}
         </Text>
       </Animated.View>
 

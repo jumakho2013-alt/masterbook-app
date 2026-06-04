@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, MessageCircle, Clock } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
 import { GlassCard, IconButton, useToast } from '@/src/components/ui';
+import { useT } from '@/src/hooks/useT';
 import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useClientStore } from '@/src/stores/useClientStore';
 import { useServiceStore } from '@/src/stores/useServiceStore';
@@ -18,18 +19,11 @@ function tomorrowKey(): string {
   return toDateKey(d);
 }
 
-/** Текст напоминания клиенту о завтрашней записи. */
-function buildReminderText(clientName: string, time: string, serviceName?: string, masterName?: string): string {
-  const firstName = clientName.split(' ')[0] || clientName;
-  const svc = serviceName ? ` на «${serviceName}»` : '';
-  const sig = masterName ? `\n\n— ${masterName}` : '';
-  return `${firstName}, здравствуйте! Напоминаю о записи завтра в ${time}${svc}. Если планы изменились — дайте знать 🙏${sig}`;
-}
-
 export default function RemindersTomorrowScreen() {
   const router = useRouter();
   const { colors, typography: typo, spacing: sp } = useTheme();
   const toast = useToast();
+  const tr = useT();
 
   const appointments = useAppointmentStore((s) => s.appointments);
   const clients = useClientStore((s) => s.clients);
@@ -50,19 +44,22 @@ export default function RemindersTomorrowScreen() {
 
   const remind = async (clientName: string, phone: string | undefined, time: string, serviceName?: string) => {
     if (!phone) {
-      toast.error('У клиента не указан телефон');
+      toast.error(tr('misc.remindNoPhone'));
       return;
     }
-    const msg = buildReminderText(clientName, time, serviceName, masterName);
+    const firstName = clientName.split(' ')[0] || clientName;
+    const svc = serviceName ? tr('misc.remindSvc', { service: serviceName }) : '';
+    const sig = masterName ? `\n\n— ${masterName}` : '';
+    const msg = tr('misc.remindText', { name: firstName, time, svc }) + sig;
     const ok = await openOutreach('whatsapp', phone, msg);
-    if (!ok) toast.error('Не удалось открыть WhatsApp');
+    if (!ok) toast.error(tr('misc.remindWhatsappFailed'));
   };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]} edges={['top']}>
       <View style={styles.topBar}>
         <IconButton icon={<ArrowLeft size={22} color={colors.text} />} onPress={() => router.back()} variant="ghost" />
-        <Text style={[typo.h3, { color: colors.text }]}>Завтрашние клиенты</Text>
+        <Text style={[typo.h3, { color: colors.text }]}>{tr('misc.remindTitle')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -74,17 +71,17 @@ export default function RemindersTomorrowScreen() {
         ListHeaderComponent={
           rows.length > 0 ? (
             <Text style={[typo.body, { color: colors.textSecondary, marginBottom: sp.md }]}>
-              Напомните каждому — это снижает неявки. Нажмите «Напомнить», текст уже готов.
+              {tr('misc.remindHeader')}
             </Text>
           ) : null
         }
         ListEmptyComponent={
           <Text style={[typo.body, { color: colors.textSecondary, textAlign: 'center', marginTop: 48 }]}>
-            На завтра записей нет 🎉
+            {tr('misc.remindEmpty')}
           </Text>
         }
         renderItem={({ item }) => {
-          const name = item.client?.name ?? 'Клиент';
+          const name = item.client?.name ?? tr('misc.remindClientFallback');
           return (
             <GlassCard style={styles.row}>
               <View style={{ flex: 1 }}>
@@ -101,10 +98,10 @@ export default function RemindersTomorrowScreen() {
                 onPress={() => remind(name, item.client?.phone, item.appt.startTime, item.service?.name)}
                 style={[styles.remindBtn, { backgroundColor: colors.primarySoft }]}
                 accessibilityRole="button"
-                accessibilityLabel={`Напомнить клиенту ${name}`}
+                accessibilityLabel={tr('misc.remindA11y', { name })}
               >
                 <MessageCircle size={16} color={colors.primary} />
-                <Text style={[typo.caption, { color: colors.primary, fontFamily: typo.bodyBold.fontFamily }]}>Напомнить</Text>
+                <Text style={[typo.caption, { color: colors.primary, fontFamily: typo.bodyBold.fontFamily }]}>{tr('misc.remindBtn')}</Text>
               </Pressable>
             </GlassCard>
           );

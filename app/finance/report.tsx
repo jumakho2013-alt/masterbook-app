@@ -11,16 +11,18 @@ import { useClientStore } from '@/src/stores/useClientStore';
 import { useServiceStore } from '@/src/stores/useServiceStore';
 import { formatCurrency } from '@/src/utils/currency';
 import { formatDate, toDateKey } from '@/src/utils/date';
+import { useT } from '@/src/hooks/useT';
 
 type ReportKind = 'income' | 'expense' | 'net' | 'avgCheck' | 'hours';
 type Period = 'day' | 'week' | 'month' | 'year';
 
-const REPORT_TITLES: Record<ReportKind, string> = {
-  income: 'Доходы',
-  expense: 'Расходы',
-  net: 'Чистая прибыль',
-  avgCheck: 'Средний чек',
-  hours: 'Отработано часов',
+// i18n-ключи заголовков (резолвятся в render через useT).
+const REPORT_TITLE_KEYS: Record<ReportKind, string> = {
+  income: 'misc.reportTitleIncome',
+  expense: 'misc.reportTitleExpense',
+  net: 'misc.reportTitleNet',
+  avgCheck: 'misc.reportTitleAvgCheck',
+  hours: 'misc.reportTitleHours',
 };
 
 const REPORT_ICONS: Record<ReportKind, React.ComponentType<{ size: number; color: string }>> = {
@@ -64,6 +66,7 @@ export default function FinanceReportScreen() {
   const period = (periodParam as Period) || 'month';
 
   const { colors, typography: typo, spacing: sp, borderRadius: br } = useTheme();
+  const tr = useT();
 
   const allEntries = useFinanceStore((s) => s.entries);
   const allAppointments = useAppointmentStore((s) => s.appointments);
@@ -85,14 +88,14 @@ export default function FinanceReportScreen() {
         .filter((e) => e.type === 'income')
         .sort((a, b) => b.date.localeCompare(a.date));
       const total = items.reduce((s, e) => s + e.amount, 0);
-      return { items, total, label: 'Доход за период' };
+      return { items, total, label: tr('misc.reportIncomePeriod') };
     }
     if (kind === 'expense') {
       const items = entries
         .filter((e) => e.type === 'expense')
         .sort((a, b) => b.date.localeCompare(a.date));
       const total = items.reduce((s, e) => s + e.amount, 0);
-      return { items, total, label: 'Расход за период' };
+      return { items, total, label: tr('misc.reportExpensePeriod') };
     }
     if (kind === 'net') {
       const income = entries.filter((e) => e.type === 'income').reduce((s, e) => s + e.amount, 0);
@@ -101,7 +104,7 @@ export default function FinanceReportScreen() {
       return {
         items,
         total: income - expense,
-        label: 'Чистая прибыль (доход − расход)',
+        label: tr('misc.reportNetPeriod'),
         income,
         expense,
       };
@@ -115,11 +118,11 @@ export default function FinanceReportScreen() {
           id: a.id,
           type: 'income' as const,
           amount: a.price,
-          description: services.find((s) => s.id === a.serviceId)?.name ?? 'Услуга',
+          description: services.find((s) => s.id === a.serviceId)?.name ?? tr('misc.reportServiceFallback'),
           date: a.date,
         })),
         total: avg,
-        label: 'Средний чек',
+        label: tr('misc.reportAvgCheckLabel'),
         apptCount: appts.length,
       };
     }
@@ -135,18 +138,18 @@ export default function FinanceReportScreen() {
           id: a.id,
           type: 'income' as const,
           amount: 0,
-          description: services.find((s) => s.id === a.serviceId)?.name ?? 'Услуга',
+          description: services.find((s) => s.id === a.serviceId)?.name ?? tr('misc.reportServiceFallback'),
           date: a.date,
           startTime: a.startTime,
           endTime: a.endTime,
         })),
         total: totalH,
-        label: 'Часов отработано',
+        label: tr('misc.reportHoursLabel'),
         apptCount: appts.length,
       };
     }
     return { items: [], total: 0, label: '' };
-  }, [allEntries, allAppointments, services, range, kind]);
+  }, [allEntries, allAppointments, services, range, kind, tr]);
 
   const getClient = (id: string) => clients.find((c) => c.id === id);
 
@@ -177,9 +180,9 @@ export default function FinanceReportScreen() {
           icon={<ArrowLeft size={22} color={colors.text} />}
           onPress={() => router.back()}
           variant="ghost"
-          accessibilityLabel="Назад"
+          accessibilityLabel={tr('common.back')}
         />
-        <Text style={[typo.h3, { color: colors.text }]}>{REPORT_TITLES[kind]}</Text>
+        <Text style={[typo.h3, { color: colors.text }]}>{tr(REPORT_TITLE_KEYS[kind])}</Text>
         <View style={{ width: 48 }} />
       </View>
 
@@ -221,21 +224,21 @@ export default function FinanceReportScreen() {
                   },
                 ]}
               >
-                {kind === 'hours' ? `${data.total} ч` : formatCurrency(data.total)}
+                {kind === 'hours' ? tr('misc.reportHoursUnit', { n: data.total }) : formatCurrency(data.total)}
               </Text>
               {kind === 'avgCheck' && 'apptCount' in data && (
                 <Text style={[typo.caption, { color: colors.textSecondary, marginTop: 4 }]}>
-                  По {data.apptCount} визитам
+                  {tr('misc.reportAvgBasis', { count: data.apptCount ?? 0 })}
                 </Text>
               )}
               {kind === 'hours' && 'apptCount' in data && (
                 <Text style={[typo.caption, { color: colors.textSecondary, marginTop: 4 }]}>
-                  {data.apptCount} визитов
+                  {tr('misc.reportVisits', { count: data.apptCount ?? 0 })}
                 </Text>
               )}
               {kind === 'net' && 'income' in data && data.income !== undefined && (
                 <Text style={[typo.caption, { color: colors.textSecondary, marginTop: 4 }]}>
-                  Доход {formatCurrency(data.income)} · Расход {formatCurrency(data.expense ?? 0)}
+                  {tr('misc.reportNetBreakdown', { income: formatCurrency(data.income), expense: formatCurrency(data.expense ?? 0) })}
                 </Text>
               )}
             </View>
@@ -255,7 +258,7 @@ export default function FinanceReportScreen() {
         {/* Day-grouped list */}
         {grouped.length === 0 ? (
           <View style={{ alignItems: 'center', paddingTop: 40 }}>
-            <Text style={[typo.body, { color: colors.textSecondary }]}>За период данных нет</Text>
+            <Text style={[typo.body, { color: colors.textSecondary }]}>{tr('misc.reportEmpty')}</Text>
           </View>
         ) : (
           grouped.map(({ date, items }) => {

@@ -14,6 +14,7 @@ import { supabase } from '@/src/lib/supabase';
 import { formatCurrency } from '@/src/utils/currency';
 import { generateId } from '@/src/utils/helpers';
 import { resolvePack } from '@/src/lib/professionPacks';
+import { useT } from '@/src/hooks/useT';
 import type { Service } from '@/src/types';
 
 export default function ServicesSetupScreen() {
@@ -21,6 +22,7 @@ export default function ServicesSetupScreen() {
   const { specializationId } = useLocalSearchParams<{ specializationId: string }>();
   const { colors, typography: typo, spacing: sp } = useTheme();
   const setOnboarded = useAuthStore((s) => s.setOnboarded);
+  const tr = useT();
 
   const [services, setServices] = useState<Service[]>([]);
   const [masterName, setMasterName] = useState('');
@@ -99,16 +101,16 @@ export default function ServicesSetupScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]}>
       <Animated.View entering={FadeInDown.duration(400)} style={styles.header}>
         <Text style={[typo.h2, { color: colors.text }]}>
-          Ваши услуги
+          {tr('misc.servicesTitle')}
         </Text>
         <Text style={[typo.body, { color: colors.textSecondary, marginTop: sp.xs }]}>
-          Мы подобрали шаблоны. Отредактируйте или удалите ненужные.
+          {tr('misc.servicesSubtitle')}
         </Text>
-        <Text style={[typo.bodyBold, { color: colors.text, marginTop: sp.md }]}>Ваше имя</Text>
+        <Text style={[typo.bodyBold, { color: colors.text, marginTop: sp.md }]}>{tr('misc.servicesYourName')}</Text>
         <TextInput
           value={masterName}
           onChangeText={setMasterName}
-          placeholder="Введите ваше имя"
+          placeholder={tr('misc.servicesYourNamePlaceholder')}
           placeholderTextColor={colors.textTertiary}
           style={[typo.body, styles.nameInput, { color: colors.text, backgroundColor: colors.surfaceElevated, borderRadius: 12 }]}
         />
@@ -121,7 +123,7 @@ export default function ServicesSetupScreen() {
         ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
         ListEmptyComponent={
           <Text style={[typo.body, { color: colors.textSecondary, textAlign: 'center', marginTop: 32 }]}>
-            Нет услуг. Вы сможете добавить их позже.
+            {tr('misc.servicesEmpty')}
           </Text>
         }
         renderItem={({ item, index }) => (
@@ -131,7 +133,7 @@ export default function ServicesSetupScreen() {
               <View style={styles.serviceInfo}>
                 <Text style={[typo.bodyBold, { color: colors.text }]}>{item.name}</Text>
                 <Text style={[typo.caption, { color: colors.textSecondary }]}>
-                  {formatCurrency(item.price)} / {item.duration} мин
+                  {formatCurrency(item.price)} / {item.duration} {tr('misc.servicesMinUnit')}
                 </Text>
               </View>
               <TouchableOpacity onPress={() => removeService(item.id)} hitSlop={12}>
@@ -143,9 +145,9 @@ export default function ServicesSetupScreen() {
       />
 
       <View style={styles.bottom}>
-        <Button title="Готово" onPress={finish} size="lg" loading={loading} disabled={loading} style={{ width: '100%' }} />
+        <Button title={tr('common.done')} onPress={finish} size="lg" loading={loading} disabled={loading} style={{ width: '100%' }} />
         <TouchableOpacity onPress={skip} style={styles.skipBtn}>
-          <Text style={[typo.body, { color: colors.textSecondary }]}>Добавлю позже</Text>
+          <Text style={[typo.body, { color: colors.textSecondary }]}>{tr('misc.servicesAddLater')}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

@@ -7,6 +7,7 @@ import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/src/theme';
 import { Button, Input, IconButton, CustomAlert } from '@/src/components/ui';
 import { useAlert } from '@/src/hooks/useAlert';
+import { useT } from '@/src/hooks/useT';
 import { useFinanceStore } from '@/src/stores/useFinanceStore';
 import { toDateKey } from '@/src/utils/date';
 
@@ -19,6 +20,7 @@ export default function NewFinanceEntryScreen() {
   const router = useRouter();
   const { colors, typography: typo, spacing: sp, borderRadius: br } = useTheme();
   const addEntry = useFinanceStore((s) => s.addEntry);
+  const tr = useT();
 
   const { alertConfig, error: showError } = useAlert();
 
@@ -30,10 +32,10 @@ export default function NewFinanceEntryScreen() {
     Keyboard.dismiss();
     const num = parseFloat(amount.replace(',', '.').replace(/\s/g, ''));
     if (!Number.isFinite(num) || num <= 0) {
-      showError('Неверная сумма', 'Введи положительное число');
+      showError(tr('misc.financeNewInvalidTitle'), tr('misc.financeNewInvalidBody'));
       return;
     }
-    const desc = description.trim() || (type === 'expense' ? 'Расход' : 'Доход');
+    const desc = description.trim() || (type === 'expense' ? tr('finances.expense') : tr('finances.income'));
     addEntry({
       type,
       amount: num,
@@ -51,9 +53,9 @@ export default function NewFinanceEntryScreen() {
           icon={<ArrowLeft size={22} color={colors.text} />}
           onPress={() => router.back()}
           variant="ghost"
-          accessibilityLabel="Закрыть"
+          accessibilityLabel={tr('misc.financeNewClose')}
         />
-        <Text style={[typo.h3, { color: colors.text }]}>Новая операция</Text>
+        <Text style={[typo.h3, { color: colors.text }]}>{tr('misc.financeNewTitle')}</Text>
         <View style={{ width: 48 }} />
       </View>
 
@@ -61,14 +63,14 @@ export default function NewFinanceEntryScreen() {
         {/* Тип: расход / доход — большая визуальная развилка */}
         <View style={[styles.typeRow, { gap: sp.sm }]}>
           <TypeButton
-            label="Расход"
+            label={tr('finances.expense')}
             icon={<TrendingDown size={20} color={type === 'expense' ? colors.white : colors.danger} />}
             active={type === 'expense'}
             activeColor={colors.danger}
             onPress={() => setType('expense')}
           />
           <TypeButton
-            label="Доход"
+            label={tr('finances.income')}
             icon={<TrendingUp size={20} color={type === 'income' ? colors.white : colors.success} />}
             active={type === 'income'}
             activeColor={colors.success}
@@ -77,7 +79,7 @@ export default function NewFinanceEntryScreen() {
         </View>
 
         <Input
-          label="Сумма"
+          label={tr('misc.financeNewAmount')}
           placeholder="0"
           value={amount}
           onChangeText={setAmount}
@@ -86,15 +88,15 @@ export default function NewFinanceEntryScreen() {
           containerStyle={{ marginTop: sp.lg }}
         />
         <Input
-          label="Описание"
-          placeholder={type === 'expense' ? 'Например: материалы, аренда' : 'Например: чаевые, доплата'}
+          label={tr('misc.financeNewDescription')}
+          placeholder={type === 'expense' ? tr('misc.financeNewDescPlaceholderExpense') : tr('misc.financeNewDescPlaceholderIncome')}
           value={description}
           onChangeText={setDescription}
           containerStyle={{ marginTop: sp.md }}
         />
 
         <Button
-          title="Сохранить"
+          title={tr('common.save')}
           onPress={onSubmit}
           size="lg"
           fullWidth
