@@ -16,6 +16,7 @@ import { generateId } from '@/src/utils/helpers';
 import { resolvePack } from '@/src/lib/professionPacks';
 import { getSpecialization } from '@/src/data/professions';
 import { getCategoryServices } from '@/src/data/category-services';
+import { localizeServiceName } from '@/src/data/serviceNames.i18n';
 import { useT } from '@/src/hooks/useT';
 import type { Service } from '@/src/types';
 
@@ -39,7 +40,7 @@ export default function ServicesSetupScreen() {
     //      специализаций без своего шаблона (грумер, ведущий, флорист…).
     //   3. Pack-default — последний резерв (бьюти-вертикали).
     const seed = (list: Omit<Service, 'id'>[]) =>
-      setServices(list.map((t) => ({ ...t, id: generateId() })));
+      setServices(list.map((t) => ({ ...t, id: generateId(), name: localizeServiceName(t.name) })));
 
     const templates = serviceTemplates[specializationId ?? ''] ?? [];
     if (templates.length > 0) { seed(templates); return; }

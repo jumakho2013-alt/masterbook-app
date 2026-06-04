@@ -39,6 +39,7 @@ import { useFinanceStore } from '@/src/stores/useFinanceStore';
 import { useServiceStore } from '@/src/stores/useServiceStore';
 import { useTabBarOffset } from '@/src/hooks/useTabBarOffset';
 import { getSpecialization } from '@/src/data/professions';
+import { localizeSpecName } from '@/src/data/professions.i18n';
 import { formatCurrency } from '@/src/utils/currency';
 
 interface MenuItemProps {
@@ -192,7 +193,7 @@ function ProfileScreen() {
                 {masterName || tr('profile.masterFallback')}
               </Text>
               <Text style={[typo.caption, { color: colors.textSecondary, marginTop: 2 }]}>
-                {spec?.name ?? tr('profile.specFallback')}
+                {spec ? localizeSpecName(spec) : tr('profile.specFallback')}
               </Text>
             </View>
           </GlassCard>

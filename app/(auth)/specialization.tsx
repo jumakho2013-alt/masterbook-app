@@ -8,6 +8,7 @@ import * as LucideIcons from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
 import { GlassCard } from '@/src/components/ui';
 import { professionCategories, getDefaultFieldConfig } from '@/src/data/professions';
+import { localizeCategoryName, localizeSpecName } from '@/src/data/professions.i18n';
 import { useAuthStore } from '@/src/stores/useAuthStore';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { useT } from '@/src/hooks/useT';
@@ -37,7 +38,7 @@ export default function SpecializationScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]}>
       <Animated.View entering={FadeInDown.duration(400)} style={styles.header}>
         <Text style={[typo.h2, { color: colors.text }]}>
-          {category.name}
+          {localizeCategoryName(category)}
         </Text>
         <Text style={[typo.body, { color: colors.textSecondary, marginTop: sp.xs }]}>
           {tr('misc.chooseSpecialization')}
@@ -59,7 +60,7 @@ export default function SpecializationScreen() {
                     {Icon && <Icon size={22} color={category.color} />}
                   </View>
                   <Text style={[typo.bodyBold, { color: colors.text, flex: 1 }]}>
-                    {item.name}
+                    {localizeSpecName(item)}
                   </Text>
                   <ChevronRight size={18} color={colors.textTertiary} />
                 </GlassCard>

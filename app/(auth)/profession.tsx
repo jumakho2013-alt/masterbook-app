@@ -6,6 +6,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useTheme } from '@/src/theme';
 import { ProfessionCard } from '@/src/components/ProfessionCard';
 import { professionCategories } from '@/src/data/professions';
+import { localizeCategoryName } from '@/src/data/professions.i18n';
 import { useAuthStore } from '@/src/stores/useAuthStore';
 import { useT } from '@/src/hooks/useT';
 
@@ -55,7 +56,7 @@ export default function ProfessionScreen() {
             style={styles.gridItem}
           >
             <ProfessionCard
-              name={item.name}
+              name={localizeCategoryName(item)}
               icon={item.icon}
               color={item.color}
               onPress={() => handleSelect(item.id)}
