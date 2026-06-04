@@ -61,6 +61,28 @@ export async function deleteAccount(): Promise<DeleteAccountResult> {
     // 1. Уведомления
     await cancelAllNotifications().catch(() => {});
 
+    // 1.5. Удаляем фото из Storage (минус №13: после удаления аккаунта их там
+    //      быть не должно — 152-ФЗ). Точечно по сохранённым storage-path
+    //      (значения без схемы '://' — это пути в бакете, а не локальные file://).
+    //      Делаем ПОКА ещё авторизованы (до RPC/signOut) — иначе RLS не пустит.
+    if (!isLocalOnly) {
+      const photoPaths: string[] = [];
+      for (const c of useClientStore.getState().clients ?? []) {
+        if (c.photoUri && !c.photoUri.includes('://')) photoPaths.push(c.photoUri);
+      }
+      for (const a of useAppointmentStore.getState().appointments ?? []) {
+        for (const p of a.photos ?? []) {
+          if (p && !p.includes('://')) photoPaths.push(p);
+        }
+      }
+      if (photoPaths.length > 0) {
+        await supabase.storage
+          .from('photos')
+          .remove(photoPaths)
+          .catch((e) => captureException(e, { tag: 'deleteAccount.storage' }));
+      }
+    }
+
     // 2. Удаление на сервере — только если есть серверный аккаунт.
     //    В local-only mode (юзер выбрал «Начать без аккаунта») нечего
     //    удалять — нет ни пользователя в auth.users, ни строк в БД.

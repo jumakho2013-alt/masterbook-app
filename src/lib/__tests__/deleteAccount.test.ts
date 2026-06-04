@@ -20,11 +20,17 @@ type RpcResult = { error: { message: string } | null };
 type SignOutResult = { error: Error | null };
 const rpcMock = jest.fn<Promise<RpcResult>, [string]>(async () => ({ error: null }));
 const signOutMock = jest.fn<Promise<SignOutResult>, []>(async () => ({ error: null }));
+const storageRemoveMock = jest.fn<Promise<{ data: unknown; error: null }>, [string[]]>(
+  async () => ({ data: [], error: null }),
+);
 jest.mock('@/src/lib/supabase', () => ({
   supabase: {
     rpc: (name: string) => rpcMock(name),
     auth: {
       signOut: () => signOutMock(),
+    },
+    storage: {
+      from: () => ({ remove: (paths: string[]) => storageRemoveMock(paths) }),
     },
   },
 }));
@@ -60,11 +66,15 @@ const resetAppointmentMock = jest.fn();
 const resetFinanceMock = jest.fn();
 const resetServiceMock = jest.fn();
 const resetSettingsMock = jest.fn();
+let mockClients: Array<{ id: string; photoUri?: string }> = [];
+let mockAppointments: Array<{ id: string; photos?: string[] }> = [];
 jest.mock('@/src/stores/useClientStore', () => ({
-  useClientStore: { getState: () => ({ reset: resetClientMock }) },
+  useClientStore: { getState: () => ({ reset: resetClientMock, clients: mockClients }) },
 }));
 jest.mock('@/src/stores/useAppointmentStore', () => ({
-  useAppointmentStore: { getState: () => ({ reset: resetAppointmentMock }) },
+  useAppointmentStore: {
+    getState: () => ({ reset: resetAppointmentMock, appointments: mockAppointments }),
+  },
 }));
 jest.mock('@/src/stores/useFinanceStore', () => ({
   useFinanceStore: { getState: () => ({ reset: resetFinanceMock }) },
@@ -93,6 +103,9 @@ describe('deleteAccount', () => {
     resetFinanceMock.mockClear();
     resetServiceMock.mockClear();
     resetSettingsMock.mockClear();
+    storageRemoveMock.mockClear();
+    mockClients = [];
+    mockAppointments = [];
     mockLocalOnly = false; // Default: cloud-account path
   });
 
@@ -184,5 +197,30 @@ describe('deleteAccount', () => {
     expect(asyncStorageClearMock).toHaveBeenCalled();
     expect(resetClientMock).toHaveBeenCalled();
     expect(resetAuthMock).toHaveBeenCalled();
+  });
+
+  it('removes cloud photos (storage-paths only) from Storage before deletion', async () => {
+    mockClients = [
+      { id: 'c1', photoUri: 'uid/clients/c1/a.jpg' }, // storage-path → удалить
+      { id: 'c2', photoUri: 'file:///local/b.jpg' }, // локальный → пропустить
+      { id: 'c3' }, // без фото
+    ];
+    mockAppointments = [
+      { id: 'a1', photos: ['uid/appointments/a1/x.jpg', 'file:///local/y.jpg'] },
+    ];
+    const result = await deleteAccount();
+    expect(result.ok).toBe(true);
+    expect(storageRemoveMock).toHaveBeenCalledTimes(1);
+    expect(storageRemoveMock).toHaveBeenCalledWith([
+      'uid/clients/c1/a.jpg',
+      'uid/appointments/a1/x.jpg',
+    ]);
+  });
+
+  it('local-only mode: does not touch Storage even with photos present', async () => {
+    mockLocalOnly = true;
+    mockClients = [{ id: 'c1', photoUri: 'uid/clients/c1/a.jpg' }];
+    await deleteAccount();
+    expect(storageRemoveMock).not.toHaveBeenCalled();
   });
 });

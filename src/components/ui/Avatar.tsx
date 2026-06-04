@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
 import { useTheme } from '@/src/theme';
 import { getInitials } from '@/src/utils/helpers';
+import { useResolvedPhoto } from '@/src/lib/photoCloud';
 
 // Приглушённые премиум-градиенты для аватаров
 const AVATAR_COLORS = [
@@ -35,11 +36,13 @@ export function Avatar({ name, size = 48, photoUri }: AvatarProps) {
   const bgColor = useMemo(() => getColorForName(name), [name]);
   const fontSize = size * 0.36;
   const borderRadius = size * 0.35;
+  // photoUri может быть локальным URI ИЛИ storage-path — резолвим в показываемый.
+  const resolvedUri = useResolvedPhoto(photoUri);
 
-  if (photoUri) {
+  if (resolvedUri) {
     return (
       <Image
-        source={{ uri: photoUri }}
+        source={{ uri: resolvedUri }}
         style={{ width: size, height: size, borderRadius }}
       />
     );

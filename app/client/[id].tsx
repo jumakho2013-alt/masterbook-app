@@ -11,6 +11,7 @@ import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
 import * as ImagePicker from 'expo-image-picker';
 import { persistImageToAppDir } from '@/src/lib/photoStorage';
+import { uploadPhoto } from '@/src/lib/photoCloud';
 import { useTheme } from '@/src/theme';
 import { Avatar, Badge, GlassCard, Divider, IconButton, Button, CustomAlert, useToast } from '@/src/components/ui';
 import { useAlert } from '@/src/hooks/useAlert';
@@ -144,9 +145,13 @@ export default function ClientDetailScreen() {
       if (!result.canceled && result.assets[0]) {
         // Копируем в постоянную папку — иначе после чистки кэша фото пропадёт.
         const persisted = persistImageToAppDir(result.assets[0].uri);
-        updateClient(client.id, { photoUri: persisted });
+        updateClient(client.id, { photoUri: persisted }); // мгновенно (локально)
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         toast.success(tr('clientDetail.photoUpdated'));
+        // Заливаем в облако (минус №13) и меняем на storage-path. Best-effort:
+        // без аккаунта/при ошибке остаётся локальный URI.
+        const path = await uploadPhoto(persisted, `clients/${client.id}`);
+        if (path) updateClient(client.id, { photoUri: path });
       }
     } catch (err) {
       showError(tr('clientDetail.galleryErrorTitle'), err instanceof Error ? err.message : String(err));

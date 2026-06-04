@@ -5,6 +5,7 @@ export { Input } from './Input';
 export { Card } from './Card';
 export { Badge } from './Badge';
 export { Avatar } from './Avatar';
+export { CloudImage } from './CloudImage';
 export { IconButton } from './IconButton';
 export { Divider } from './Divider';
 export { EmptyState } from './EmptyState';

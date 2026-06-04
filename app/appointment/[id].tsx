@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, Pressable } from 'react-native';
-import { Image } from 'expo-image';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -11,9 +10,10 @@ import {
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { persistImageToAppDir } from '@/src/lib/photoStorage';
+import { uploadPhoto } from '@/src/lib/photoCloud';
 import * as Clipboard from 'expo-clipboard';
 import { useTheme } from '@/src/theme';
-import { GlassCard, IconButton, Button, Badge, Divider, CustomAlert, useToast } from '@/src/components/ui';
+import { GlassCard, IconButton, Button, Badge, Divider, CustomAlert, useToast, CloudImage } from '@/src/components/ui';
 import { useAlert } from '@/src/hooks/useAlert';
 import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useClientStore } from '@/src/stores/useClientStore';
@@ -215,10 +215,21 @@ export default function AppointmentDetailScreen() {
       });
       if (!result.canceled && result.assets.length > 0) {
         // Копируем в постоянную папку — иначе после чистки кэша фото пропадут.
-        const newUris = result.assets.map((a) => persistImageToAppDir(a.uri));
+        const persisted = result.assets.map((a) => persistImageToAppDir(a.uri));
         const existing = appointment.photos ?? [];
-        updateAppointment(appointment.id, { photos: [...existing, ...newUris] });
+        // Сразу показываем локальные (мгновенно), потом меняем на storage-path.
+        updateAppointment(appointment.id, { photos: [...existing, ...persisted] });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+        // Заливаем в облако (минус №13). Best-effort: при ошибке/без аккаунта
+        // оставляем локальный URI.
+        const uploaded = await Promise.all(
+          persisted.map((u) => uploadPhoto(u, `appointments/${appointment.id}`)),
+        );
+        if (uploaded.some(Boolean)) {
+          const swapped = persisted.map((u, i) => uploaded[i] ?? u);
+          updateAppointment(appointment.id, { photos: [...existing, ...swapped] });
+        }
       }
     } catch (err) {
       showError(tr('appt.photos.openFailed'), err instanceof Error ? err.message : String(err));
@@ -528,15 +539,11 @@ export default function AppointmentDetailScreen() {
             {(appointment.photos?.length ?? 0) > 0 ? (
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 {appointment.photos!.map((uri, i) => (
-                  <Image
+                  // CloudImage резолвит и локальные URI, и облачные storage-path
+                  // (с дисковым кэшем expo-image внутри).
+                  <CloudImage
                     key={uri}
-                    source={{ uri }}
-                    // expo-image делает cache на диске + декомпрессию в native
-                    // слое. Memory-cache по умолчанию, transition — лёгкий
-                    // fade чтобы новые фото не возникали резко.
-                    cachePolicy="memory-disk"
-                    contentFit="cover"
-                    transition={150}
+                    uri={uri}
                     accessibilityLabel={tr('appt.photos.itemA11y', { n: i + 1 })}
                     style={[styles.photo, { borderRadius: br.md, borderColor: colors.border }]}
                   />
