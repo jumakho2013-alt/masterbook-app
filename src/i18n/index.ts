@@ -15,6 +15,7 @@
 
 import { I18n } from 'i18n-js';
 import { getLocales } from 'expo-localization';
+import { setDateLocale } from '@/src/utils/date';
 import ruLocale from './locales/ru.json';
 import enLocale from './locales/en.json';
 // Per-namespace «extra» файлы — каждый экран-кластер в своём файле, чтобы
@@ -53,9 +54,11 @@ export function resolveLocale(setting: AppLanguage): 'ru' | 'en' {
 }
 
 /** Применяет выбранный язык к i18n instance. Вызывается из useT и при
- *  смене настройки. */
+ *  смене настройки. Также синхронизирует локаль форматирования дат. */
 export function applyLanguage(setting: AppLanguage) {
-  i18n.locale = resolveLocale(setting);
+  const resolved = resolveLocale(setting);
+  i18n.locale = resolved;
+  setDateLocale(resolved);
 }
 
 /** Прямая t-функция (вне React-контекста — для notification сообщений и т.п.) */
