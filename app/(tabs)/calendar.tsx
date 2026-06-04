@@ -13,7 +13,7 @@ import { useClientStore } from '@/src/stores/useClientStore';
 import { useServiceStore } from '@/src/stores/useServiceStore';
 import { useTabBarOffset } from '@/src/hooks/useTabBarOffset';
 import { useT } from '@/src/hooks/useT';
-import { toDateKey, getDayOfWeekShort, getDayNumber, getMonthName } from '@/src/utils/date';
+import { toDateKey, getDayOfWeekShort, getDayNumber, getMonthName, getMonthGrid, getWeekdayShortLabels } from '@/src/utils/date';
 
 type ViewMode = 'day' | 'week' | 'month';
 
@@ -30,26 +30,6 @@ function getWeekDays(centerDate: Date): Date[] {
   return days;
 }
 
-function getMonthGrid(date: Date): (Date | null)[] {
-  const year = date.getFullYear();
-  const month = date.getMonth();
-  const firstDay = new Date(year, month, 1);
-  const lastDay = new Date(year, month + 1, 0);
-  const daysInMonth = lastDay.getDate();
-
-  // JS: 0=Sun, we want 0=Mon
-  let startOffset = firstDay.getDay() - 1;
-  if (startOffset < 0) startOffset = 6;
-
-  const grid: (Date | null)[] = [];
-  for (let i = 0; i < startOffset; i++) grid.push(null);
-  for (let d = 1; d <= daysInMonth; d++) {
-    grid.push(new Date(year, month, d));
-  }
-  return grid;
-}
-
-const WEEKDAY_LABELS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
 function plural(n: number, one: string, few: string, many: string): string {
   const m10 = n % 10;
@@ -259,8 +239,8 @@ function CalendarScreen() {
 
           {/* Weekday labels */}
           <View style={styles.weekdayRow}>
-            {WEEKDAY_LABELS.map((label) => (
-              <Text key={label} style={[typo.small, styles.weekdayLabel, { color: colors.textTertiary }]}>
+            {getWeekdayShortLabels().map((label, i) => (
+              <Text key={i} style={[typo.small, styles.weekdayLabel, { color: colors.textTertiary }]}>
                 {label}
               </Text>
             ))}

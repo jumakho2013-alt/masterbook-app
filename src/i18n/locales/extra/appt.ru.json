@@ -114,6 +114,7 @@
       "takenSuffix": ", занято",
       "pastSuffix": ", прошло",
       "custom": "Другое время",
+      "pickDate": "Выбрать дату",
       "customHint": "Любое время — даже вне рабочих часов",
       "customHours": "Часы",
       "customMinutes": "Минуты",

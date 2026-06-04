@@ -1,4 +1,4 @@
-import { format, formatDistanceToNow, isToday, isTomorrow, isYesterday } from 'date-fns';
+import { format, formatDistanceToNow, isToday, isTomorrow, isYesterday, startOfWeek, addDays } from 'date-fns';
 import { ru, enUS, type Locale } from 'date-fns/locale';
 
 // Активная date-fns локаль — следует за языком приложения. Устанавливается
@@ -65,4 +65,32 @@ export function getDayNumber(date: Date): string {
 
 export function getMonthName(date: Date): string {
   return format(date, 'LLLL', { locale: activeLocale });
+}
+
+/**
+ * Сетка месяца для календарной решётки: ведущие null'ы для выравнивания по
+ * понедельнику, затем все дни месяца. Неделя начинается с Пн (Мон-first).
+ */
+export function getMonthGrid(date: Date): (Date | null)[] {
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  // JS: 0=Вс. Нам нужен 0=Пн.
+  let startOffset = firstDay.getDay() - 1;
+  if (startOffset < 0) startOffset = 6;
+
+  const grid: (Date | null)[] = [];
+  for (let i = 0; i < startOffset; i++) grid.push(null);
+  for (let d = 1; d <= daysInMonth; d++) grid.push(new Date(year, month, d));
+  return grid;
+}
+
+/** Локализованные короткие подписи дней недели, Пн→Вс (следуют за языком). */
+export function getWeekdayShortLabels(): string[] {
+  const monday = startOfWeek(new Date(), { weekStartsOn: 1 });
+  return Array.from({ length: 7 }, (_, i) =>
+    format(addDays(monday, i), 'EEEEEE', { locale: activeLocale }),
+  );
 }

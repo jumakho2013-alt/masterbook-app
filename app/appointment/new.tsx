@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView, Pressab
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInRight } from 'react-native-reanimated';
-import { X, ArrowLeft, Scissors } from 'lucide-react-native';
+import { X, ArrowLeft, Scissors, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/src/theme';
 import { Button, IconButton, SearchBar, GlassCard, CustomAlert, EmptyState } from '@/src/components/ui';
@@ -14,7 +14,15 @@ import { useClientStore } from '@/src/stores/useClientStore';
 import { useServiceStore } from '@/src/stores/useServiceStore';
 import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
-import { toDateKey, formatDate } from '@/src/utils/date';
+import {
+  toDateKey,
+  formatDate,
+  formatDateFull,
+  getDayOfWeekShort,
+  getMonthGrid,
+  getMonthName,
+  getWeekdayShortLabels,
+} from '@/src/utils/date';
 import { formatCurrency } from '@/src/utils/currency';
 import {
   addMinutes,
@@ -60,6 +68,10 @@ export default function NewAppointmentScreen() {
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  // Месячный пикер — для дальних дат (фидбэк: «через год/полгода»). Полоса
+  // на 120 дней остаётся для быстрого выбора ближайших; календарь — для дали.
+  const [monthPickerMode, setMonthPickerMode] = useState(false);
+  const [monthCursor, setMonthCursor] = useState<Date>(() => new Date());
   // Длительность для этой конкретной записи. Override на confirm-шаге —
   // новый клиент часто требует +30 мин, постоянный может уложиться меньше.
   // null = используем service.duration (дефолт).
@@ -103,7 +115,13 @@ export default function NewAppointmentScreen() {
 
   const stepIndex = STEPS.indexOf(step);
   const selectedDateKey = toDateKey(selectedDate);
-  const isToday = selectedDateKey === toDateKey(new Date());
+  const todayKey = toDateKey(new Date());
+  const isToday = selectedDateKey === todayKey;
+  // Нельзя листать месяцы в прошлое (записей в прошлом не делаем).
+  const now = new Date();
+  const atCurrentMonth =
+    monthCursor.getFullYear() === now.getFullYear() &&
+    monthCursor.getMonth() === now.getMonth();
 
   // Date strip: next N days
   const dateStrip = useMemo(() => {
@@ -205,6 +223,28 @@ export default function NewAppointmentScreen() {
     setSelectedTime(t);
     setCustomTimeMode(false);
     next();
+  };
+
+  const openMonthPicker = () => {
+    Haptics.selectionAsync();
+    setMonthCursor(selectedDate);
+    setMonthPickerMode((m) => !m);
+  };
+
+  const shiftMonth = (delta: number) => {
+    Haptics.selectionAsync();
+    const n = new Date(monthCursor);
+    n.setDate(1); // setDate(1) до setMonth — иначе 31 янв + 1 мес перескочит март
+    n.setMonth(n.getMonth() + delta);
+    setMonthCursor(n);
+  };
+
+  const pickMonthDay = (day: Date) => {
+    if (toDateKey(day) < todayKey) return; // прошлое нельзя
+    Haptics.selectionAsync();
+    setSelectedDate(day);
+    setSelectedTime(null);
+    setMonthPickerMode(false);
   };
 
   const confirm = async () => {
@@ -397,12 +437,117 @@ export default function NewAppointmentScreen() {
 
       {step === 'time' && (
         <Animated.View entering={FadeInRight.duration(300)} style={{ flex: 1 }}>
-          {/* Date strip */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.dateStrip}
-          >
+          {/* Шапка: выбранная дата (полная) + кнопка календаря для дальних дат */}
+          <View style={styles.dateHeader}>
+            <Text style={[typo.bodyBold, { color: colors.text, flex: 1 }]} numberOfLines={1}>
+              {formatDateFull(selectedDate)}
+            </Text>
+            <TouchableOpacity
+              onPress={openMonthPicker}
+              accessibilityRole="button"
+              accessibilityLabel={tr('appt.time.pickDate')}
+              accessibilityState={{ selected: monthPickerMode }}
+              hitSlop={8}
+              style={[
+                styles.calBtn,
+                {
+                  backgroundColor: monthPickerMode ? colors.primary : colors.surfaceElevated,
+                  borderRadius: br.sm,
+                },
+              ]}
+            >
+              <CalendarDays size={20} color={monthPickerMode ? colors.white : colors.primary} />
+            </TouchableOpacity>
+          </View>
+
+          {monthPickerMode ? (
+            /* Месячный календарь — прыжок на любой месяц вперёд (год/полгода) */
+            <View style={styles.monthPicker}>
+              <View style={styles.monthNav}>
+                <TouchableOpacity
+                  onPress={() => shiftMonth(-1)}
+                  disabled={atCurrentMonth}
+                  accessibilityRole="button"
+                  accessibilityLabel={tr('common.back')}
+                  hitSlop={8}
+                  style={{ opacity: atCurrentMonth ? 0.3 : 1, padding: 4 }}
+                >
+                  <ChevronLeft size={24} color={colors.text} />
+                </TouchableOpacity>
+                <Text style={[typo.bodyBold, { color: colors.text, textTransform: 'capitalize' }]}>
+                  {getMonthName(monthCursor)} {monthCursor.getFullYear()}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => shiftMonth(1)}
+                  accessibilityRole="button"
+                  hitSlop={8}
+                  style={{ padding: 4 }}
+                >
+                  <ChevronRight size={24} color={colors.text} />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.weekdayRow}>
+                {getWeekdayShortLabels().map((label, i) => (
+                  <Text
+                    key={i}
+                    style={[typo.small, styles.weekdayLabel, { color: colors.textTertiary }]}
+                  >
+                    {label}
+                  </Text>
+                ))}
+              </View>
+
+              <View style={styles.monthGridWrap}>
+                {getMonthGrid(monthCursor).map((day, i) => {
+                  if (!day) return <View key={`e${i}`} style={styles.monthCell} />;
+                  const dKey = toDateKey(day);
+                  const isPast = dKey < todayKey;
+                  const selected = dKey === selectedDateKey;
+                  const off = isDayOff(day);
+                  return (
+                    <View key={dKey} style={styles.monthCell}>
+                      <TouchableOpacity
+                        disabled={isPast}
+                        onPress={() => pickMonthDay(day)}
+                        accessibilityRole="button"
+                        accessibilityLabel={formatDate(day)}
+                        accessibilityState={{ selected, disabled: isPast }}
+                        style={[
+                          styles.monthDayBtn,
+                          {
+                            backgroundColor: selected ? colors.primary : 'transparent',
+                            opacity: isPast ? 0.25 : 1,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            typo.body,
+                            {
+                              color: selected
+                                ? colors.white
+                                : off
+                                  ? colors.textTertiary
+                                  : colors.text,
+                            },
+                          ]}
+                        >
+                          {day.getDate()}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          ) : (
+            /* Date strip */
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.dateStrip}
+            >
             {dateStrip.map((d) => {
               const key = toDateKey(d);
               const active = key === selectedDateKey;
@@ -444,7 +589,7 @@ export default function NewAppointmentScreen() {
                       },
                     ]}
                   >
-                    {d.toLocaleDateString('ru-RU', { weekday: 'short' }).slice(0, 2)}
+                    {getDayOfWeekShort(d)}
                   </Text>
                   <Text
                     style={[
@@ -457,7 +602,8 @@ export default function NewAppointmentScreen() {
                 </Pressable>
               );
             })}
-          </ScrollView>
+            </ScrollView>
+          )}
 
           {/* Time slots */}
           <ScrollView contentContainerStyle={styles.timeScroll}>
@@ -745,6 +891,40 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  dateHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 4,
+    paddingBottom: 8,
+    gap: 12,
+  },
+  calBtn: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  monthPicker: {
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+  },
+  monthNav: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+  },
+  weekdayRow: { flexDirection: 'row', marginBottom: 4 },
+  weekdayLabel: { flex: 1, textAlign: 'center' },
+  monthGridWrap: { flexDirection: 'row', flexWrap: 'wrap' },
+  monthCell: { width: `${100 / 7}%`, aspectRatio: 1, padding: 3 },
+  monthDayBtn: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 10,
   },
   recentChip: {
     paddingHorizontal: 14,

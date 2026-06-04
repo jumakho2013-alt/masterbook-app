@@ -114,6 +114,7 @@
       "takenSuffix": ", taken",
       "pastSuffix": ", past",
       "custom": "Custom time",
+      "pickDate": "Pick a date",
       "customHint": "Any time — even outside working hours",
       "customHours": "Hours",
       "customMinutes": "Minutes",
