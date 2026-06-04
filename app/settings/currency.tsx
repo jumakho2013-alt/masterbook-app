@@ -33,6 +33,13 @@ export default function CurrencyScreen() {
     router.back();
   };
 
+  // Показываем только 3 основные валюты (запрос пользователя). Полный список
+  // SUPPORTED_CURRENCIES остаётся для formatCurrency — чтобы старые данные с
+  // другим кодом всё равно корректно форматировались.
+  const pickerCurrencies = SUPPORTED_CURRENCIES.filter((c) =>
+    (['RUB', 'USD', 'EUR'] as CurrencyCode[]).includes(c.code),
+  );
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]} edges={['top']}>
       <View style={styles.topBar}>
@@ -51,7 +58,7 @@ export default function CurrencyScreen() {
       </Text>
 
       <FlatList
-        data={SUPPORTED_CURRENCIES}
+        data={pickerCurrencies}
         keyExtractor={(item) => item.code}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
         ItemSeparatorComponent={() => <View style={{ height: 8 }} />}

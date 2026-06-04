@@ -49,6 +49,24 @@
     "notifMorningMany": "%{count} записей. Первая: %{name} в %{time}",
     "notifClientFallback": "Клиент",
     "notifDailyTitle": "Напомните клиентам о завтрашних записях 📲",
-    "notifDailyBody": "Нажмите — покажу список завтрашних клиентов с готовыми сообщениями."
+    "notifDailyBody": "Нажмите — покажу список завтрашних клиентов с готовыми сообщениями.",
+    "svcTitle": "Мои услуги",
+    "svcSearchPlaceholder": "Поиск услуги",
+    "svcNotFound": "Ничего не найдено",
+    "svcEmpty": "Пока нет услуг. Нажмите + чтобы добавить.",
+    "svcUnit": "мин",
+    "svcName": "Название",
+    "svcNamePlaceholder": "Например: Стрижка, Маникюр, Урок",
+    "svcPrice": "Цена",
+    "svcDuration": "Длительность",
+    "svcNameRequired": "Введите название услуги",
+    "svcPriceRequired": "Укажите цену и длительность",
+    "svcAdded": "Услуга добавлена",
+    "svcDeleteTitle": "Удалить услугу?",
+    "svcDeleteBody": "Удалить «%{name}»?",
+    "svcDeleted": "Услуга удалена",
+    "svcAdd": "Добавить",
+    "svcDurHour": "%{h} ч",
+    "svcDurHourMin": "%{h} ч %{m} м"
   }
 }

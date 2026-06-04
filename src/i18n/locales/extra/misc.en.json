@@ -49,6 +49,24 @@
     "notifMorningMany": "%{count} appointments. First: %{name} at %{time}",
     "notifClientFallback": "Client",
     "notifDailyTitle": "Remind clients about tomorrow's appointments 📲",
-    "notifDailyBody": "Tap — I'll show tomorrow's clients with ready-made messages."
+    "notifDailyBody": "Tap — I'll show tomorrow's clients with ready-made messages.",
+    "svcTitle": "My services",
+    "svcSearchPlaceholder": "Search service",
+    "svcNotFound": "Nothing found",
+    "svcEmpty": "No services yet. Tap + to add one.",
+    "svcUnit": "min",
+    "svcName": "Name",
+    "svcNamePlaceholder": "e.g. Haircut, Manicure, Lesson",
+    "svcPrice": "Price",
+    "svcDuration": "Duration",
+    "svcNameRequired": "Enter a service name",
+    "svcPriceRequired": "Set price and duration",
+    "svcAdded": "Service added",
+    "svcDeleteTitle": "Delete service?",
+    "svcDeleteBody": "Delete “%{name}”?",
+    "svcDeleted": "Service deleted",
+    "svcAdd": "Add",
+    "svcDurHour": "%{h} h",
+    "svcDurHourMin": "%{h} h %{m} m"
   }
 }

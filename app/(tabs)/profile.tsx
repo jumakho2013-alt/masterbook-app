@@ -21,7 +21,6 @@ import {
   Star,
   CalendarSync,
   Languages,
-  Zap,
   BellRing,
 } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
@@ -99,8 +98,6 @@ function ProfileScreen() {
   const specializationId = useAuthStore((s) => s.specializationId);
   const theme = useSettingsStore((s) => s.theme);
   const setTheme = useSettingsStore((s) => s.setTheme);
-  const reduceEffects = useSettingsStore((s) => s.reduceEffects);
-  const setReduceEffects = useSettingsStore((s) => s.setReduceEffects);
   const autoClientReminders = useSettingsStore((s) => s.autoClientReminders);
   const setAutoClientReminders = useSettingsStore((s) => s.setAutoClientReminders);
   const currency = useSettingsStore((s) => s.currency);
@@ -318,13 +315,6 @@ function ProfileScreen() {
               label="Язык"
               subtitle={languageLabel}
               onPress={() => router.push('/settings/language')}
-            />
-            <Divider style={{ marginVertical: 0, marginLeft: 52 }} />
-            <MenuItem
-              icon={<Zap size={20} color={colors.primary} />}
-              label={tr('profile.reduceEffectsLabel')}
-              subtitle={reduceEffects ? tr('profile.reduceEffectsOn') : tr('profile.reduceEffectsOff')}
-              onPress={() => setReduceEffects(!reduceEffects)}
             />
           </GlassCard>
         </View>
