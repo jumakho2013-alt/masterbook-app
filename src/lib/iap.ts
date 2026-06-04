@@ -25,6 +25,29 @@ export const TRIAL_DAYS = 7;
 export const PRO_PRICE = '$3.99';
 export const PRO_PRODUCT_ID = 'pro_monthly';
 
+/**
+ * Жёсткий paywall включается ТОЛЬКО когда подключён реальный IAP (RevenueCat) —
+ * иначе без возможности оплатить мы бы заперли всех. После EAS-билда + товаров
+ * в сторах + Purchases.configure(): поставить true. Сейчас false → по истечении
+ * триала показываем НЕблокирующий баннер, а не запираем.
+ */
+export const SUBSCRIPTION_ENFORCED = false;
+
+export type AccessStatus = 'subscribed' | 'trial' | 'expired';
+
+/** Сколько дней триала осталось (отсчёт от firstUseAt). */
+export function trialDaysLeft(firstUseAt: string | null): number {
+  if (!firstUseAt) return TRIAL_DAYS;
+  const elapsed = Math.floor((Date.now() - new Date(firstUseAt).getTime()) / 86400000);
+  return Math.max(0, TRIAL_DAYS - elapsed);
+}
+
+/** Текущий статус доступа: подписан / в триале / триал истёк. */
+export function getAccessStatus(firstUseAt: string | null): AccessStatus {
+  if (isSubscribed()) return 'subscribed';
+  return trialDaysLeft(firstUseAt) > 0 ? 'trial' : 'expired';
+}
+
 export type PurchaseResult =
   | { ok: true }
   | { ok: false; reason: 'unavailable' | 'cancelled' | 'error'; message?: string };

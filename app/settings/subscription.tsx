@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Sparkles, Check } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
@@ -12,6 +12,7 @@ import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import {
   purchasePro,
   restorePurchases,
+  trialDaysLeft,
   PRO_PRICE,
   PRO_PRODUCT_ID,
   TRIAL_DAYS,
@@ -31,14 +32,12 @@ export default function SubscriptionScreen() {
   const { colors, typography: typo, spacing: sp } = useTheme();
   const { alertConfig, info } = useAlert();
   const firstUseAt = useSettingsStore((s) => s.firstUseAt);
+  // locked=1 → режим paywall (открыт гейтом после истечения триала): без кнопки
+  // «назад», экран нельзя просто закрыть.
+  const { locked } = useLocalSearchParams<{ locked?: string }>();
+  const isLocked = locked === '1';
 
-  // Сколько дней пробного периода осталось (отсчёт от первого запуска).
-  // Date.now() здесь ок — это app-код, не workflow-скрипт.
-  const trialLeft = (() => {
-    if (!firstUseAt) return TRIAL_DAYS;
-    const elapsedDays = Math.floor((Date.now() - new Date(firstUseAt).getTime()) / 86400000);
-    return Math.max(0, TRIAL_DAYS - elapsedDays);
-  })();
+  const trialLeft = trialDaysLeft(firstUseAt);
 
   const benefits = [
     tr('settings.proBenefit1'),
@@ -64,12 +63,16 @@ export default function SubscriptionScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]} edges={['top']}>
       <View style={styles.topBar}>
-        <IconButton
-          icon={<ArrowLeft size={22} color={colors.text} />}
-          onPress={() => router.back()}
-          variant="ghost"
-          accessibilityLabel={tr('common.back')}
-        />
+        {isLocked ? (
+          <View style={{ width: 48 }} />
+        ) : (
+          <IconButton
+            icon={<ArrowLeft size={22} color={colors.text} />}
+            onPress={() => router.back()}
+            variant="ghost"
+            accessibilityLabel={tr('common.back')}
+          />
+        )}
         <Text style={[typo.h3, { color: colors.text }]}>{tr('settings.proTitle')}</Text>
         <View style={{ width: 48 }} />
       </View>

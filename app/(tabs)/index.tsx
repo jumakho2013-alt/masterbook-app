@@ -8,6 +8,7 @@ import { useTheme } from '@/src/theme';
 import { EmptyState, GlassCard, CountUp, LiquidGlass, Button, useToast } from '@/src/components/ui';
 import { SwipeableAppointmentCard } from '@/src/components/SwipeableAppointmentCard';
 import { SleepingClientsCard } from '@/src/components/SleepingClientsCard';
+import { TrialBanner } from '@/src/components/TrialBanner';
 import { MasterBookLogo } from '@/src/components/MasterBookLogo';
 import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useClientStore } from '@/src/stores/useClientStore';
@@ -298,6 +299,10 @@ function TodayScreen() {
                 </View>
               );
             })()}
+
+            {/* Подписка: баннер триала/истечения (null если подписан или
+                триал в начале). Жёсткий гейт — с реальным IAP. */}
+            <TrialBanner />
 
             {/* Спящие клиенты — nudge-блок. Возвращает null если все
                 клиенты активны, поэтому не съедает место без причины. */}
