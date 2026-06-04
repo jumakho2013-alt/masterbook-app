@@ -27,6 +27,7 @@ import { GlassCard, Divider, CustomAlert } from '@/src/components/ui';
 import { MasterBookLogo } from '@/src/components/MasterBookLogo';
 import { SyncStatusCard } from '@/src/components/SyncStatusCard';
 import { flushPush } from '@/src/lib/cloudSync';
+import { TRIAL_DAYS, PRO_PRICE } from '@/src/lib/iap';
 import { useAlert } from '@/src/hooks/useAlert';
 import { useT } from '@/src/hooks/useT';
 import { useAuthStore } from '@/src/stores/useAuthStore';
@@ -296,7 +297,7 @@ function ProfileScreen() {
             <MenuItem
               icon={<Crown size={20} color={colors.warning} />}
               label={tr('settings.proTitle')}
-              subtitle={tr('settings.proMenuSub')}
+              subtitle={tr('settings.proMenuSub', { days: TRIAL_DAYS, price: PRO_PRICE })}
               onPress={() => router.push('/settings/subscription')}
             />
             <Divider style={{ marginVertical: 0, marginLeft: 52 }} />

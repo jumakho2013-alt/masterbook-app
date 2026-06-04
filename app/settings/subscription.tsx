@@ -8,7 +8,14 @@ import { useTheme } from '@/src/theme';
 import { GlassCard, IconButton, Button, CustomAlert } from '@/src/components/ui';
 import { useAlert } from '@/src/hooks/useAlert';
 import { useT } from '@/src/hooks/useT';
-import { purchasePro, restorePurchases } from '@/src/lib/iap';
+import { useSettingsStore } from '@/src/stores/useSettingsStore';
+import {
+  purchasePro,
+  restorePurchases,
+  PRO_PRICE,
+  PRO_PRODUCT_ID,
+  TRIAL_DAYS,
+} from '@/src/lib/iap';
 
 /**
  * MasterBook Pro — экран-каркас подписки (минус №16).
@@ -23,11 +30,21 @@ export default function SubscriptionScreen() {
   const tr = useT();
   const { colors, typography: typo, spacing: sp } = useTheme();
   const { alertConfig, info } = useAlert();
+  const firstUseAt = useSettingsStore((s) => s.firstUseAt);
+
+  // Сколько дней пробного периода осталось (отсчёт от первого запуска).
+  // Date.now() здесь ок — это app-код, не workflow-скрипт.
+  const trialLeft = (() => {
+    if (!firstUseAt) return TRIAL_DAYS;
+    const elapsedDays = Math.floor((Date.now() - new Date(firstUseAt).getTime()) / 86400000);
+    return Math.max(0, TRIAL_DAYS - elapsedDays);
+  })();
 
   const benefits = [
     tr('settings.proBenefit1'),
     tr('settings.proBenefit2'),
     tr('settings.proBenefit3'),
+    tr('settings.proBenefit4'),
   ];
 
   const comingSoon = () =>
@@ -35,7 +52,7 @@ export default function SubscriptionScreen() {
 
   const onSubscribe = async () => {
     Haptics.selectionAsync();
-    const res = await purchasePro('pro_monthly');
+    const res = await purchasePro(PRO_PRODUCT_ID);
     if (!res.ok) comingSoon(); // reason: 'unavailable' пока нет билда/товаров
   };
 
@@ -70,8 +87,20 @@ export default function SubscriptionScreen() {
             { color: colors.textSecondary, textAlign: 'center', marginBottom: sp.lg, paddingHorizontal: 8 },
           ]}
         >
-          {tr('settings.proIntro')}
+          {tr('settings.proIntro', { days: TRIAL_DAYS, price: PRO_PRICE })}
         </Text>
+
+        {/* Цена + статус пробного периода */}
+        <GlassCard style={{ alignItems: 'center', gap: 4, marginBottom: sp.md }}>
+          <Text style={[typo.h2, { color: colors.text }]}>
+            {tr('settings.proPrice', { price: PRO_PRICE })}
+          </Text>
+          <Text style={[typo.caption, { color: trialLeft > 0 ? colors.success : colors.textTertiary }]}>
+            {trialLeft > 0
+              ? tr('settings.proTrialLeft', { n: trialLeft })
+              : tr('settings.proTrialEnded')}
+          </Text>
+        </GlassCard>
 
         <GlassCard style={{ gap: sp.md }}>
           {benefits.map((b, i) => (
@@ -85,7 +114,7 @@ export default function SubscriptionScreen() {
         </GlassCard>
 
         <Button
-          title={tr('settings.proCta')}
+          title={tr('settings.proCta', { price: PRO_PRICE })}
           onPress={onSubscribe}
           size="lg"
           style={{ marginTop: sp.lg }}

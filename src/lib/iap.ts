@@ -19,6 +19,12 @@
  * монетизации, поэтому isSubscribed() возвращает false (нет premium-замков).
  */
 
+/** Модель монетизации: 7 дней бесплатно, далее $3.99/мес. Цена показывается
+ *  как fallback — на проде реальную локализованную цену вернёт стор. */
+export const TRIAL_DAYS = 7;
+export const PRO_PRICE = '$3.99';
+export const PRO_PRODUCT_ID = 'pro_monthly';
+
 export type PurchaseResult =
   | { ok: true }
   | { ok: false; reason: 'unavailable' | 'cancelled' | 'error'; message?: string };
