@@ -302,6 +302,13 @@ function ProfileScreen() {
         <View style={{ paddingHorizontal: 16, marginBottom: sp.md }}>
           <GlassCard style={{ padding: 0 }}>
             <MenuItem
+              icon={<Crown size={20} color={colors.warning} />}
+              label={tr('settings.proTitle')}
+              subtitle={tr('settings.proMenuSub')}
+              onPress={() => router.push('/settings/subscription')}
+            />
+            <Divider style={{ marginVertical: 0, marginLeft: 52 }} />
+            <MenuItem
               icon={<ShieldCheck size={20} color={colors.primary} />}
               label={tr('profile.security')}
               subtitle={tr('profile.securitySub')}
