@@ -41,6 +41,14 @@
     "servicesEmpty": "Нет услуг. Вы сможете добавить их позже.",
     "servicesMinUnit": "мин",
     "servicesAddLater": "Добавлю позже",
-    "chooseSpecialization": "Выберите специализацию"
+    "chooseSpecialization": "Выберите специализацию",
+    "notifChannel": "Напоминания",
+    "notifApptTitle": "Запись через %{min} мин",
+    "notifMorningTitle": "Доброе утро! 📋",
+    "notifMorningOne": "1 запись: %{name} в %{time}",
+    "notifMorningMany": "%{count} записей. Первая: %{name} в %{time}",
+    "notifClientFallback": "Клиент",
+    "notifDailyTitle": "Напомните клиентам о завтрашних записях 📲",
+    "notifDailyBody": "Нажмите — покажу список завтрашних клиентов с готовыми сообщениями."
   }
 }

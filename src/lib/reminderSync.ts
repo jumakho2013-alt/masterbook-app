@@ -10,6 +10,7 @@ import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useClientStore } from '@/src/stores/useClientStore';
 import { useServiceStore } from '@/src/stores/useServiceStore';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
+import { applyLanguage } from '@/src/i18n';
 
 /** За сколько минут до записи напоминаем (совпадает с appointment/new.tsx). */
 const REMINDER_MINUTES_BEFORE = 60;
@@ -29,6 +30,10 @@ const REMINDER_MINUTES_BEFORE = 60;
  */
 export async function rescheduleMissingReminders(): Promise<void> {
   try {
+    // Применяем язык до планирования — тексты уведомлений (t()) должны быть
+    // на актуальном языке даже на холодном старте (до первого render useT).
+    applyLanguage(useSettingsStore.getState().language);
+
     const status = await getNotificationPermissionStatus();
     if (status !== 'granted') return;
 

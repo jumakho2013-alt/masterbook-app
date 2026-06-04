@@ -2,6 +2,7 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import { captureException } from '@/src/lib/crashReporter';
+import { t } from '@/src/i18n';
 
 // Настройка отображения уведомлений когда приложение открыто
 Notifications.setNotificationHandler({
@@ -68,7 +69,7 @@ export async function registerForPushNotifications(): Promise<boolean> {
     // Android: создаём канал уведомлений
     if (Platform.OS === 'android') {
       await Notifications.setNotificationChannelAsync('reminders', {
-        name: 'Напоминания',
+        name: t('misc.notifChannel'),
         importance: Notifications.AndroidImportance.HIGH,
         vibrationPattern: [0, 250, 250, 250],
         lightColor: '#7C5DFA',
@@ -105,7 +106,7 @@ export async function scheduleAppointmentReminder(
 
   const id = await Notifications.scheduleNotificationAsync({
     content: {
-      title: `Запись через ${minutesBefore} мин`,
+      title: t('misc.notifApptTitle', { min: minutesBefore }),
       body: `${clientName} — ${serviceName}, ${time}`,
       data: { appointmentId, type: 'appointment_reminder' },
       sound: 'default',
@@ -133,13 +134,14 @@ export async function scheduleMorningReminder(
 
   if (count === 0) return null;
 
+  const clientName = firstClientName ?? t('misc.notifClientFallback');
   const body = count === 1
-    ? `1 запись: ${firstClientName ?? 'Клиент'} в ${firstTime ?? ''}`
-    : `${count} записей. Первая: ${firstClientName ?? 'Клиент'} в ${firstTime ?? ''}`;
+    ? t('misc.notifMorningOne', { name: clientName, time: firstTime ?? '' })
+    : t('misc.notifMorningMany', { count, name: clientName, time: firstTime ?? '' });
 
   const id = await Notifications.scheduleNotificationAsync({
     content: {
-      title: 'Доброе утро! 📋',
+      title: t('misc.notifMorningTitle'),
       body,
       data: { type: 'morning_summary' },
       sound: 'default',
@@ -165,8 +167,8 @@ export async function scheduleDailyClientReminderPrompt(hour = 19, minute = 0): 
     await Notifications.scheduleNotificationAsync({
       identifier: DAILY_CLIENT_REMINDER_ID,
       content: {
-        title: 'Напомните клиентам о завтрашних записях 📲',
-        body: 'Нажмите — покажу список завтрашних клиентов с готовыми сообщениями.',
+        title: t('misc.notifDailyTitle'),
+        body: t('misc.notifDailyBody'),
         data: { type: 'client_reminders' },
         sound: 'default',
       },

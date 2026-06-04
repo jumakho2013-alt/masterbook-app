@@ -27,10 +27,14 @@ jest.mock('expo-notifications', () => ({
 
 jest.mock('expo-device', () => ({ isDevice: true }));
 
+// notifications.ts → i18n → expo-localization (ESM native). Мокаем locales.
+jest.mock('expo-localization', () => ({ getLocales: () => [{ languageCode: 'ru' }] }));
+
 import {
   scheduleAppointmentReminder,
   scheduleMorningReminder,
 } from '../notifications';
+import { applyLanguage } from '@/src/i18n';
 
 function getScheduledArg(): ScheduleArg {
   expect(scheduleNotificationAsyncMock).toHaveBeenCalled();
@@ -207,6 +211,9 @@ describe('scheduleMorningReminder', () => {
   });
 
   it('singular vs plural body text', async () => {
+    // Уведомления локализованы; i18n по умолчанию 'en' пока не вызван
+    // applyLanguage. Тестируем RU-путь (основная локаль).
+    applyLanguage('ru');
     await scheduleMorningReminder(1, 'Анна', '10:30');
     expect(getScheduledArg().content.body).toContain('1 запись');
 

@@ -41,6 +41,14 @@
     "servicesEmpty": "No services. You can add them later.",
     "servicesMinUnit": "min",
     "servicesAddLater": "I'll add later",
-    "chooseSpecialization": "Choose your specialization"
+    "chooseSpecialization": "Choose your specialization",
+    "notifChannel": "Reminders",
+    "notifApptTitle": "Appointment in %{min} min",
+    "notifMorningTitle": "Good morning! 📋",
+    "notifMorningOne": "1 appointment: %{name} at %{time}",
+    "notifMorningMany": "%{count} appointments. First: %{name} at %{time}",
+    "notifClientFallback": "Client",
+    "notifDailyTitle": "Remind clients about tomorrow's appointments 📲",
+    "notifDailyBody": "Tap — I'll show tomorrow's clients with ready-made messages."
   }
 }
