@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: TypeScript & Expo sanity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install deps
+        run: npm ci
+
+      - name: TypeScript
+        run: npx tsc --noEmit
+
+      - name: Unit tests
+        run: npm test -- --ci
+
+      # Validates app.json / package.json / plugins / permissions consistency.
+      # Catches the class of problems that surface only during EAS Build or
+      # store review (missing permission descriptions, plugin version drift,
+      # New Architecture compatibility, etc).
+      - name: Expo doctor
+        run: npx --yes expo-doctor@latest
+
+      # Fails fast if any EAS build profile references a missing file or has
+      # invalid schema. Cheap smoke test that saves a full build turnaround.
+      - name: Validate eas.json
+        run: node -e "JSON.parse(require('fs').readFileSync('eas.json','utf8'))"

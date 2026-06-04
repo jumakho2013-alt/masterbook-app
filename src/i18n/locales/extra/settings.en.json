@@ -1,5 +1,18 @@
 {
   "settings": {
+    "remindersTitle": "Auto-reminders",
+    "remindersToggleLabel": "Remind me about tomorrow's clients",
+    "remindersOn": "On",
+    "remindersOff": "Off",
+    "remindersHowTitle": "How it works",
+    "remindersStep1": "Every evening at 7 PM — a short reminder for you.",
+    "remindersStep2": "Tap it → list of tomorrow's clients.",
+    "remindersStep3": "Each has a “Remind” button — ready text in WhatsApp, one tap.",
+    "remindersPreviewTitle": "Example client message",
+    "remindersPreviewMsg": "Hi Anna! Just a reminder of your appointment tomorrow at 2:00 PM for “Manicure”. If plans change, let me know 🙏",
+    "remindersNote": "Messages aren't sent automatically — you decide who and when. It's just a reminder + ready-made text.",
+    "remindersPermTitle": "Notifications needed",
+    "remindersPermBody": "Allow notifications in your phone settings to get the evening reminder.",
     "workHoursTitle": "Working hours",
     "workHoursHours": "Hours",
     "workHoursStart": "Start",

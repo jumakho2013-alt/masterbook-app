@@ -28,11 +28,6 @@ import { GlassCard, Divider, CustomAlert } from '@/src/components/ui';
 import { MasterBookLogo } from '@/src/components/MasterBookLogo';
 import { SyncStatusCard } from '@/src/components/SyncStatusCard';
 import { flushPush } from '@/src/lib/cloudSync';
-import {
-  registerForPushNotifications,
-  scheduleDailyClientReminderPrompt,
-  cancelDailyClientReminderPrompt,
-} from '@/src/lib/notifications';
 import { useAlert } from '@/src/hooks/useAlert';
 import { useT } from '@/src/hooks/useT';
 import { useAuthStore } from '@/src/stores/useAuthStore';
@@ -99,7 +94,6 @@ function ProfileScreen() {
   const theme = useSettingsStore((s) => s.theme);
   const setTheme = useSettingsStore((s) => s.setTheme);
   const autoClientReminders = useSettingsStore((s) => s.autoClientReminders);
-  const setAutoClientReminders = useSettingsStore((s) => s.setAutoClientReminders);
   const currency = useSettingsStore((s) => s.currency);
   const currencyMeta = SUPPORTED_CURRENCIES.find((c) => c.code === currency);
   const restartOnboarding = useAuthStore((s) => s.restartOnboarding);
@@ -161,23 +155,6 @@ function ProfileScreen() {
       tr('profile.signOutConfirm'),
       true,
     );
-  };
-
-  const handleToggleAutoReminders = async () => {
-    if (autoClientReminders) {
-      setAutoClientReminders(false);
-      await cancelDailyClientReminderPrompt();
-      return;
-    }
-    // Включаем: нужны разрешения на уведомления.
-    const granted = await registerForPushNotifications();
-    if (!granted) {
-      info(tr('profile.remindersNeedTitle'), tr('profile.remindersNeedBody'));
-      return;
-    }
-    setAutoClientReminders(true);
-    await scheduleDailyClientReminderPrompt();
-    info(tr('profile.remindersDoneTitle'), tr('profile.remindersDoneBody'));
   };
 
   const handleReset = () => {
@@ -294,7 +271,7 @@ function ProfileScreen() {
               icon={<BellRing size={20} color={colors.primary} />}
               label={tr('profile.autoReminders')}
               subtitle={autoClientReminders ? tr('profile.autoRemindersOn') : tr('profile.autoRemindersOff')}
-              onPress={handleToggleAutoReminders}
+              onPress={() => router.push('/settings/reminders')}
             />
           </GlassCard>
         </View>

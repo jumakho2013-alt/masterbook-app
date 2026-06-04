@@ -92,6 +92,7 @@ function RootInner() {
         <Stack.Screen name="settings/currency" />
         <Stack.Screen name="settings/review-link" />
         <Stack.Screen name="settings/calendar-sync" />
+        <Stack.Screen name="settings/reminders" />
         <Stack.Screen name="settings/language" />
         <Stack.Screen name="finance/new" options={{ presentation: 'modal' }} />
         <Stack.Screen name="finance/report" />

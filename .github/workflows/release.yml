@@ -1,0 +1,86 @@
+name: Release build
+
+# Triggered by version tags. Separate iOS / Android jobs so a failure on
+# one platform doesn't block shipping the other.
+#
+# Tag conventions:
+#   v1.2.3           → build BOTH platforms for production
+#   v1.2.3-ios       → build ONLY iOS
+#   v1.2.3-android   → build ONLY Android
+#
+# Submit is a separate manual step (workflow_dispatch) so we never push a
+# build to production store track automatically on tag.
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+      - "v*.*.*-ios"
+      - "v*.*.*-android"
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: "Platform to build"
+        required: true
+        default: "all"
+        type: choice
+        options: [all, ios, android]
+      profile:
+        description: "EAS build profile"
+        required: true
+        default: "production"
+        type: choice
+        options: [preview, production]
+
+jobs:
+  ios:
+    name: iOS build
+    runs-on: ubuntu-latest
+    if: ${{ !endsWith(github.ref_name, '-android') }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build iOS
+        run: |
+          PROFILE="${{ github.event.inputs.profile || 'production' }}"
+          eas build --platform ios --profile "$PROFILE" --non-interactive --no-wait
+
+  android:
+    name: Android build
+    runs-on: ubuntu-latest
+    if: ${{ !endsWith(github.ref_name, '-ios') }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build Android
+        run: |
+          PROFILE="${{ github.event.inputs.profile || 'production' }}"
+          eas build --platform android --profile "$PROFILE" --non-interactive --no-wait
