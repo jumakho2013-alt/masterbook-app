@@ -17,13 +17,26 @@ import { I18n } from 'i18n-js';
 import { getLocales } from 'expo-localization';
 import ruLocale from './locales/ru.json';
 import enLocale from './locales/en.json';
+// Per-namespace «extra» файлы — каждый экран-кластер в своём файле, чтобы
+// миграцию можно вести параллельно без конфликтов в едином JSON.
+// Каждый файл = { "<namespace>": { ... } }; мержим в корневой словарь.
+import clientDetailRu from './locales/extra/clientDetail.ru.json';
+import clientDetailEn from './locales/extra/clientDetail.en.json';
+import apptRu from './locales/extra/appt.ru.json';
+import apptEn from './locales/extra/appt.en.json';
+import settingsRu from './locales/extra/settings.ru.json';
+import settingsEn from './locales/extra/settings.en.json';
+import miscRu from './locales/extra/misc.ru.json';
+import miscEn from './locales/extra/misc.en.json';
+import componentsRu from './locales/extra/components.ru.json';
+import componentsEn from './locales/extra/components.en.json';
 
 export type AppLanguage = 'system' | 'ru' | 'en';
 
-const i18n = new I18n({
-  ru: ruLocale,
-  en: enLocale,
-});
+const ru = Object.assign({}, ruLocale, clientDetailRu, apptRu, settingsRu, miscRu, componentsRu);
+const en = Object.assign({}, enLocale, clientDetailEn, apptEn, settingsEn, miscEn, componentsEn);
+
+const i18n = new I18n({ ru, en });
 i18n.defaultLocale = 'ru';
 i18n.enableFallback = true;
 

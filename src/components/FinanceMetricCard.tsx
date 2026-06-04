@@ -8,6 +8,7 @@ import { useTheme } from '@/src/theme';
 import { CountUp, StatusPill, type StatusTone } from '@/src/components/ui';
 import { MiniSparkline } from '@/src/components/MiniSparkline';
 import { useReduceMotion } from '@/src/hooks/useReduceMotion';
+import { useT } from '@/src/hooks/useT';
 import { formatCurrency } from '@/src/utils/currency';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -57,6 +58,7 @@ export function FinanceMetricCard({
   status,
 }: FinanceMetricCardProps) {
   const { colors, typography: typo, borderRadius: br, isDark } = useTheme();
+  const tr = useT();
   const reduceMotion = useReduceMotion();
   const scale = useSharedValue(1);
 
@@ -157,7 +159,7 @@ export function FinanceMetricCard({
               ]}
             >
               <Text style={[typo.small, { color: accentColor, fontFamily: typo.bodyBold.fontFamily }]}>
-                Подробнее
+                {tr('components.financeMetricMore')}
               </Text>
               <ArrowUpRight size={14} color={accentColor} />
             </View>

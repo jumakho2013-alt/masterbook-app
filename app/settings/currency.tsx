@@ -6,6 +6,7 @@ import { ArrowLeft, Check } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/src/theme';
 import { GlassCard, IconButton } from '@/src/components/ui';
+import { useT } from '@/src/hooks/useT';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { SUPPORTED_CURRENCIES, formatCurrency } from '@/src/utils/currency';
 import type { CurrencyCode } from '@/src/utils/currency.types';
@@ -21,6 +22,7 @@ import type { CurrencyCode } from '@/src/utils/currency.types';
  */
 export default function CurrencyScreen() {
   const router = useRouter();
+  const tr = useT();
   const { colors, typography: typo } = useTheme();
   const current = useSettingsStore((s) => s.currency);
   const setCurrency = useSettingsStore((s) => s.setCurrency);
@@ -38,14 +40,14 @@ export default function CurrencyScreen() {
           icon={<ArrowLeft size={22} color={colors.text} />}
           onPress={() => router.back()}
           variant="ghost"
-          accessibilityLabel="Назад"
+          accessibilityLabel={tr('common.back')}
         />
-        <Text style={[typo.h3, { color: colors.text }]}>Валюта</Text>
+        <Text style={[typo.h3, { color: colors.text }]}>{tr('settings.currencyTitle')}</Text>
         <View style={{ width: 48 }} />
       </View>
 
       <Text style={[typo.caption, { color: colors.textSecondary, paddingHorizontal: 20, marginBottom: 12 }]}>
-        Меняет только отображение. Уже сохранённые суммы не пересчитываются.
+        {tr('settings.currencyHint')}
       </Text>
 
       <FlatList
@@ -60,7 +62,7 @@ export default function CurrencyScreen() {
               onPress={() => choose(item.code)}
               accessibilityRole="radio"
               accessibilityState={{ selected }}
-              accessibilityLabel={`${item.name}, пример: ${formatCurrency(2500, item.code)}`}
+              accessibilityLabel={tr('settings.currencyExampleA11y', { name: item.name, example: formatCurrency(2500, item.code) })}
             >
               <GlassCard style={styles.row}>
                 <View style={[styles.symbolBubble, { backgroundColor: colors.primarySoft }]}>

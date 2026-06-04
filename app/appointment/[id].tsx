@@ -26,23 +26,27 @@ import { addMinutes, generateTimeSlots } from '@/src/utils/time';
 import { openOutreach, type OutreachChannel } from '@/src/lib/sleepingClients';
 import { useProfessionPack } from '@/src/hooks/useProfessionPack';
 import { syncUpdateEvent, syncDeleteEvent } from '@/src/lib/calendarSync';
+import { useT } from '@/src/hooks/useT';
 
-const statusLabels: Record<string, { label: string; color: string }> = {
-  scheduled: { label: 'Запланировано', color: '#7C5DFA' },
-  completed: { label: 'Завершено', color: '#2ED573' },
-  cancelled: { label: 'Отменено', color: '#FF4757' },
-  'no-show': { label: 'Не пришёл', color: '#FFA502' },
+// Цвета статусов — стабильны и не переводятся. Подписи (label) резолвятся
+// в render через i18n (appt.status.*).
+const statusColors: Record<string, string> = {
+  scheduled: '#7C5DFA',
+  completed: '#2ED573',
+  cancelled: '#FF4757',
+  'no-show': '#FFA502',
 };
 
 const REBOOK_OPTIONS = [
-  { label: '1 нед', weeks: 1 },
-  { label: '2 нед', weeks: 2 },
-  { label: '3 нед', weeks: 3 },
-  { label: '4 нед', weeks: 4 },
+  { labelKey: 'appt.rebook.week1', weeks: 1 },
+  { labelKey: 'appt.rebook.week2', weeks: 2 },
+  { labelKey: 'appt.rebook.week3', weeks: 3 },
+  { labelKey: 'appt.rebook.week4', weeks: 4 },
 ];
 
 export default function AppointmentDetailScreen() {
   const router = useRouter();
+  const tr = useT();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors, typography: typo, spacing: sp, borderRadius: br } = useTheme();
 
@@ -73,7 +77,8 @@ export default function AppointmentDetailScreen() {
 
   if (!appointment) return null;
 
-  const status = statusLabels[appointment.status];
+  const statusColor = statusColors[appointment.status];
+  const statusLabel = tr(`appt.status.${appointment.status}`);
 
   // === HANDLERS ===
 
@@ -86,7 +91,7 @@ export default function AppointmentDetailScreen() {
       addEntry({
         type: 'income',
         amount: appointment.price,
-        description: `${service?.name ?? 'Услуга'} — ${client?.name ?? 'Клиент'}`,
+        description: `${service?.name ?? tr('appt.serviceFallback')} — ${client?.name ?? tr('appt.clientFallback')}`,
         date: appointment.date,
         appointmentId: appointment.id,
       });
@@ -98,12 +103,12 @@ export default function AppointmentDetailScreen() {
     const reviewLink = useSettingsStore.getState().reviewLinkUrl;
     if (reviewLink && client?.phone) {
       show(
-        'Готово!',
-        'Запись завершена, доход записан.\n\nПопросить отзыв у клиента?',
+        tr('appt.complete.doneTitle'),
+        tr('appt.complete.askReviewBody'),
         [
-          { text: 'Позже', style: 'cancel' },
+          { text: tr('appt.complete.later'), style: 'cancel' },
           {
-            text: 'Попросить',
+            text: tr('appt.complete.askReview'),
             style: 'default',
             onPress: () => askForReview(reviewLink),
           },
@@ -111,7 +116,7 @@ export default function AppointmentDetailScreen() {
         'success',
       );
     } else {
-      success('Готово!', 'Запись завершена, доход записан', () => router.back());
+      success(tr('appt.complete.doneTitle'), tr('appt.complete.doneBody'), () => router.back());
     }
   };
 
@@ -123,20 +128,20 @@ export default function AppointmentDetailScreen() {
     const sig = useSettingsStore.getState().masterName
       ? `\n\n— ${useSettingsStore.getState().masterName}`
       : '';
-    const msg = `${firstName}, спасибо что пришла! 🌸\n\nЕсли понравилось — буду рада короткому отзыву:\n${reviewLink}${sig}`;
+    const msg = tr('appt.reviewMessage', { name: firstName, link: reviewLink }) + sig;
     await openOutreach('whatsapp', client.phone, msg);
     router.back();
   };
 
   const handleCancel = () => {
-    confirm('Отменить запись?', 'Запись будет помечена как отменённая', () => {
+    confirm(tr('appt.cancel.confirmTitle'), tr('appt.cancel.confirmBody'), () => {
       setStatus(appointment.id, 'cancelled');
       // Удаляем из системного календаря — мастер не хочет видеть «зомби» записи.
       if (appointment.calendarEventId) {
         syncDeleteEvent(appointment.calendarEventId);
       }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    }, 'Отменить', true);
+    }, tr('appt.cancel.confirmBtn'), true);
   };
 
   const handleRebook = (weeks: number) => {
@@ -152,7 +157,11 @@ export default function AppointmentDetailScreen() {
       price: appointment.price,
     });
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    success('Готово!', `Записано на ${formatDate(toDateKey(newDate))}, ${appointment.startTime}`, () => router.back());
+    success(
+      tr('appt.complete.doneTitle'),
+      tr('appt.rebook.bookedFor', { date: formatDate(toDateKey(newDate)), time: appointment.startTime }),
+      () => router.back(),
+    );
   };
 
   const handleReschedule = () => {
@@ -177,7 +186,7 @@ export default function AppointmentDetailScreen() {
     }
 
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    toast.success('Запись перенесена');
+    toast.success(tr('appt.toast.rescheduled'));
     setShowReschedule(false);
   };
 
@@ -191,8 +200,8 @@ export default function AppointmentDetailScreen() {
       const req = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!req.granted) {
         showError(
-          'Нужен доступ к фото',
-          'Включи доступ к галерее в Настройках → MasterBook → Фото. Без него нельзя прикрепить фото к записи.',
+          tr('appt.photos.permTitle'),
+          tr('appt.photos.permBody'),
         );
         return;
       }
@@ -212,7 +221,7 @@ export default function AppointmentDetailScreen() {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
     } catch (err) {
-      showError('Не удалось открыть галерею', err instanceof Error ? err.message : String(err));
+      showError(tr('appt.photos.openFailed'), err instanceof Error ? err.message : String(err));
     }
   };
 
@@ -220,7 +229,7 @@ export default function AppointmentDetailScreen() {
     updateAppointment(appointment.id, { notes: notes.trim() || undefined });
     setEditingNotes(false);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    toast.success('Заметка сохранена');
+    toast.success(tr('appt.toast.noteSaved'));
   };
 
   const handleSaveDeposit = () => {
@@ -273,7 +282,7 @@ export default function AppointmentDetailScreen() {
     if (channel === 'telegram') {
       try {
         await Clipboard.setStringAsync(msg);
-        toast.success('Сообщение скопировано');
+        toast.success(tr('appt.toast.messageCopied'));
       } catch {
         /* безопасно: пользователь сможет ввести вручную */
       }
@@ -295,23 +304,23 @@ export default function AppointmentDetailScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]}>
       <View style={styles.topBar}>
         <IconButton icon={<ArrowLeft size={22} color={colors.text} />} onPress={() => router.back()} variant="ghost" />
-        <Text style={[typo.h3, { color: colors.text }]}>Запись</Text>
+        <Text style={[typo.h3, { color: colors.text }]}>{tr('appt.detailTitle')}</Text>
         <View style={{ width: 48 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Status badge */}
         <View style={{ alignItems: 'center', marginBottom: sp.lg }}>
-          <Badge label={status.label} color={status.color} />
+          <Badge label={statusLabel} color={statusColor} />
         </View>
 
         {/* Info card */}
         <GlassCard elevated style={styles.infoCard}>
-          <InfoRow icon={<User size={18} color={colors.primary} />} label="Клиент" value={client?.name ?? ''} />
-          <InfoRow icon={<Scissors size={18} color={colors.primary} />} label="Услуга" value={service?.name ?? ''} />
-          <InfoRow icon={<Clock size={18} color={colors.primary} />} label="Время" value={`${formatDate(appointment.date)}, ${formatTimeRange(appointment.startTime, appointment.endTime)}`} />
+          <InfoRow icon={<User size={18} color={colors.primary} />} label={tr('appt.field.client')} value={client?.name ?? ''} />
+          <InfoRow icon={<Scissors size={18} color={colors.primary} />} label={tr('appt.field.service')} value={service?.name ?? ''} />
+          <InfoRow icon={<Clock size={18} color={colors.primary} />} label={tr('appt.field.time')} value={`${formatDate(appointment.date)}, ${formatTimeRange(appointment.startTime, appointment.endTime)}`} />
           <View style={styles.infoRow}>
-            <Text style={[typo.bodyBold, { color: colors.text }]}>Стоимость</Text>
+            <Text style={[typo.bodyBold, { color: colors.text }]}>{tr('appt.field.price')}</Text>
             <Text style={[typo.h3, { color: colors.primary }]}>{formatCurrency(appointment.price)}</Text>
           </View>
         </GlassCard>
@@ -320,23 +329,23 @@ export default function AppointmentDetailScreen() {
         <Animated.View entering={FadeInDown.delay(80)}>
           <View style={[styles.sectionHeader, { marginTop: sp.lg }]}>
             <Wallet size={18} color={colors.textSecondary} />
-            <Text style={[typo.bodyBold, { color: colors.text, marginLeft: 8 }]}>Предоплата</Text>
+            <Text style={[typo.bodyBold, { color: colors.text, marginLeft: 8 }]}>{tr('appt.deposit.title')}</Text>
           </View>
           {editingDeposit ? (
             <GlassCard style={{ marginTop: sp.sm }}>
               <TextInput
                 value={depositInput}
                 onChangeText={setDepositInput}
-                placeholder="Сумма депозита"
+                placeholder={tr('appt.deposit.amountPlaceholder')}
                 placeholderTextColor={colors.textTertiary}
                 keyboardType="numeric"
                 style={[typo.body, { color: colors.text }]}
                 autoFocus
               />
               <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
-                <Button title="Сохранить" onPress={handleSaveDeposit} size="sm" style={{ flex: 1 }} />
+                <Button title={tr('common.save')} onPress={handleSaveDeposit} size="sm" style={{ flex: 1 }} />
                 <Button
-                  title="Отмена"
+                  title={tr('common.cancel')}
                   onPress={() => { setEditingDeposit(false); setDepositInput(appointment.deposit ? String(appointment.deposit) : ''); }}
                   variant="ghost"
                   size="sm"
@@ -348,15 +357,15 @@ export default function AppointmentDetailScreen() {
             <GlassCard style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: sp.sm }}>
               <Pressable onPress={() => setEditingDeposit(true)} hitSlop={8} style={{ flex: 1 }}>
                 <Text style={[typo.h3, { color: colors.text }]}>{formatCurrency(appointment.deposit)}</Text>
-                <Text style={[typo.small, { color: colors.textTertiary }]}>нажмите, чтобы изменить</Text>
+                <Text style={[typo.small, { color: colors.textTertiary }]}>{tr('appt.deposit.tapToEdit')}</Text>
               </Pressable>
               <Pressable
                 onPress={toggleDepositPaid}
                 accessibilityRole="button"
-                accessibilityLabel={appointment.depositPaid ? 'Депозит внесён' : 'Депозит ожидается'}
+                accessibilityLabel={appointment.depositPaid ? tr('appt.deposit.paidA11y') : tr('appt.deposit.pendingA11y')}
               >
                 <Badge
-                  label={appointment.depositPaid ? '✓ Внесён' : 'Ожидается'}
+                  label={appointment.depositPaid ? tr('appt.deposit.paidBadge') : tr('appt.deposit.pending')}
                   color={appointment.depositPaid ? colors.success : colors.warning}
                 />
               </Pressable>
@@ -367,7 +376,7 @@ export default function AppointmentDetailScreen() {
               style={[styles.notesBox, { backgroundColor: colors.surfaceElevated, borderRadius: br.md, marginTop: sp.sm }]}
             >
               <Text style={[typo.body, { color: colors.textTertiary }]}>
-                + Добавить предоплату (снижает риск неявки)
+                {tr('appt.deposit.addCta')}
               </Text>
             </Pressable>
           )}
@@ -377,28 +386,28 @@ export default function AppointmentDetailScreen() {
         <Animated.View entering={FadeInDown.delay(100)}>
           <View style={[styles.sectionHeader, { marginTop: sp.lg }]}>
             <StickyNote size={18} color={colors.textSecondary} />
-            <Text style={[typo.bodyBold, { color: colors.text, marginLeft: 8 }]}>Заметка</Text>
+            <Text style={[typo.bodyBold, { color: colors.text, marginLeft: 8 }]}>{tr('appt.notes.title')}</Text>
           </View>
           {editingNotes ? (
             <GlassCard style={{ marginTop: sp.sm }}>
               <TextInput
                 value={notes}
                 onChangeText={setNotes}
-                placeholder="Хочет как в прошлый раз, аллергия на..."
+                placeholder={tr('appt.notes.placeholder')}
                 placeholderTextColor={colors.textTertiary}
                 style={[typo.body, { color: colors.text, minHeight: 80, textAlignVertical: 'top' }]}
                 multiline
                 autoFocus
               />
               <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
-                <Button title="Сохранить" onPress={handleSaveNotes} size="sm" style={{ flex: 1 }} />
-                <Button title="Отмена" onPress={() => { setEditingNotes(false); setNotes(appointment.notes ?? ''); }} variant="ghost" size="sm" style={{ flex: 1 }} />
+                <Button title={tr('common.save')} onPress={handleSaveNotes} size="sm" style={{ flex: 1 }} />
+                <Button title={tr('common.cancel')} onPress={() => { setEditingNotes(false); setNotes(appointment.notes ?? ''); }} variant="ghost" size="sm" style={{ flex: 1 }} />
               </View>
             </GlassCard>
           ) : (
             <Pressable onPress={() => setEditingNotes(true)} style={[styles.notesBox, { backgroundColor: colors.surfaceElevated, borderRadius: br.md, marginTop: sp.sm }]}>
               <Text style={[typo.body, { color: appointment.notes ? colors.text : colors.textTertiary }]}>
-                {appointment.notes || 'Нажмите чтобы добавить заметку...'}
+                {appointment.notes || tr('appt.notes.empty')}
               </Text>
             </Pressable>
           )}
@@ -416,7 +425,7 @@ export default function AppointmentDetailScreen() {
                   <Pressable
                     onPress={() => remindClient()}
                     accessibilityRole="button"
-                    accessibilityLabel="Напомнить клиенту о записи"
+                    accessibilityLabel={tr('appt.remind.a11y')}
                     style={[
                       styles.remindRow,
                       {
@@ -428,7 +437,7 @@ export default function AppointmentDetailScreen() {
                   >
                     <MessageCircle size={18} color={colors.primary} />
                     <Text style={[typo.bodyBold, { color: colors.primary, marginLeft: 10, flex: 1 }]}>
-                      Напомнить клиенту
+                      {tr('appt.remind.cta')}
                     </Text>
                     <Text style={[typo.small, { color: colors.primary, opacity: 0.7 }]}>
                       WhatsApp · SMS
@@ -437,8 +446,8 @@ export default function AppointmentDetailScreen() {
                 ) : null}
 
                 <View style={[styles.actions, { marginTop: sp.md }]}>
-                  <Button title="Завершить" onPress={handleComplete} variant="primary" size="lg" style={{ flex: 1 }} />
-                  <Button title="Перенести" onPress={() => setShowReschedule(true)} variant="secondary" size="lg" style={{ flex: 1 }} />
+                  <Button title={tr('appt.action.complete')} onPress={handleComplete} variant="primary" size="lg" style={{ flex: 1 }} />
+                  <Button title={tr('appt.action.reschedule')} onPress={() => setShowReschedule(true)} variant="secondary" size="lg" style={{ flex: 1 }} />
                 </View>
               </>
             ) : (
@@ -446,7 +455,7 @@ export default function AppointmentDetailScreen() {
               <GlassCard elevated style={{ marginTop: sp.lg }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <MoveRight size={18} color={colors.primary} />
-                  <Text style={[typo.bodyBold, { color: colors.text }]}>Перенести на</Text>
+                  <Text style={[typo.bodyBold, { color: colors.text }]}>{tr('appt.reschedule.heading')}</Text>
                 </View>
                 {/* Date picker */}
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 12 }}>
@@ -476,13 +485,13 @@ export default function AppointmentDetailScreen() {
                   })}
                 </View>
                 <View style={{ flexDirection: 'row', gap: 8, marginTop: 16 }}>
-                  <Button title="Перенести" onPress={handleReschedule} disabled={!rescheduleTime} size="md" style={{ flex: 1 }} />
-                  <Button title="Отмена" onPress={() => setShowReschedule(false)} variant="ghost" size="md" style={{ flex: 1 }} />
+                  <Button title={tr('appt.action.reschedule')} onPress={handleReschedule} disabled={!rescheduleTime} size="md" style={{ flex: 1 }} />
+                  <Button title={tr('common.cancel')} onPress={() => setShowReschedule(false)} variant="ghost" size="md" style={{ flex: 1 }} />
                 </View>
               </GlassCard>
             )}
 
-            <Button title="Отменить запись" onPress={handleCancel} variant="danger" size="md" style={{ marginTop: 12, alignSelf: 'stretch' }} fullWidth />
+            <Button title={tr('appt.action.cancelAppt')} onPress={handleCancel} variant="danger" size="md" style={{ marginTop: 12, alignSelf: 'stretch' }} fullWidth />
           </Animated.View>
         )}
 
@@ -491,13 +500,13 @@ export default function AppointmentDetailScreen() {
           <Animated.View entering={FadeInDown.delay(200)} style={{ marginTop: sp.lg }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
               <CalendarPlus size={18} color={colors.primary} />
-              <Text style={[typo.bodyBold, { color: colors.text }]}>Записать снова</Text>
+              <Text style={[typo.bodyBold, { color: colors.text }]}>{tr('appt.rebook.title')}</Text>
             </View>
             <View style={styles.rebookGrid}>
               {REBOOK_OPTIONS.map((opt) => (
                 <Pressable key={opt.weeks} onPress={() => handleRebook(opt.weeks)}
                   style={[styles.rebookChip, { backgroundColor: colors.primarySoft, borderRadius: br.md }]}>
-                  <Text style={[typo.bodyBold, { color: colors.primary }]}>{opt.label}</Text>
+                  <Text style={[typo.bodyBold, { color: colors.primary }]}>{tr(opt.labelKey)}</Text>
                 </Pressable>
               ))}
             </View>
@@ -510,10 +519,10 @@ export default function AppointmentDetailScreen() {
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <CameraIcon size={18} color={colors.primary} />
-                <Text style={[typo.bodyBold, { color: colors.text }]}>Фото работы</Text>
+                <Text style={[typo.bodyBold, { color: colors.text }]}>{tr('appt.photos.title')}</Text>
               </View>
               <Pressable onPress={handleAddPhoto} style={{ padding: 4 }}>
-                <Text style={[typo.caption, { color: colors.primary }]}>+ Добавить</Text>
+                <Text style={[typo.caption, { color: colors.primary }]}>{tr('appt.photos.add')}</Text>
               </Pressable>
             </View>
             {(appointment.photos?.length ?? 0) > 0 ? (
@@ -528,7 +537,7 @@ export default function AppointmentDetailScreen() {
                     cachePolicy="memory-disk"
                     contentFit="cover"
                     transition={150}
-                    accessibilityLabel={`Фото работы ${i + 1}`}
+                    accessibilityLabel={tr('appt.photos.itemA11y', { n: i + 1 })}
                     style={[styles.photo, { borderRadius: br.md, borderColor: colors.border }]}
                   />
                 ))}
@@ -540,7 +549,7 @@ export default function AppointmentDetailScreen() {
               >
                 <CameraIcon size={24} color={colors.textTertiary} />
                 <Text style={[typo.caption, { color: colors.textTertiary, marginTop: 6 }]}>
-                  Нажмите чтобы добавить фото
+                  {tr('appt.photos.empty')}
                 </Text>
               </Pressable>
             )}
@@ -560,7 +569,7 @@ export default function AppointmentDetailScreen() {
         onSend={sendReminder}
         onCopy={async () => {
           await Clipboard.setStringAsync(buildReminderMessage());
-          toast.success('Сообщение скопировано');
+          toast.success(tr('appt.toast.messageCopied'));
           setReminderSheetOpen(false);
         }}
       />
@@ -582,11 +591,12 @@ function ReminderSheet({
   onCopy: () => void;
 }) {
   const { colors, typography: typo, spacing: sp, borderRadius: br } = useTheme();
+  const tr = useT();
   if (!visible) return null;
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={remStyles.backdrop}>
-        <RNPressable style={{ flex: 1 }} onPress={onClose} accessibilityLabel="Закрыть" />
+        <RNPressable style={{ flex: 1 }} onPress={onClose} accessibilityLabel={tr('appt.reminder.close')} />
         <View style={[
           remStyles.sheet,
           { backgroundColor: colors.background, borderTopLeftRadius: br.lg, borderTopRightRadius: br.lg },
@@ -596,10 +606,10 @@ function ReminderSheet({
           </View>
           <View style={{ paddingHorizontal: sp.lg, paddingBottom: sp.md }}>
             <Text style={[typo.h3, { color: colors.text }]} numberOfLines={1}>
-              Напомнить {clientName.split(' ')[0]}
+              {tr('appt.reminder.title', { name: clientName.split(' ')[0] })}
             </Text>
             <Text style={[typo.caption, { color: colors.textSecondary, marginTop: 4 }]}>
-              Выбери канал. Текст уже подготовлен.
+              {tr('appt.reminder.subtitle')}
             </Text>
           </View>
           <View style={[remStyles.preview, { backgroundColor: colors.surfaceElevated, borderRadius: br.md, marginHorizontal: sp.lg }]}>
@@ -612,7 +622,7 @@ function ReminderSheet({
               icon={<Send size={20} color="#0088CC" />} onPress={() => onSend('telegram')} />
             <RemActionBtn label="SMS" bg={colors.successSoft} iconColor={colors.success}
               icon={<PhoneIcon size={20} color={colors.success} />} onPress={() => onSend('sms')} />
-            <RemActionBtn label="Копир." bg={colors.primarySoft} iconColor={colors.primary}
+            <RemActionBtn label={tr('appt.reminder.copy')} bg={colors.primarySoft} iconColor={colors.primary}
               icon={<CopyIcon size={20} color={colors.primary} />} onPress={onCopy} />
           </View>
         </View>

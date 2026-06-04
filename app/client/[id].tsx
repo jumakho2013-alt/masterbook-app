@@ -20,18 +20,26 @@ import { useServiceStore } from '@/src/stores/useServiceStore';
 import { formatDate, formatTimeRange, daysSince } from '@/src/utils/date';
 import { formatCurrency } from '@/src/utils/currency';
 import { openAddressInMaps } from '@/src/lib/openMaps';
+import { useT } from '@/src/hooks/useT';
 import type { ClientTag } from '@/src/types';
 
-const tagLabels: Record<string, { label: string; color: string }> = {
-  vip: { label: 'VIP', color: '#FFA502' },
-  problematic: { label: 'Проблемный', color: '#FF4757' },
-  new: { label: 'Новый', color: '#2ED573' },
+const tagColors: Record<string, string> = {
+  vip: '#FFA502',
+  problematic: '#FF4757',
+  new: '#2ED573',
+};
+
+const tagLabelKeys: Record<string, string> = {
+  vip: 'clientDetail.tagVip',
+  problematic: 'clientDetail.tagProblematic',
+  new: 'clientDetail.tagNew',
 };
 
 const ALL_TAGS: ClientTag[] = ['vip', 'problematic', 'new'];
 
 export default function ClientDetailScreen() {
   const router = useRouter();
+  const tr = useT();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors, typography: typo, spacing: sp, borderRadius: br } = useTheme();
 
@@ -82,7 +90,7 @@ export default function ClientDetailScreen() {
   };
 
   const saveEdit = () => {
-    if (!editName.trim()) { showError('Ошибка', 'Введите имя'); return; }
+    if (!editName.trim()) { showError(tr('common.error'), tr('clientDetail.nameRequired')); return; }
     updateClient(client.id, {
       name: editName.trim(),
       phone: editPhone.trim(),
@@ -109,7 +117,7 @@ export default function ClientDetailScreen() {
   const copyPhone = async () => {
     await Clipboard.setStringAsync(client.phone);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    toast.success('Телефон скопирован');
+    toast.success(tr('clientDetail.phoneCopied'));
   };
 
   const pickPhoto = async () => {
@@ -120,8 +128,8 @@ export default function ClientDetailScreen() {
       const req = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!req.granted) {
         showError(
-          'Нужен доступ к фото',
-          'Включи доступ к галерее в Настройках → MasterBook → Фото.',
+          tr('clientDetail.photoAccessTitle'),
+          tr('clientDetail.photoAccessBody'),
         );
         return;
       }
@@ -138,10 +146,10 @@ export default function ClientDetailScreen() {
         const persisted = persistImageToAppDir(result.assets[0].uri);
         updateClient(client.id, { photoUri: persisted });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        toast.success('Фото обновлено');
+        toast.success(tr('clientDetail.photoUpdated'));
       }
     } catch (err) {
-      showError('Не удалось открыть галерею', err instanceof Error ? err.message : String(err));
+      showError(tr('clientDetail.galleryErrorTitle'), err instanceof Error ? err.message : String(err));
     }
   };
 
@@ -150,7 +158,7 @@ export default function ClientDetailScreen() {
     try {
       await Linking.openURL(`whatsapp://send?phone=${phone}`);
     } catch {
-      toast.error('WhatsApp не установлен');
+      toast.error(tr('clientDetail.whatsappNotInstalled'));
     }
   };
 
@@ -159,7 +167,7 @@ export default function ClientDetailScreen() {
     try {
       await Linking.openURL(`tg://resolve?phone=${phone}`);
     } catch {
-      showError('Ошибка', 'Telegram не установлен');
+      showError(tr('common.error'), tr('clientDetail.telegramNotInstalled'));
     }
   };
 
@@ -199,14 +207,14 @@ export default function ClientDetailScreen() {
                     value={editName}
                     onChangeText={setEditName}
                     style={[styles.editInput, typo.h3, { color: colors.text, backgroundColor: colors.surfaceElevated, borderRadius: br.md }]}
-                    placeholder="Имя"
+                    placeholder={tr('clientDetail.placeholderName')}
                     placeholderTextColor={colors.textTertiary}
                   />
                   <TextInput
                     value={editPhone}
                     onChangeText={setEditPhone}
                     style={[styles.editInput, typo.body, { color: colors.text, backgroundColor: colors.surfaceElevated, borderRadius: br.md }]}
-                    placeholder="Телефон"
+                    placeholder={tr('clientDetail.placeholderPhone')}
                     placeholderTextColor={colors.textTertiary}
                     keyboardType="phone-pad"
                   />
@@ -214,26 +222,26 @@ export default function ClientDetailScreen() {
                     value={editAddress}
                     onChangeText={setEditAddress}
                     style={[styles.editInput, typo.body, { color: colors.text, backgroundColor: colors.surfaceElevated, borderRadius: br.md }]}
-                    placeholder="Адрес"
+                    placeholder={tr('clientDetail.placeholderAddress')}
                     placeholderTextColor={colors.textTertiary}
                   />
                   <TextInput
                     value={editNotes}
                     onChangeText={setEditNotes}
                     style={[styles.editInput, typo.body, { color: colors.text, backgroundColor: colors.surfaceElevated, borderRadius: br.md, minHeight: 60 }]}
-                    placeholder="Заметки"
+                    placeholder={tr('clientDetail.placeholderNotes')}
                     placeholderTextColor={colors.textTertiary}
                     multiline
                   />
                   {/* Tag picker */}
                   <View style={{ flexDirection: 'row', gap: 8, justifyContent: 'center' }}>
                     {ALL_TAGS.map((tag) => {
-                      const t = tagLabels[tag];
+                      const tagColor = tagColors[tag];
                       const active = editTags.includes(tag);
                       return (
                         <Pressable key={tag} onPress={() => toggleTag(tag)}
-                          style={[styles.tagChip, { backgroundColor: active ? t.color + '20' : colors.surfaceElevated, borderColor: active ? t.color : colors.border, borderRadius: br.sm }]}>
-                          <Text style={[typo.caption, { color: active ? t.color : colors.textSecondary }]}>{t.label}</Text>
+                          style={[styles.tagChip, { backgroundColor: active ? tagColor + '20' : colors.surfaceElevated, borderColor: active ? tagColor : colors.border, borderRadius: br.sm }]}>
+                          <Text style={[typo.caption, { color: active ? tagColor : colors.textSecondary }]}>{tr(tagLabelKeys[tag])}</Text>
                         </Pressable>
                       );
                     })}
@@ -247,13 +255,14 @@ export default function ClientDetailScreen() {
                   </Pressable>
                   <View style={styles.tags}>
                     {client.tags.map((tag) => {
-                      const t = tagLabels[tag];
-                      return t ? <Badge key={tag} label={t.label} color={t.color} /> : null;
+                      const tagColor = tagColors[tag];
+                      const labelKey = tagLabelKeys[tag];
+                      return tagColor ? <Badge key={tag} label={tr(labelKey)} color={tagColor} /> : null;
                     })}
                   </View>
                   {lastVisit && (
                     <Text style={[typo.caption, { color: colors.textSecondary, marginTop: sp.sm }]}>
-                      Последний визит: {daysSince(lastVisit.date)}
+                      {tr('clientDetail.lastVisit', { ago: daysSince(lastVisit.date) })}
                     </Text>
                   )}
                 </>
@@ -265,16 +274,16 @@ export default function ClientDetailScreen() {
               <View style={[styles.statsRow, { paddingHorizontal: 16, marginBottom: sp.md }]}>
                 <GlassCard style={styles.statCard}>
                   <Text style={[typo.h3, { color: colors.primary }]}>{appointments.length}</Text>
-                  <Text style={[typo.small, { color: colors.textSecondary }]}>Визитов</Text>
+                  <Text style={[typo.small, { color: colors.textSecondary }]}>{tr('clientDetail.statVisits')}</Text>
                 </GlassCard>
                 <GlassCard style={styles.statCard}>
                   <Text style={[typo.h3, { color: colors.success }]}>{formatCurrency(totalSpent)}</Text>
-                  <Text style={[typo.small, { color: colors.textSecondary }]}>Всего</Text>
+                  <Text style={[typo.small, { color: colors.textSecondary }]}>{tr('clientDetail.statTotal')}</Text>
                 </GlassCard>
                 {(client.debt ?? 0) > 0 && (
                   <GlassCard style={styles.statCard}>
                     <Text style={[typo.h3, { color: colors.danger }]}>{formatCurrency(client.debt!)}</Text>
-                    <Text style={[typo.small, { color: colors.textSecondary }]}>Долг</Text>
+                    <Text style={[typo.small, { color: colors.textSecondary }]}>{tr('clientDetail.statDebt')}</Text>
                   </GlassCard>
                 )}
               </View>
@@ -283,9 +292,9 @@ export default function ClientDetailScreen() {
             {/* Action buttons */}
             {!editing && (
               <View style={[styles.actions, { paddingHorizontal: 16, marginBottom: sp.md }]}>
-                <Pressable style={[styles.actionBtn, { backgroundColor: colors.success + '15' }]} onPress={async () => { try { await Linking.openURL(`tel:${client.phone}`); } catch { showError('Ошибка', 'Не удалось позвонить'); } }}>
+                <Pressable style={[styles.actionBtn, { backgroundColor: colors.success + '15' }]} onPress={async () => { try { await Linking.openURL(`tel:${client.phone}`); } catch { showError(tr('common.error'), tr('clientDetail.callError')); } }}>
                   <Phone size={18} color={colors.success} />
-                  <Text style={[typo.caption, { color: colors.success }]}>Позвонить</Text>
+                  <Text style={[typo.caption, { color: colors.success }]}>{tr('clientDetail.actionCall')}</Text>
                 </Pressable>
                 <Pressable style={[styles.actionBtn, { backgroundColor: '#25D366' + '15' }]} onPress={openWhatsApp}>
                   <MessageCircle size={18} color="#25D366" />
@@ -297,7 +306,7 @@ export default function ClientDetailScreen() {
                 </Pressable>
                 <Pressable style={[styles.actionBtn, { backgroundColor: colors.primary + '15' }]} onPress={() => router.push('/appointment/new')}>
                   <Plus size={18} color={colors.primary} />
-                  <Text style={[typo.caption, { color: colors.primary }]}>Записать</Text>
+                  <Text style={[typo.caption, { color: colors.primary }]}>{tr('clientDetail.actionBook')}</Text>
                 </Pressable>
               </View>
             )}
@@ -307,11 +316,11 @@ export default function ClientDetailScreen() {
               <Pressable
                 onPress={async () => {
                   const ok = await openAddressInMaps(client.address!);
-                  if (!ok) showError('Ошибка', 'Не удалось открыть карты');
+                  if (!ok) showError(tr('common.error'), tr('clientDetail.mapsError'));
                 }}
                 accessibilityRole="button"
-                accessibilityLabel={`Открыть маршрут к адресу ${client.address}`}
-                accessibilityHint="Откроется приложение карт"
+                accessibilityLabel={tr('clientDetail.addressRouteLabel', { address: client.address })}
+                accessibilityHint={tr('clientDetail.addressRouteHint')}
                 style={{ paddingHorizontal: 16, marginBottom: sp.md }}
               >
                 <GlassCard>
@@ -321,7 +330,7 @@ export default function ClientDetailScreen() {
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={[typo.small, { color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5 }]}>
-                        Адрес · тап для маршрута
+                        {tr('clientDetail.addressCardLabel')}
                       </Text>
                       <Text style={[typo.body, { color: colors.text, marginTop: 2 }]}>{client.address}</Text>
                     </View>
@@ -334,7 +343,7 @@ export default function ClientDetailScreen() {
             {!editing && client.notes ? (
               <View style={{ paddingHorizontal: 16, marginBottom: sp.md }}>
                 <GlassCard>
-                  <Text style={[typo.small, { color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5 }]}>Заметки</Text>
+                  <Text style={[typo.small, { color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5 }]}>{tr('clientDetail.notesLabel')}</Text>
                   <Text style={[typo.body, { color: colors.text, marginTop: 6 }]}>{client.notes}</Text>
                 </GlassCard>
               </View>
@@ -347,7 +356,7 @@ export default function ClientDetailScreen() {
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                       <Heart size={16} color={colors.primary} />
-                      <Text style={[typo.bodyBold, { color: colors.text }]}>Предпочтения</Text>
+                      <Text style={[typo.bodyBold, { color: colors.text }]}>{tr('clientDetail.preferences')}</Text>
                     </View>
                     {prefsExpanded ? <ChevronUp size={18} color={colors.textTertiary} /> : <ChevronDown size={18} color={colors.textTertiary} />}
                   </View>
@@ -358,21 +367,21 @@ export default function ClientDetailScreen() {
                           <TextInput
                             value={prefsText}
                             onChangeText={setPrefsText}
-                            placeholder="Любимый цвет, стиль, аллергии..."
+                            placeholder={tr('clientDetail.preferencesPlaceholder')}
                             placeholderTextColor={colors.textTertiary}
                             style={[typo.body, { color: colors.text, backgroundColor: colors.surfaceElevated, borderRadius: br.sm, padding: 12, minHeight: 70, textAlignVertical: 'top' }]}
                             multiline
                             autoFocus
                           />
                           <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
-                            <Button title="Сохранить" onPress={savePreferences} size="sm" style={{ flex: 1 }} />
-                            <Button title="Отмена" onPress={() => setEditingPrefs(false)} variant="ghost" size="sm" style={{ flex: 1 }} />
+                            <Button title={tr('common.save')} onPress={savePreferences} size="sm" style={{ flex: 1 }} />
+                            <Button title={tr('common.cancel')} onPress={() => setEditingPrefs(false)} variant="ghost" size="sm" style={{ flex: 1 }} />
                           </View>
                         </>
                       ) : (
                         <Pressable onPress={() => setEditingPrefs(true)}>
                           <Text style={[typo.body, { color: client.preferences ? colors.text : colors.textTertiary }]}>
-                            {client.preferences || 'Нажмите чтобы добавить...'}
+                            {client.preferences || tr('clientDetail.preferencesEmpty')}
                           </Text>
                         </Pressable>
                       )}
@@ -384,7 +393,7 @@ export default function ClientDetailScreen() {
 
             {/* History header */}
             <Text style={[typo.bodyBold, { color: colors.text, paddingHorizontal: 24, marginBottom: 12 }]}>
-              История визитов ({appointments.length})
+              {tr('clientDetail.historyTitle', { count: appointments.length })}
             </Text>
           </>
         }
@@ -400,7 +409,7 @@ export default function ClientDetailScreen() {
                   : colors.primary,
               }]} />
               <View style={{ flex: 1 }}>
-                <Text style={[typo.body, { color: colors.text }]}>{service?.name ?? 'Услуга'}</Text>
+                <Text style={[typo.body, { color: colors.text }]}>{service?.name ?? tr('clientDetail.serviceFallback')}</Text>
                 <Text style={[typo.caption, { color: colors.textSecondary }]}>
                   {formatDate(item.date)} / {formatTimeRange(item.startTime, item.endTime)}
                 </Text>

@@ -6,6 +6,7 @@ import { ArrowLeft, Star } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/src/theme';
 import { Button, Input, IconButton, useToast } from '@/src/components/ui';
+import { useT } from '@/src/hooks/useT';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
 
 /**
@@ -23,6 +24,7 @@ import { useSettingsStore } from '@/src/stores/useSettingsStore';
  */
 export default function ReviewLinkSettingsScreen() {
   const router = useRouter();
+  const tr = useT();
   const { colors, typography: typo, spacing: sp } = useTheme();
   const toast = useToast();
   const existing = useSettingsStore((s) => s.reviewLinkUrl);
@@ -35,12 +37,12 @@ export default function ReviewLinkSettingsScreen() {
     const trimmed = url.trim();
     // Валидация: либо пусто (отключить фичу), либо начинается с http(s)
     if (trimmed && !/^https?:\/\//i.test(trimmed)) {
-      toast.error('URL должен начинаться с http:// или https://');
+      toast.error(tr('settings.reviewLinkInvalid'));
       return;
     }
     setReviewLinkUrl(trimmed || null);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    toast.success(trimmed ? 'Ссылка сохранена' : 'Ссылка очищена');
+    toast.success(trimmed ? tr('settings.reviewLinkSaved') : tr('settings.reviewLinkCleared'));
     router.back();
   };
 
@@ -51,9 +53,9 @@ export default function ReviewLinkSettingsScreen() {
           icon={<ArrowLeft size={22} color={colors.text} />}
           onPress={() => router.back()}
           variant="ghost"
-          accessibilityLabel="Назад"
+          accessibilityLabel={tr('common.back')}
         />
-        <Text style={[typo.h3, { color: colors.text }]}>Ссылка для отзывов</Text>
+        <Text style={[typo.h3, { color: colors.text }]}>{tr('settings.reviewLinkTitle')}</Text>
         <View style={{ width: 48 }} />
       </View>
 
@@ -65,7 +67,7 @@ export default function ReviewLinkSettingsScreen() {
         </View>
 
         <Text style={[typo.body, { color: colors.textSecondary, textAlign: 'center', marginBottom: sp.lg }]}>
-          Когда отметишь запись завершённой — появится кнопка «Попросить отзыв». Она откроет WhatsApp с шаблоном благодарности и твоей ссылкой.
+          {tr('settings.reviewLinkIntro')}
         </Text>
 
         <Input
@@ -79,16 +81,16 @@ export default function ReviewLinkSettingsScreen() {
         />
 
         <Text style={[typo.small, { color: colors.textTertiary, marginTop: sp.sm }]}>
-          Подходит ссылка на:{'\n'}
-          • Карточку в Yandex Картах / Бизнесе{'\n'}
-          • Google Maps Reviews{'\n'}
-          • 2GIS{'\n'}
-          • Instagram (на пост / в direct){'\n'}
-          • Avito или любую профильную страницу
+          {tr('settings.reviewLinkSourcesIntro')}{'\n'}
+          {`• ${tr('settings.reviewLinkSourceYandex')}`}{'\n'}
+          {`• ${tr('settings.reviewLinkSourceGoogle')}`}{'\n'}
+          {`• ${tr('settings.reviewLinkSource2gis')}`}{'\n'}
+          {`• ${tr('settings.reviewLinkSourceInstagram')}`}{'\n'}
+          {`• ${tr('settings.reviewLinkSourceAvito')}`}
         </Text>
 
         <Button
-          title="Сохранить"
+          title={tr('common.save')}
           onPress={onSave}
           size="lg"
           fullWidth

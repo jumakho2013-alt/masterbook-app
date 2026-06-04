@@ -7,6 +7,7 @@ import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/src/theme';
 import { GlassCard, IconButton, useToast } from '@/src/components/ui';
 import { useAlert } from '@/src/hooks/useAlert';
+import { useT } from '@/src/hooks/useT';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { requestCalendarSync, disableCalendarSync } from '@/src/lib/calendarSync';
 
@@ -19,6 +20,7 @@ import { requestCalendarSync, disableCalendarSync } from '@/src/lib/calendarSync
  */
 export default function CalendarSyncSettingsScreen() {
   const router = useRouter();
+  const tr = useT();
   const { colors, typography: typo, spacing: sp, borderRadius: br } = useTheme();
   const toast = useToast();
   const { alertConfig, error: showError } = useAlert();
@@ -31,7 +33,7 @@ export default function CalendarSyncSettingsScreen() {
     Haptics.selectionAsync();
     if (!value) {
       disableCalendarSync();
-      toast.success('Синхронизация выключена');
+      toast.success(tr('settings.calendarSyncDisabled'));
       return;
     }
     setRequesting(true);
@@ -39,13 +41,13 @@ export default function CalendarSyncSettingsScreen() {
       const ok = await requestCalendarSync();
       if (!ok) {
         showError(
-          'Нужен доступ к календарю',
-          'Открой Настройки → MasterBook → Календарь и разреши доступ. После этого вернись и включи переключатель.',
+          tr('settings.calendarPermissionTitle'),
+          tr('settings.calendarPermissionBody'),
         );
         return;
       }
       setEnabled(true);
-      toast.success('Синхронизация включена');
+      toast.success(tr('settings.calendarSyncEnabled'));
     } finally {
       setRequesting(false);
     }
@@ -58,9 +60,9 @@ export default function CalendarSyncSettingsScreen() {
           icon={<ArrowLeft size={22} color={colors.text} />}
           onPress={() => router.back()}
           variant="ghost"
-          accessibilityLabel="Назад"
+          accessibilityLabel={tr('common.back')}
         />
-        <Text style={[typo.h3, { color: colors.text }]}>Календарь устройства</Text>
+        <Text style={[typo.h3, { color: colors.text }]}>{tr('settings.calendarTitle')}</Text>
         <View style={{ width: 48 }} />
       </View>
 
@@ -77,17 +79,17 @@ export default function CalendarSyncSettingsScreen() {
             { color: colors.textSecondary, textAlign: 'center', marginBottom: sp.lg, paddingHorizontal: 16 },
           ]}
         >
-          Записи будут появляться в системном календаре телефона. Это удобно — твои визиты видны и на iPhone Calendar, и в Google Calendar, и на Apple Watch.
+          {tr('settings.calendarIntro')}
         </Text>
 
         <GlassCard style={{ padding: 0 }}>
           <View style={[styles.row, { paddingHorizontal: sp.md, paddingVertical: sp.md }]}>
             <View style={{ flex: 1 }}>
               <Text style={[typo.bodyBold, { color: colors.text }]}>
-                Синхронизация
+                {tr('settings.calendarSync')}
               </Text>
               <Text style={[typo.caption, { color: colors.textSecondary, marginTop: 2 }]}>
-                {enabled ? 'Активна — новые записи появляются в календаре' : 'Выключена'}
+                {enabled ? tr('settings.calendarSyncActive') : tr('settings.calendarSyncOff')}
               </Text>
             </View>
             <Switch
@@ -105,9 +107,9 @@ export default function CalendarSyncSettingsScreen() {
             { color: colors.textTertiary, marginTop: sp.md, paddingHorizontal: 16, lineHeight: 18 },
           ]}
         >
-          • Создаётся отдельный календарь «MasterBook» — можешь скрыть его в системных настройках в любой момент.{'\n\n'}
-          • При отключении уже синхронизированные события остаются в системе. Удалить их можно вручную в системном календаре.{'\n\n'}
-          • Это локальная синхронизация — данные не отправляются на наш сервер.
+          {`• ${tr('settings.calendarNoteSeparate')}`}{'\n\n'}
+          {`• ${tr('settings.calendarNoteKeepEvents')}`}{'\n\n'}
+          {`• ${tr('settings.calendarNoteLocal')}`}
         </Text>
       </ScrollView>
 

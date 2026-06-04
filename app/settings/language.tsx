@@ -6,21 +6,26 @@ import { ArrowLeft, Check, Languages } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/src/theme';
 import { GlassCard, IconButton } from '@/src/components/ui';
+import { useT } from '@/src/hooks/useT';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
 
-type LangOption = { code: 'system' | 'ru' | 'en'; label: string; sub: string };
-
-const OPTIONS: LangOption[] = [
-  { code: 'system', label: 'Системный', sub: 'Как в настройках телефона' },
-  { code: 'ru', label: 'Русский', sub: 'Russian' },
-  { code: 'en', label: 'English', sub: 'Английский' },
-];
+type LangCode = 'system' | 'ru' | 'en';
+type LangOption = { code: LangCode; label: string; sub: string };
 
 export default function LanguageSettingsScreen() {
   const router = useRouter();
+  const tr = useT();
   const { colors, typography: typo, borderRadius: br } = useTheme();
   const current = useSettingsStore((s) => s.language);
   const setLanguage = useSettingsStore((s) => s.setLanguage);
+
+  // Названия языков («Русский»/«English») — endonyms, остаются литералами и
+  // не переводятся; локализуем только «Системный» и описания (sub).
+  const OPTIONS: LangOption[] = [
+    { code: 'system', label: tr('settings.languageSystem'), sub: tr('settings.languageSystemSub') },
+    { code: 'ru', label: 'Русский', sub: tr('settings.languageRuSub') },
+    { code: 'en', label: 'English', sub: tr('settings.languageEnSub') },
+  ];
 
   const choose = (code: LangOption['code']) => {
     Haptics.selectionAsync();
@@ -35,9 +40,9 @@ export default function LanguageSettingsScreen() {
           icon={<ArrowLeft size={22} color={colors.text} />}
           onPress={() => router.back()}
           variant="ghost"
-          accessibilityLabel="Назад"
+          accessibilityLabel={tr('common.back')}
         />
-        <Text style={[typo.h3, { color: colors.text }]}>Язык</Text>
+        <Text style={[typo.h3, { color: colors.text }]}>{tr('settings.languageTitle')}</Text>
         <View style={{ width: 48 }} />
       </View>
 

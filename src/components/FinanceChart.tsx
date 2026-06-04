@@ -9,6 +9,7 @@ import Svg, {
   Line as SvgLine,
 } from 'react-native-svg';
 import { useTheme } from '@/src/theme';
+import { useT } from '@/src/hooks/useT';
 import { formatCurrencyShort } from '@/src/utils/currency';
 import type { FinanceEntry } from '@/src/types';
 
@@ -32,6 +33,7 @@ interface FinanceChartProps {
  */
 export function FinanceChart({ entries, days }: FinanceChartProps) {
   const { colors, typography: typo } = useTheme();
+  const tr = useT();
   const { width: screenW } = useWindowDimensions();
 
   // Ширина = ширина экрана минус горизонтальные паддинги (16+16) и
@@ -118,7 +120,7 @@ export function FinanceChart({ entries, days }: FinanceChartProps) {
       {/* Max-value подпись сверху справа */}
       {!empty && (
         <Text style={[typo.small, { color: colors.textTertiary, alignSelf: 'flex-end', marginBottom: 4 }]}>
-          макс {formatCurrencyShort(maxValue)}
+          {tr('components.chartMax', { value: formatCurrencyShort(maxValue) })}
         </Text>
       )}
 
@@ -227,7 +229,7 @@ export function FinanceChart({ entries, days }: FinanceChartProps) {
 
       {empty && (
         <Text style={[typo.caption, { color: colors.textTertiary, textAlign: 'center', marginTop: -70, marginBottom: 50 }]}>
-          Пока нет данных за период
+          {tr('components.chartEmpty')}
         </Text>
       )}
 
@@ -235,12 +237,12 @@ export function FinanceChart({ entries, days }: FinanceChartProps) {
       <View style={styles.legend}>
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: colors.success }]} />
-          <Text style={[typo.small, { color: colors.textSecondary }]}>Доход</Text>
+          <Text style={[typo.small, { color: colors.textSecondary }]}>{tr('components.chartIncome')}</Text>
         </View>
         {hasExpense && (
           <View style={styles.legendItem}>
             <View style={[styles.legendDash, { backgroundColor: colors.danger }]} />
-            <Text style={[typo.small, { color: colors.textSecondary }]}>Расход</Text>
+            <Text style={[typo.small, { color: colors.textSecondary }]}>{tr('components.chartExpense')}</Text>
           </View>
         )}
       </View>

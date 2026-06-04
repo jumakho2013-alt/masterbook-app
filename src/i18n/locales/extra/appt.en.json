@@ -1,0 +1,125 @@
+{
+  "appt": {
+    "detailTitle": "Appointment",
+    "serviceFallback": "Service",
+    "clientFallback": "Client",
+    "reviewMessage": "%{name}, thank you for coming! 🌸\n\nIf you enjoyed it, I'd love a quick review:\n%{link}",
+    "status": {
+      "scheduled": "Scheduled",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "no-show": "No-show"
+    },
+    "field": {
+      "client": "Client",
+      "service": "Service",
+      "time": "Time",
+      "price": "Price",
+      "date": "Date"
+    },
+    "deposit": {
+      "title": "Deposit",
+      "amountPlaceholder": "Deposit amount",
+      "tapToEdit": "tap to edit",
+      "paidA11y": "Deposit paid",
+      "pendingA11y": "Deposit pending",
+      "paidBadge": "✓ Paid",
+      "pending": "Pending",
+      "addCta": "+ Add a deposit (reduces no-show risk)"
+    },
+    "notes": {
+      "title": "Note",
+      "placeholder": "Wants the same as last time, allergic to...",
+      "empty": "Tap to add a note..."
+    },
+    "remind": {
+      "a11y": "Remind the client about the appointment",
+      "cta": "Remind client"
+    },
+    "action": {
+      "complete": "Complete",
+      "reschedule": "Reschedule",
+      "cancelAppt": "Cancel appointment"
+    },
+    "reschedule": {
+      "heading": "Reschedule to"
+    },
+    "rebook": {
+      "title": "Book again",
+      "week1": "1 wk",
+      "week2": "2 wk",
+      "week3": "3 wk",
+      "week4": "4 wk",
+      "bookedFor": "Booked for %{date}, %{time}"
+    },
+    "photos": {
+      "title": "Work photos",
+      "add": "+ Add",
+      "empty": "Tap to add a photo",
+      "itemA11y": "Work photo %{n}",
+      "permTitle": "Photo access needed",
+      "permBody": "Enable gallery access in Settings → MasterBook → Photos. Without it you can't attach photos to an appointment.",
+      "openFailed": "Couldn't open the gallery"
+    },
+    "complete": {
+      "doneTitle": "Done!",
+      "doneBody": "Appointment completed, income recorded",
+      "askReviewBody": "Appointment completed, income recorded.\n\nAsk the client for a review?",
+      "later": "Later",
+      "askReview": "Ask"
+    },
+    "cancel": {
+      "confirmTitle": "Cancel appointment?",
+      "confirmBody": "The appointment will be marked as cancelled",
+      "confirmBtn": "Cancel"
+    },
+    "toast": {
+      "rescheduled": "Appointment rescheduled",
+      "noteSaved": "Note saved",
+      "messageCopied": "Message copied"
+    },
+    "reminder": {
+      "close": "Close",
+      "title": "Remind %{name}",
+      "subtitle": "Choose a channel. The message is ready.",
+      "copy": "Copy"
+    },
+    "step": {
+      "client": "Select a client",
+      "service": "Select a service",
+      "time": "Date and time",
+      "confirm": "Confirmation"
+    },
+    "validation": {
+      "pickTime": "Select a time",
+      "invalidData": "Invalid data"
+    },
+    "nav": {
+      "back": "Back",
+      "close": "Close"
+    },
+    "client": {
+      "searchPlaceholder": "Name or phone...",
+      "recent": "Recent",
+      "emptySearchTitle": "No one found",
+      "emptyTitle": "No clients",
+      "emptySearchSubtitle": "Try a different search",
+      "emptySubtitle": "First add a client in the “Clients” section"
+    },
+    "service": {
+      "emptyTitle": "No services",
+      "emptySubtitle": "Add services in Profile → My services"
+    },
+    "time": {
+      "takenSuffix": ", taken",
+      "pastSuffix": ", past"
+    },
+    "confirm": {
+      "duration": "Duration",
+      "durationDecrease": "Decrease duration by 15 minutes",
+      "durationIncrease": "Increase duration by 15 minutes",
+      "minutes": "%{n} min",
+      "book": "Book"
+    }
+  }
+}

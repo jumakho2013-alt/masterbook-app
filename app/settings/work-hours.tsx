@@ -6,6 +6,7 @@ import { ArrowLeft, Clock, Coffee, Timer } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/src/theme';
 import { IconButton, GlassCard, Button, useToast } from '@/src/components/ui';
+import { useT } from '@/src/hooks/useT';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
 
 const HOURS = Array.from({ length: 24 }, (_, i) => `${i.toString().padStart(2, '0')}:00`);
@@ -15,11 +16,21 @@ const HALF_HOURS = Array.from({ length: 48 }, (_, i) => {
   return `${h.toString().padStart(2, '0')}:${m}`;
 });
 
-const DAY_NAMES = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+// День недели: 0 = Вс ... 6 = Сб. Подписи берём из i18n по этому индексу.
+const DAY_KEYS = [
+  'settings.workHoursDaySun',
+  'settings.workHoursDayMon',
+  'settings.workHoursDayTue',
+  'settings.workHoursDayWed',
+  'settings.workHoursDayThu',
+  'settings.workHoursDayFri',
+  'settings.workHoursDaySat',
+];
 const BUFFER_OPTIONS = [0, 15, 30];
 
 export default function WorkHoursScreen() {
   const router = useRouter();
+  const tr = useT();
   const { colors, typography: typo, spacing: sp, borderRadius: br } = useTheme();
 
   const workHours = useSettingsStore((s) => s.workHours);
@@ -48,7 +59,7 @@ export default function WorkHoursScreen() {
     const startMins = parseInt(start.split(':')[0]) * 60 + parseInt(start.split(':')[1]);
     const endMins = parseInt(end.split(':')[0]) * 60 + parseInt(end.split(':')[1]);
     if (endMins <= startMins) {
-      toast.error('Конец рабочего дня должен быть позже начала');
+      toast.error(tr('settings.workHoursEndAfterStart'));
       return;
     }
     setWorkHours(start, end);
@@ -56,7 +67,7 @@ export default function WorkHoursScreen() {
     setBreakTime(brk);
     setBufferMinutes(buffer);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    toast.success('Рабочее время сохранено');
+    toast.success(tr('settings.workHoursSaved'));
     router.back();
   };
 
@@ -64,7 +75,7 @@ export default function WorkHoursScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]}>
       <View style={styles.topBar}>
         <IconButton icon={<ArrowLeft size={22} color={colors.text} />} onPress={() => router.back()} variant="ghost" />
-        <Text style={[typo.h3, { color: colors.text }]}>Рабочее время</Text>
+        <Text style={[typo.h3, { color: colors.text }]}>{tr('settings.workHoursTitle')}</Text>
         <View style={{ width: 48 }} />
       </View>
 
@@ -73,12 +84,12 @@ export default function WorkHoursScreen() {
         <GlassCard elevated>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 }}>
             <Clock size={18} color={colors.primary} />
-            <Text style={[typo.bodyBold, { color: colors.text }]}>Часы работы</Text>
+            <Text style={[typo.bodyBold, { color: colors.text }]}>{tr('settings.workHoursHours')}</Text>
           </View>
 
           <View style={styles.timeRow}>
             <View style={{ flex: 1 }}>
-              <Text style={[typo.small, { color: colors.textSecondary, marginBottom: 6, textTransform: 'uppercase' }]}>Начало</Text>
+              <Text style={[typo.small, { color: colors.textSecondary, marginBottom: 6, textTransform: 'uppercase' }]}>{tr('settings.workHoursStart')}</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 {HALF_HOURS.filter((_, i) => i >= 12 && i <= 24).map((t) => (
                   <Pressable key={`s-${t}`} onPress={() => setStart(t)}
@@ -92,7 +103,7 @@ export default function WorkHoursScreen() {
 
           <View style={[styles.timeRow, { marginTop: 12 }]}>
             <View style={{ flex: 1 }}>
-              <Text style={[typo.small, { color: colors.textSecondary, marginBottom: 6, textTransform: 'uppercase' }]}>Конец</Text>
+              <Text style={[typo.small, { color: colors.textSecondary, marginBottom: 6, textTransform: 'uppercase' }]}>{tr('settings.workHoursEnd')}</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 {HALF_HOURS.filter((_, i) => i >= 28 && i <= 44).map((t) => (
                   <Pressable key={`e-${t}`} onPress={() => setEnd(t)}
@@ -107,9 +118,9 @@ export default function WorkHoursScreen() {
 
         {/* Work days */}
         <GlassCard elevated style={{ marginTop: sp.md }}>
-          <Text style={[typo.bodyBold, { color: colors.text, marginBottom: 16 }]}>Рабочие дни</Text>
+          <Text style={[typo.bodyBold, { color: colors.text, marginBottom: 16 }]}>{tr('settings.workHoursDays')}</Text>
           <View style={styles.daysRow}>
-            {DAY_NAMES.map((name, i) => {
+            {DAY_KEYS.map((dayKey, i) => {
               const active = days.includes(i);
               return (
                 <Pressable key={i} onPress={() => toggleDay(i)}
@@ -117,7 +128,7 @@ export default function WorkHoursScreen() {
                     backgroundColor: active ? colors.primary : colors.surfaceElevated,
                     borderRadius: br.sm,
                   }]}>
-                  <Text style={[typo.bodyBold, { color: active ? colors.white : colors.textSecondary, fontSize: 14 }]}>{name}</Text>
+                  <Text style={[typo.bodyBold, { color: active ? colors.white : colors.textSecondary, fontSize: 14 }]}>{tr(dayKey)}</Text>
                 </Pressable>
               );
             })}
@@ -129,7 +140,7 @@ export default function WorkHoursScreen() {
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Coffee size={18} color={colors.warning} />
-              <Text style={[typo.bodyBold, { color: colors.text }]}>Перерыв</Text>
+              <Text style={[typo.bodyBold, { color: colors.text }]}>{tr('settings.workHoursBreak')}</Text>
             </View>
             <Switch
               value={brk.enabled}
@@ -140,7 +151,7 @@ export default function WorkHoursScreen() {
           {brk.enabled && (
             <View style={{ marginTop: 16 }}>
               <View style={styles.breakTimeRow}>
-                <Text style={[typo.caption, { color: colors.textSecondary }]}>С</Text>
+                <Text style={[typo.caption, { color: colors.textSecondary }]}>{tr('settings.workHoursBreakFrom')}</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1, marginLeft: 8 }}>
                   {HALF_HOURS.filter((t) => t >= start && t < end).map((t) => (
                     <Pressable key={`bs-${t}`} onPress={() => setBrk({ ...brk, start: t })}
@@ -151,7 +162,7 @@ export default function WorkHoursScreen() {
                 </ScrollView>
               </View>
               <View style={[styles.breakTimeRow, { marginTop: 8 }]}>
-                <Text style={[typo.caption, { color: colors.textSecondary }]}>До</Text>
+                <Text style={[typo.caption, { color: colors.textSecondary }]}>{tr('settings.workHoursBreakTo')}</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1, marginLeft: 8 }}>
                   {HALF_HOURS.filter((t) => t > start && t <= end).map((t) => (
                     <Pressable key={`be-${t}`} onPress={() => setBrk({ ...brk, end: t })}
@@ -169,10 +180,10 @@ export default function WorkHoursScreen() {
         <GlassCard elevated style={{ marginTop: sp.md }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 }}>
             <Timer size={18} color={colors.accent} />
-            <Text style={[typo.bodyBold, { color: colors.text }]}>Буфер между записями</Text>
+            <Text style={[typo.bodyBold, { color: colors.text }]}>{tr('settings.workHoursBuffer')}</Text>
           </View>
           <Text style={[typo.caption, { color: colors.textSecondary, marginBottom: 12 }]}>
-            Время на подготовку после каждой записи
+            {tr('settings.workHoursBufferHint')}
           </Text>
           <View style={styles.bufferRow}>
             {BUFFER_OPTIONS.map((mins) => (
@@ -182,14 +193,14 @@ export default function WorkHoursScreen() {
                   borderRadius: br.md,
                 }]}>
                 <Text style={[typo.bodyBold, { color: buffer === mins ? colors.white : colors.text }]}>
-                  {mins === 0 ? 'Нет' : `${mins} мин`}
+                  {mins === 0 ? tr('settings.workHoursBufferNone') : tr('settings.workHoursBufferMinutes', { n: mins })}
                 </Text>
               </Pressable>
             ))}
           </View>
         </GlassCard>
 
-        <Button title="Сохранить" onPress={save} size="lg" fullWidth style={{ marginTop: sp.lg }} />
+        <Button title={tr('common.save')} onPress={save} size="lg" fullWidth style={{ marginTop: sp.lg }} />
 
         <View style={{ height: 40 }} />
       </ScrollView>

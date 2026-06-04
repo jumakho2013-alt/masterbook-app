@@ -26,22 +26,25 @@ import {
 import { scheduleAppointmentReminder } from '@/src/lib/notifications';
 import { appointmentSchema } from '@/src/lib/validation';
 import { syncCreateEvent } from '@/src/lib/calendarSync';
+import { useT } from '@/src/hooks/useT';
 import type { Client, Service } from '@/src/types';
 
 type Step = 'client' | 'service' | 'time' | 'confirm';
 
 const STEPS: Step[] = ['client', 'service', 'time', 'confirm'];
-const STEP_TITLES: Record<Step, string> = {
-  client: 'Выберите клиента',
-  service: 'Выберите услугу',
-  time: 'Дата и время',
-  confirm: 'Подтверждение',
+// Заголовки шагов резолвятся через i18n в render (appt.step.*).
+const STEP_TITLE_KEYS: Record<Step, string> = {
+  client: 'appt.step.client',
+  service: 'appt.step.service',
+  time: 'appt.step.time',
+  confirm: 'appt.step.confirm',
 };
 
 const DATE_RANGE_DAYS = 30;
 
 export default function NewAppointmentScreen() {
   const router = useRouter();
+  const tr = useT();
   const { colors, typography: typo, spacing: sp, borderRadius: br } = useTheme();
 
   const [step, setStep] = useState<Step>('client');
@@ -160,9 +163,9 @@ export default function NewAppointmentScreen() {
   };
 
   const confirm = async () => {
-    if (!selectedClient) { showError('Выберите клиента'); return; }
-    if (!selectedService) { showError('Выберите услугу'); return; }
-    if (!selectedTime) { showError('Выберите время'); return; }
+    if (!selectedClient) { showError(tr('appt.step.client')); return; }
+    if (!selectedService) { showError(tr('appt.step.service')); return; }
+    if (!selectedTime) { showError(tr('appt.validation.pickTime')); return; }
 
     const effectiveDuration = customDurationMinutes ?? selectedService.duration;
     const endTime = addMinutes(selectedTime, effectiveDuration);
@@ -177,7 +180,7 @@ export default function NewAppointmentScreen() {
       price: selectedService.price,
     });
     if (!parsed.success) {
-      showError(parsed.error.errors[0]?.message ?? 'Некорректные данные');
+      showError(parsed.error.errors[0]?.message ?? tr('appt.validation.invalidData'));
       return;
     }
 
@@ -226,9 +229,9 @@ export default function NewAppointmentScreen() {
           icon={stepIndex > 0 ? <ArrowLeft size={22} color={colors.text} /> : <X size={22} color={colors.text} />}
           onPress={back}
           variant="ghost"
-          accessibilityLabel={stepIndex > 0 ? 'Назад' : 'Закрыть'}
+          accessibilityLabel={stepIndex > 0 ? tr('appt.nav.back') : tr('appt.nav.close')}
         />
-        <Text style={[typo.h3, { color: colors.text }]}>{STEP_TITLES[step]}</Text>
+        <Text style={[typo.h3, { color: colors.text }]}>{tr(STEP_TITLE_KEYS[step])}</Text>
         <View style={{ width: 44 }} />
       </View>
 
@@ -249,7 +252,7 @@ export default function NewAppointmentScreen() {
       {step === 'client' && (
         <Animated.View entering={FadeInRight.duration(300)} style={{ flex: 1 }}>
           <View style={{ paddingHorizontal: 16, marginBottom: 12 }}>
-            <SearchBar value={search} onChangeText={setSearch} placeholder="Имя или телефон..." />
+            <SearchBar value={search} onChangeText={setSearch} placeholder={tr('appt.client.searchPlaceholder')} />
           </View>
 
           {/* Recent clients — горизонтальная полоска. Скрывается при поиске
@@ -268,7 +271,7 @@ export default function NewAppointmentScreen() {
                   },
                 ]}
               >
-                Недавние
+                {tr('appt.client.recent')}
               </Text>
               <ScrollView
                 horizontal
@@ -305,8 +308,8 @@ export default function NewAppointmentScreen() {
             ListEmptyComponent={
               <EmptyState
                 icon={<Scissors size={48} color={colors.textTertiary} />}
-                title={search ? 'Никого не нашли' : 'Нет клиентов'}
-                subtitle={search ? 'Попробуйте другой запрос' : 'Сначала добавьте клиента в разделе «Клиенты»'}
+                title={search ? tr('appt.client.emptySearchTitle') : tr('appt.client.emptyTitle')}
+                subtitle={search ? tr('appt.client.emptySearchSubtitle') : tr('appt.client.emptySubtitle')}
               />
             }
             renderItem={({ item }) => (
@@ -328,8 +331,8 @@ export default function NewAppointmentScreen() {
             {services.length === 0 && (
               <EmptyState
                 icon={<Scissors size={48} color={colors.textTertiary} />}
-                title="Нет услуг"
-                subtitle="Добавьте услуги в Профиль → Мои услуги"
+                title={tr('appt.service.emptyTitle')}
+                subtitle={tr('appt.service.emptySubtitle')}
               />
             )}
             {services.map((s) => (
@@ -431,7 +434,7 @@ export default function NewAppointmentScreen() {
                   }}
                   disabled={disabled}
                   accessibilityRole="button"
-                  accessibilityLabel={`${t}${taken ? ', занято' : past ? ', прошло' : ''}`}
+                  accessibilityLabel={`${t}${taken ? tr('appt.time.takenSuffix') : past ? tr('appt.time.pastSuffix') : ''}`}
                   accessibilityState={{ selected: active, disabled }}
                   style={[
                     styles.timeSlot,
@@ -484,35 +487,35 @@ export default function NewAppointmentScreen() {
         return (
           <Animated.View entering={FadeInRight.duration(300)} style={styles.confirmWrap}>
             <GlassCard style={styles.confirmCard}>
-              <Row label="Клиент" value={selectedClient?.name ?? ''} />
-              <Row label="Услуга" value={selectedService?.name ?? ''} />
-              <Row label="Дата" value={formatDate(selectedDate)} />
+              <Row label={tr('appt.field.client')} value={selectedClient?.name ?? ''} />
+              <Row label={tr('appt.field.service')} value={selectedService?.name ?? ''} />
+              <Row label={tr('appt.field.date')} value={formatDate(selectedDate)} />
               <Row
-                label="Время"
+                label={tr('appt.field.time')}
                 value={selectedTime ? `${selectedTime} — ${endTime}` : ''}
               />
 
               {/* Длительность — редактируемая. Шаг 15 мин. Новый клиент?
                   +30 мин одним тапом. Постоянный? Можно убавить. */}
               <View style={styles.durationRow}>
-                <Text style={[typo.body, { color: colors.textSecondary }]}>Длительность</Text>
+                <Text style={[typo.body, { color: colors.textSecondary }]}>{tr('appt.confirm.duration')}</Text>
                 <View style={styles.durationControls}>
                   <Pressable
                     onPress={decrease}
                     accessibilityRole="button"
-                    accessibilityLabel="Уменьшить длительность на 15 минут"
+                    accessibilityLabel={tr('appt.confirm.durationDecrease')}
                     hitSlop={8}
                     style={[styles.durationBtn, { backgroundColor: colors.surfaceElevated, borderRadius: br.sm }]}
                   >
                     <Text style={[typo.bodyBold, { color: colors.text }]}>−</Text>
                   </Pressable>
                   <Text style={[typo.bodyBold, { color: colors.text, minWidth: 70, textAlign: 'center' }]}>
-                    {effectiveDuration} мин
+                    {tr('appt.confirm.minutes', { n: effectiveDuration })}
                   </Text>
                   <Pressable
                     onPress={increase}
                     accessibilityRole="button"
-                    accessibilityLabel="Увеличить длительность на 15 минут"
+                    accessibilityLabel={tr('appt.confirm.durationIncrease')}
                     hitSlop={8}
                     style={[styles.durationBtn, { backgroundColor: colors.surfaceElevated, borderRadius: br.sm }]}
                   >
@@ -521,11 +524,11 @@ export default function NewAppointmentScreen() {
                 </View>
               </View>
 
-              <Row label="Стоимость" value={formatCurrency(selectedService?.price ?? 0)} />
+              <Row label={tr('appt.field.price')} value={formatCurrency(selectedService?.price ?? 0)} />
             </GlassCard>
 
             <Button
-              title="Записать"
+              title={tr('appt.confirm.book')}
               onPress={confirm}
               size="lg"
               style={{ marginTop: sp.lg }}

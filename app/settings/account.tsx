@@ -7,6 +7,7 @@ import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/src/theme';
 import { GlassCard, Divider, IconButton, CustomAlert, Button, useToast } from '@/src/components/ui';
 import { useAlert } from '@/src/hooks/useAlert';
+import { useT } from '@/src/hooks/useT';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { authenticate, biometricLabel, getBiometricKind, type BiometricKind } from '@/src/lib/biometric';
 import { exportDataToFile } from '@/src/lib/exportData';
@@ -16,6 +17,7 @@ import { deleteAccount } from '@/src/lib/deleteAccount';
 
 export default function AccountSettingsScreen() {
   const router = useRouter();
+  const tr = useT();
   const { colors, typography: typo, spacing: sp } = useTheme();
   const biometricLock = useSettingsStore((s) => s.biometricLock);
   const setBiometricLock = useSettingsStore((s) => s.setBiometricLock);
@@ -41,8 +43,8 @@ export default function AccountSettingsScreen() {
   const toggleBiometric = async () => {
     if (!bioAvailable) {
       info(
-        'Недоступно',
-        'Биометрия не настроена на устройстве. Включите Face ID / Touch ID / отпечаток в настройках системы.',
+        tr('settings.accountBiometricUnavailableTitle'),
+        tr('settings.accountBiometricUnavailableBody'),
       );
       return;
     }
@@ -50,14 +52,14 @@ export default function AccountSettingsScreen() {
     if (biometricLock) {
       // Выключение — требуем подтверждения биометрией, иначе злоумышленник
       // с разблокированным экраном отключит защиту одним тапом.
-      const res = await authenticate('Подтвердите чтобы выключить защиту');
+      const res = await authenticate(tr('settings.accountBiometricConfirmDisable'));
       if (!res.success) return;
       setBiometricLock(false);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } else {
-      const res = await authenticate(`Включить вход по ${bioLabel}`);
+      const res = await authenticate(tr('settings.accountBiometricConfirmEnable', { method: bioLabel }));
       if (!res.success) {
-        if (!res.cancelled) showError('Не удалось проверить биометрию');
+        if (!res.cancelled) showError(tr('settings.accountBiometricCheckFailed'));
         return;
       }
       setBiometricLock(true);
@@ -67,14 +69,14 @@ export default function AccountSettingsScreen() {
 
   const onClearDemo = () => {
     confirm(
-      'Очистить демо?',
-      'Удалятся все клиенты, услуги, записи и финансы. Если ты добавлял свои данные поверх примера — они тоже удалятся. Действие необратимо.',
+      tr('settings.accountClearDemoTitle'),
+      tr('settings.accountClearDemoBody'),
       () => {
         clearAllBusinessData();
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        toast.success('Данные очищены');
+        toast.success(tr('settings.accountClearDemoDone'));
       },
-      'Очистить',
+      tr('settings.accountClearDemoConfirm'),
       true,
     );
   };
@@ -84,7 +86,7 @@ export default function AccountSettingsScreen() {
     const res = await generateAndShareTaxReport(currentMonthRange());
     setGeneratingPdf(false);
     if (!res.ok) {
-      showError('Не удалось сформировать отчёт', res.error);
+      showError(tr('settings.accountTaxReportFailed'), res.error);
     }
   };
 
@@ -93,27 +95,27 @@ export default function AccountSettingsScreen() {
     const res = await exportDataToFile();
     setExporting(false);
     if (!res.ok) {
-      showError('Экспорт не удался', res.error);
+      showError(tr('settings.accountExportFailed'), res.error);
     }
   };
 
   const onDelete = () => {
     confirm(
-      'Удалить аккаунт?',
-      'Это необратимое действие. Все ваши клиенты, записи и финансы будут удалены. Отменить нельзя.',
+      tr('settings.accountDeleteConfirmTitle'),
+      tr('settings.accountDeleteConfirmBody'),
       async () => {
         // Второе подтверждение биометрией если доступна — добавочная
         // защита, чтобы дети/коллеги в разблокированном телефоне
         // случайно не стёрли CRM.
         if (bioAvailable) {
-          const res = await authenticate('Подтвердите удаление аккаунта');
+          const res = await authenticate(tr('settings.accountDeleteBiometric'));
           if (!res.success) return;
         }
         setDeleting(true);
         const res = await deleteAccount();
         setDeleting(false);
         if (!res.ok) {
-          showError('Не удалось удалить аккаунт', res.error);
+          showError(tr('settings.accountDeleteFailed'), res.error);
           return;
         }
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
@@ -123,9 +125,9 @@ export default function AccountSettingsScreen() {
           // нужно прозрачно сказать пользователю что делать. Redirect только
           // после того как пользователь прочитает и закроет alert.
           show(
-            'Локально удалено, не на сервере',
-            `Данные с устройства стёрты. На сервере удаление не удалось:\n\n${res.serverError}\n\nНапиши на support@masterbook.app — мы удалим запись вручную в течение 24 часов.`,
-            [{ text: 'Понятно', onPress: () => router.replace('/') }],
+            tr('settings.accountDeleteServerFailedTitle'),
+            tr('settings.accountDeleteServerFailedBody', { error: res.serverError }),
+            [{ text: tr('common.ok'), onPress: () => router.replace('/') }],
             'warning',
           );
           return;
@@ -133,7 +135,7 @@ export default function AccountSettingsScreen() {
         // После wipe — ведём на логин (Index перенаправит, т.к. сессии нет).
         router.replace('/');
       },
-      'Удалить',
+      tr('common.delete'),
       true,
     );
   };
@@ -145,9 +147,9 @@ export default function AccountSettingsScreen() {
           icon={<ArrowLeft size={22} color={colors.text} />}
           onPress={() => router.back()}
           variant="ghost"
-          accessibilityLabel="Назад"
+          accessibilityLabel={tr('common.back')}
         />
-        <Text style={[typo.h3, { color: colors.text }]}>Безопасность и данные</Text>
+        <Text style={[typo.h3, { color: colors.text }]}>{tr('settings.accountTitle')}</Text>
         <View style={{ width: 48 }} />
       </View>
 
@@ -160,12 +162,12 @@ export default function AccountSettingsScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[typo.bodyBold, { color: colors.text }]}>
-                Вход по {bioLabel}
+                {tr('settings.accountBiometricLogin', { method: bioLabel })}
               </Text>
               <Text style={[typo.caption, { color: colors.textSecondary, marginTop: 2 }]}>
                 {bioAvailable
-                  ? 'Запрашивать биометрию при открытии приложения'
-                  : 'Недоступно на этом устройстве'}
+                  ? tr('settings.accountBiometricOn')
+                  : tr('settings.accountBiometricUnavailable')}
               </Text>
             </View>
             <Switch
@@ -186,9 +188,9 @@ export default function AccountSettingsScreen() {
                 <Eraser size={22} color={colors.warning} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[typo.bodyBold, { color: colors.text }]}>Очистить демо-данные</Text>
+                <Text style={[typo.bodyBold, { color: colors.text }]}>{tr('settings.accountClearDemo')}</Text>
                 <Text style={[typo.caption, { color: colors.textSecondary, marginTop: 2 }]}>
-                  Удалит все клиенты, услуги, записи и финансы
+                  {tr('settings.accountClearDemoSub')}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -202,9 +204,9 @@ export default function AccountSettingsScreen() {
               <FileText size={22} color={colors.primary} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[typo.bodyBold, { color: colors.text }]}>Отчёт о доходах (PDF)</Text>
+              <Text style={[typo.bodyBold, { color: colors.text }]}>{tr('settings.accountTaxReport')}</Text>
               <Text style={[typo.caption, { color: colors.textSecondary, marginTop: 2 }]}>
-                За текущий месяц — для личного учёта самозанятого
+                {tr('settings.accountTaxReportSub')}
               </Text>
             </View>
             {generatingPdf ? <ActivityIndicator color={colors.primary} /> : null}
@@ -218,9 +220,9 @@ export default function AccountSettingsScreen() {
               <Download size={22} color={colors.primary} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[typo.bodyBold, { color: colors.text }]}>Экспорт данных</Text>
+              <Text style={[typo.bodyBold, { color: colors.text }]}>{tr('settings.accountExport')}</Text>
               <Text style={[typo.caption, { color: colors.textSecondary, marginTop: 2 }]}>
-                Сохранить клиентов, записи и финансы в JSON
+                {tr('settings.accountExportSub')}
               </Text>
             </View>
             {exporting ? <ActivityIndicator color={colors.primary} /> : null}
@@ -232,18 +234,18 @@ export default function AccountSettingsScreen() {
           <View style={styles.dangerHeader}>
             <ShieldAlert size={16} color={colors.danger} />
             <Text style={[typo.caption, { color: colors.danger, marginLeft: 6, textTransform: 'uppercase', letterSpacing: 0.5 }]}>
-              Опасная зона
+              {tr('settings.accountDangerZone')}
             </Text>
           </View>
           <GlassCard style={{ padding: 16 }}>
             <Text style={[typo.body, { color: colors.text }]}>
-              Удалить аккаунт
+              {tr('settings.accountDeleteTitle')}
             </Text>
             <Text style={[typo.caption, { color: colors.textSecondary, marginTop: 4 }]}>
-              Все ваши данные будут навсегда удалены. Это действие нельзя отменить.
+              {tr('settings.accountDeleteSub')}
             </Text>
             <Button
-              title="Удалить аккаунт"
+              title={tr('settings.accountDeleteTitle')}
               onPress={onDelete}
               variant="danger"
               size="md"
