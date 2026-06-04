@@ -28,15 +28,6 @@ import { useProfessionPack } from '@/src/hooks/useProfessionPack';
 import { syncUpdateEvent, syncDeleteEvent } from '@/src/lib/calendarSync';
 import { useT } from '@/src/hooks/useT';
 
-// Цвета статусов — стабильны и не переводятся. Подписи (label) резолвятся
-// в render через i18n (appt.status.*).
-const statusColors: Record<string, string> = {
-  scheduled: '#7C5DFA',
-  completed: '#2ED573',
-  cancelled: '#FF4757',
-  'no-show': '#FFA502',
-};
-
 const REBOOK_OPTIONS = [
   { labelKey: 'appt.rebook.week1', weeks: 1 },
   { labelKey: 'appt.rebook.week2', weeks: 2 },
@@ -77,7 +68,15 @@ export default function AppointmentDetailScreen() {
 
   if (!appointment) return null;
 
-  const statusColor = statusColors[appointment.status];
+  // Цвета статусов — из темы (единая гамма). scheduled = info-синий, чтобы не
+  // сливаться с completed (success-изумруд). Подписи резолвятся через i18n.
+  const statusColors: Record<string, string> = {
+    scheduled: colors.info,
+    completed: colors.success,
+    cancelled: colors.danger,
+    'no-show': colors.warning,
+  };
+  const statusColor = statusColors[appointment.status] ?? colors.textSecondary;
   const statusLabel = tr(`appt.status.${appointment.status}`);
 
   // === HANDLERS ===

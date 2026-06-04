@@ -24,12 +24,6 @@ import { openAddressInMaps } from '@/src/lib/openMaps';
 import { useT } from '@/src/hooks/useT';
 import type { ClientTag } from '@/src/types';
 
-const tagColors: Record<string, string> = {
-  vip: '#FFA502',
-  problematic: '#FF4757',
-  new: '#2ED573',
-};
-
 const tagLabelKeys: Record<string, string> = {
   vip: 'clientDetail.tagVip',
   problematic: 'clientDetail.tagProblematic',
@@ -43,6 +37,14 @@ export default function ClientDetailScreen() {
   const tr = useT();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors, typography: typo, spacing: sp, borderRadius: br } = useTheme();
+
+  // Цвета тегов клиента — из темы (единая гамма): VIP=золото, проблемный=
+  // красный, новый=изумруд. Раньше были ad-hoc хексы мимо палитры.
+  const tagColors: Record<string, string> = {
+    vip: colors.warning,
+    problematic: colors.danger,
+    new: colors.success,
+  };
 
   const toast = useToast();
   const allClients = useClientStore((s) => s.clients);

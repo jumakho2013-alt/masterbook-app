@@ -27,6 +27,10 @@ export interface ColorScheme {
   warningSoft: string;
   danger: string;
   dangerSoft: string;
+  // Информационный/«запланировано» — синий, отдельный от brand-изумруда, чтобы
+  // статусы (scheduled vs completed) не сливались.
+  info: string;
+  infoSoft: string;
 
   // Absolute
   white: string;
@@ -67,6 +71,8 @@ export const lightColors: ColorScheme = {
   warningSoft: 'rgba(217,162,27,0.14)',
   danger: '#E5484D',
   dangerSoft: 'rgba(229,72,77,0.13)',
+  info: '#2563EB',
+  infoSoft: 'rgba(37,99,235,0.12)',
 
   white: '#FFFFFF',
   black: '#000000',
@@ -107,6 +113,8 @@ export const darkColors: ColorScheme = {
   warningSoft: 'rgba(245,193,71,0.18)',
   danger: '#F87171',
   dangerSoft: 'rgba(248,113,113,0.18)',
+  info: '#60A5FA',
+  infoSoft: 'rgba(96,165,250,0.16)',
 
   white: '#FFFFFF',
   black: '#000000',

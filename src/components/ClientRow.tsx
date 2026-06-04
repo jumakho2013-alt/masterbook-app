@@ -80,7 +80,7 @@ export const ClientRow = React.memo(function ClientRow({ client, lastVisitDate, 
           style={[
             styles.avatarRing,
             isVIP && {
-              borderColor: '#FFA502',
+              borderColor: colors.warning,
               borderWidth: 2,
             },
           ]}
