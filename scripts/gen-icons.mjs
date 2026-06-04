@@ -37,8 +37,8 @@ async function run() {
   const gm = await sharp(glyph).metadata();
   console.log('tight glyph:', gm.width + 'x' + gm.height);
 
-  // icon.png — полноформатный зелёный квадрат, глиф ~82% (был ~64%).
-  const iconGlyph = await fitGlyph(glyph, Math.round(SIZE * 0.82));
+  // icon.png — полноформатный зелёный квадрат, глиф ~88% (крупно).
+  const iconGlyph = await fitGlyph(glyph, Math.round(SIZE * 0.88));
   await sharp(Buffer.from(bgSvg(SIZE)))
     .composite([{ input: iconGlyph, gravity: 'center' }])
     .png()
@@ -53,9 +53,9 @@ async function run() {
     .png()
     .toFile(`${DIR}/adaptive-icon.png`);
 
-  // splash-icon.png — глиф на прозрачном, ~80% от 512 (показывается на тёмном фоне).
+  // splash-icon.png — глиф почти во весь холст (~94%), чтобы на сплеше был крупным.
   const SPLASH = 512;
-  const splashGlyph = await fitGlyph(glyph, Math.round(SPLASH * 0.8));
+  const splashGlyph = await fitGlyph(glyph, Math.round(SPLASH * 0.94));
   await sharp({
     create: { width: SPLASH, height: SPLASH, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } },
   })
