@@ -93,7 +93,6 @@ function RootInner() {
         <Stack.Screen name="settings/work-hours" />
         <Stack.Screen name="settings/account" />
         <Stack.Screen name="settings/currency" />
-        <Stack.Screen name="settings/review-link" />
         <Stack.Screen name="settings/calendar-sync" />
         <Stack.Screen name="settings/reminders" />
         <Stack.Screen name="settings/subscription" />

@@ -30,9 +30,6 @@ interface SettingsState {
   firstUseAt: string | null;
   /** Если пользователь явно закрыл «Старт недели» — больше не показывать. */
   checklistDismissedAt: string | null;
-  /** URL для запроса отзыва: Yandex Maps / Google Maps / 2GIS / Instagram.
-   *  null = пусто, фича «попросить отзыв» неактивна. */
-  reviewLinkUrl: string | null;
   /** Синхронизация записей в системный календарь (iOS Calendar / Google).
    *  По умолчанию false — включается явно в settings. */
   calendarSyncEnabled: boolean;
@@ -61,7 +58,6 @@ interface SettingsState {
   setDemoDataSeededAt: (iso: string | null) => void;
   setFirstUseAt: (iso: string | null) => void;
   dismissChecklist: () => void;
-  setReviewLinkUrl: (url: string | null) => void;
   setCalendarSyncEnabled: (enabled: boolean) => void;
   setLanguage: (lang: 'system' | 'ru' | 'en') => void;
   setReduceEffects: (enabled: boolean) => void;
@@ -99,7 +95,6 @@ export const useSettingsStore = create<SettingsState>()(
       demoDataSeededAt: null,
       firstUseAt: null,
       checklistDismissedAt: null,
-      reviewLinkUrl: null,
       calendarSyncEnabled: false,
       language: 'system',
       reduceEffects: false,
@@ -120,7 +115,6 @@ export const useSettingsStore = create<SettingsState>()(
       setDemoDataSeededAt: (iso) => set({ demoDataSeededAt: iso }),
       setFirstUseAt: (iso) => set({ firstUseAt: iso }),
       dismissChecklist: () => set({ checklistDismissedAt: new Date().toISOString() }),
-      setReviewLinkUrl: (url) => set({ reviewLinkUrl: url }),
       setCalendarSyncEnabled: (enabled) => set({ calendarSyncEnabled: enabled }),
       setLanguage: (lang) => set({ language: lang }),
       setReduceEffects: (enabled) => set({ reduceEffects: enabled }),
@@ -132,7 +126,6 @@ export const useSettingsStore = create<SettingsState>()(
           demoDataSeededAt: null,
           firstUseAt: null,
           checklistDismissedAt: null,
-          reviewLinkUrl: null,
           calendarSyncEnabled: false,
           autoClientReminders: false,
         }),

@@ -18,7 +18,6 @@ import {
   LogOut,
   ShieldCheck,
   Banknote,
-  Star,
   CalendarSync,
   Languages,
   BellRing,
@@ -252,13 +251,6 @@ function ProfileScreen() {
               label={tr('profile.currency')}
               subtitle={currencyMeta ? `${currencyMeta.name} (${currencyMeta.symbol})` : currency}
               onPress={() => router.push('/settings/currency')}
-            />
-            <Divider style={{ marginVertical: 0, marginLeft: 52 }} />
-            <MenuItem
-              icon={<Star size={20} color={colors.primary} />}
-              label={tr('profile.reviewLink')}
-              subtitle={tr('profile.reviewLinkSub')}
-              onPress={() => router.push('/settings/review-link')}
             />
             <Divider style={{ marginVertical: 0, marginLeft: 52 }} />
             <MenuItem
