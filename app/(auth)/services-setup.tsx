@@ -14,6 +14,8 @@ import { supabase } from '@/src/lib/supabase';
 import { formatCurrency } from '@/src/utils/currency';
 import { generateId } from '@/src/utils/helpers';
 import { resolvePack } from '@/src/lib/professionPacks';
+import { getSpecialization } from '@/src/data/professions';
+import { getCategoryServices } from '@/src/data/category-services';
 import { useT } from '@/src/hooks/useT';
 import type { Service } from '@/src/types';
 
@@ -29,18 +31,24 @@ export default function ServicesSetupScreen() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Сначала пробуем pack-default services (новая система профайл-паков).
-    // Если для specializationId есть pack — используем его дефолтные услуги.
-    // Иначе fallback на legacy serviceTemplates по specializationId
-    // (старая система — work in progress to phase out).
-    const pack = resolvePack(specializationId);
-    const packServices = pack.defaultServices;
-    if (packServices.length > 0) {
-      setServices(packServices.map((t) => ({ ...t, id: generateId() })));
-      return;
-    }
+    // Приоритет шаблонов услуг (фикс: сантехник получал маникюр, т.к. pack
+    // всегда фолбэчился на manicure для не-бьюти профессий):
+    //   1. Точный шаблон специализации (serviceTemplates[id]) — есть для
+    //      большинства (nails, plumber, electrician, tutor…).
+    //   2. Примерные услуги по КАТЕГОРИИ (getCategoryServices) — для
+    //      специализаций без своего шаблона (грумер, ведущий, флорист…).
+    //   3. Pack-default — последний резерв (бьюти-вертикали).
+    const seed = (list: Omit<Service, 'id'>[]) =>
+      setServices(list.map((t) => ({ ...t, id: generateId() })));
+
     const templates = serviceTemplates[specializationId ?? ''] ?? [];
-    setServices(templates.map((t) => ({ ...t, id: generateId() })));
+    if (templates.length > 0) { seed(templates); return; }
+
+    const spec = specializationId ? getSpecialization(specializationId) : null;
+    const catServices = getCategoryServices(spec?.category);
+    if (catServices.length > 0) { seed(catServices); return; }
+
+    seed(resolvePack(specializationId).defaultServices);
   }, [specializationId]);
 
   const removeService = (id: string) => {
