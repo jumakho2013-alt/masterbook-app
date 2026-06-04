@@ -111,7 +111,7 @@ export default function RemindersSettingsScreen() {
           {steps.map((step, i) => (
             <View key={i} style={styles.row}>
               <View style={[styles.stepNum, { backgroundColor: colors.primarySoft }]}>
-                <Text style={[typo.caption, { color: colors.primary, fontFamily: 'Manrope_700Bold' }]}>
+                <Text style={[typo.caption, { color: colors.primary, fontFamily: 'PlusJakartaSans_700Bold' }]}>
                   {i + 1}
                 </Text>
               </View>
@@ -164,7 +164,7 @@ export default function RemindersSettingsScreen() {
               accessibilityRole="button"
               style={[styles.batteryBtn, { borderColor: colors.border }]}
             >
-              <Text style={[typo.caption, { color: colors.primary, fontFamily: 'Manrope_700Bold' }]}>
+              <Text style={[typo.caption, { color: colors.primary, fontFamily: 'PlusJakartaSans_700Bold' }]}>
                 {tr('settings.batteryHintButton')}
               </Text>
             </TouchableOpacity>
