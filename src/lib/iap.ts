@@ -19,11 +19,21 @@
  * монетизации, поэтому isSubscribed() возвращает false (нет premium-замков).
  */
 
-/** Модель монетизации: 7 дней бесплатно, далее $3.99/мес. Цена показывается
- *  как fallback — на проде реальную локализованную цену вернёт стор. */
+/** Модель монетизации: 7 дней бесплатно, далее подписка (помесячно/годовой).
+ *  Цены — fallback для UI; на проде реальную локализованную цену вернёт стор. */
 export const TRIAL_DAYS = 7;
-export const PRO_PRICE = '$3.99';
-export const PRO_PRODUCT_ID = 'pro_monthly';
+
+export const PRO_PRICE_MONTHLY = '$3.99';
+export const PRO_PRICE_YEARLY = '$38.30'; // 12 × 3.99 − 20%
+export const PRO_PRICE_YEARLY_PER_MONTH = '$3.19'; // эффективно в месяц при годовом
+export const PRO_YEARLY_SAVE_PERCENT = 20;
+
+export const PRO_PRODUCT_ID_MONTHLY = 'pro_monthly';
+export const PRO_PRODUCT_ID_YEARLY = 'pro_yearly';
+
+// Бэк-совместимость со старыми ссылками (профиль, баннер триала).
+export const PRO_PRICE = PRO_PRICE_MONTHLY;
+export const PRO_PRODUCT_ID = PRO_PRODUCT_ID_MONTHLY;
 
 /**
  * Жёсткий paywall включается ТОЛЬКО когда подключён реальный IAP (RevenueCat) —
