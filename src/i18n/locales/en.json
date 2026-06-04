@@ -67,6 +67,20 @@
     "modeWeek": "week",
     "modeMonth": "month"
   },
+  "clientImport": {
+    "title": "From contacts",
+    "subtitle": "Pick who to add to your base",
+    "button": "Import",
+    "searchPlaceholder": "Search contacts",
+    "permTitle": "Contacts access needed",
+    "permBody": "Allow contacts access in your phone settings to add clients from your address book.",
+    "openSettings": "Open settings",
+    "empty": "No contacts with a phone number",
+    "alreadyAdded": "Already added",
+    "add": "Add (%{n})",
+    "added": "Added: %{n}",
+    "nothingSelected": "Nobody selected"
+  },
   "clients": {
     "title": "Clients",
     "addFirst": "Add your first client",

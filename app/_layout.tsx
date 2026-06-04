@@ -88,6 +88,7 @@ function RootInner() {
         />
         <Stack.Screen name="client/[id]" />
         <Stack.Screen name="client/new" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="client/import" options={{ presentation: 'modal' }} />
         <Stack.Screen name="appointment/[id]" />
         <Stack.Screen name="services/manage" />
         <Stack.Screen name="settings/work-hours" />

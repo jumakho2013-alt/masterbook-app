@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, Pre
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { Plus, Users, Moon, ArrowUpDown } from 'lucide-react-native';
+import { Plus, Users, Moon, ArrowUpDown, UserPlus } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
 import { SearchBar, EmptyState, Divider, GlassCard, Badge, LiquidGlass } from '@/src/components/ui';
 import { SwipeableClientRow } from '@/src/components/SwipeableClientRow';
@@ -118,13 +118,26 @@ function ClientsScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]} edges={['top']}>
-      <View style={styles.header}>
-        <Text style={[typo.h2, { color: colors.text, textTransform: 'capitalize' }]}>
-          {t('client.plural', 'Клиенты')}
-        </Text>
-        <Text style={[typo.caption, { color: colors.textSecondary, marginTop: 2 }]}>
-          {allClients.length} {t('client.plural', 'клиентов')}
-        </Text>
+      <View style={[styles.header, styles.headerRow]}>
+        <View style={{ flex: 1 }}>
+          <Text style={[typo.h2, { color: colors.text, textTransform: 'capitalize' }]}>
+            {t('client.plural', 'Клиенты')}
+          </Text>
+          <Text style={[typo.caption, { color: colors.textSecondary, marginTop: 2 }]}>
+            {allClients.length} {t('client.plural', 'клиентов')}
+          </Text>
+        </View>
+        <Pressable
+          onPress={() => router.push('/client/import')}
+          accessibilityRole="button"
+          accessibilityLabel={tr('clientImport.title')}
+          style={[styles.importBtn, { backgroundColor: colors.primarySoft, borderRadius: br.full }]}
+        >
+          <UserPlus size={16} color={colors.primary} />
+          <Text style={[typo.caption, { color: colors.primary, fontFamily: 'PlusJakartaSans_700Bold' }]}>
+            {tr('clientImport.button')}
+          </Text>
+        </Pressable>
       </View>
 
       <View style={{ paddingHorizontal: 16, marginBottom: 10 }}>
@@ -265,6 +278,14 @@ function ClientsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 12 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  importBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
   sortContainer: {
     height: 44,
     marginBottom: 12,
