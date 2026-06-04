@@ -6,6 +6,7 @@ import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/src/theme';
 import { Avatar } from '@/src/components/ui';
 import { useReduceMotion } from '@/src/hooks/useReduceMotion';
+import { useT } from '@/src/hooks/useT';
 import type { Appointment, Client, Service } from '@/src/types';
 import { formatTimeRange } from '@/src/utils/date';
 import { formatCurrency } from '@/src/utils/currency';
@@ -31,6 +32,7 @@ export const AppointmentCard = React.memo(function AppointmentCard({
 }: AppointmentCardProps) {
   const { colors, typography: typo, spacing: sp, borderRadius: br, shadows: sh } = useTheme();
   const reduceMotion = useReduceMotion();
+  const tr = useT();
   const scale = useSharedValue(1);
 
   const isCompleted = appointment.status === 'completed';
@@ -44,10 +46,10 @@ export const AppointmentCard = React.memo(function AppointmentCard({
   // Композитный a11y label для VoiceOver — иначе читает части отдельно.
   const a11yLabel = [
     `${formatTimeRange(appointment.startTime, appointment.endTime)}`,
-    service?.name ?? 'услуга',
-    client?.name ?? 'клиент',
+    service?.name ?? tr('components.apptServiceA11yFallback'),
+    client?.name ?? tr('components.apptClientA11yFallback'),
     formatCurrency(appointment.price),
-    isCompleted ? 'проведено' : isCancelled ? 'отменено' : undefined,
+    isCompleted ? tr('components.apptStatusCompleted') : isCancelled ? tr('components.apptStatusCancelled') : undefined,
   ]
     .filter(Boolean)
     .join(', ');
@@ -71,7 +73,7 @@ export const AppointmentCard = React.memo(function AppointmentCard({
       }}
       accessibilityRole="button"
       accessibilityLabel={a11yLabel}
-      accessibilityHint="Открыть детали записи"
+      accessibilityHint={tr('components.apptOpenDetailsHint')}
       style={[
         animStyle,
         styles.card,
@@ -131,7 +133,7 @@ export const AppointmentCard = React.memo(function AppointmentCard({
           ]}
           numberOfLines={1}
         >
-          {service?.name ?? 'Услуга'}
+          {service?.name ?? tr('components.serviceFallback')}
         </Text>
 
         {/* Client row */}
@@ -141,7 +143,7 @@ export const AppointmentCard = React.memo(function AppointmentCard({
             style={[typo.body, { color: colors.text, marginLeft: sp.sm, flex: 1 }]}
             numberOfLines={1}
           >
-            {client?.name ?? 'Клиент'}
+            {client?.name ?? tr('components.clientFallback')}
           </Text>
 
           {/* Quick-complete check button (только для scheduled-записей сегодня) */}
@@ -149,7 +151,7 @@ export const AppointmentCard = React.memo(function AppointmentCard({
             <Pressable
               onPress={handleQuickComplete}
               accessibilityRole="button"
-              accessibilityLabel="Отметить как проведено"
+              accessibilityLabel={tr('components.apptMarkComplete')}
               hitSlop={10}
               style={[
                 styles.checkBtn,

@@ -6,6 +6,7 @@ import { useTheme } from '@/src/theme';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { useAuthStore } from '@/src/stores/useAuthStore';
 import { authenticate, biometricLabel, getBiometricKind, type BiometricKind } from '@/src/lib/biometric';
+import { useT } from '@/src/hooks/useT';
 
 /**
  * BiometricGate — показывает непрозрачный lock-screen поверх всего
@@ -19,6 +20,7 @@ import { authenticate, biometricLabel, getBiometricKind, type BiometricKind } fr
  */
 export function BiometricGate({ children }: { children: React.ReactNode }) {
   const { colors, typography: typo, spacing: sp, borderRadius: br } = useTheme();
+  const tr = useT();
   const biometricLock = useSettingsStore((s) => s.biometricLock);
   const session = useAuthStore((s) => s.session);
 
@@ -76,7 +78,7 @@ export function BiometricGate({ children }: { children: React.ReactNode }) {
     if (inFlightRef.current) return;
     inFlightRef.current = true;
     try {
-      const res = await authenticate(`Вход по ${biometricLabel(kind)}`);
+      const res = await authenticate(tr('components.biometricPrompt', { method: biometricLabel(kind) }));
       if (res.success) {
         // Гасим возможный «хвостовой» переход в active от закрытия prompt'а,
         // чтобы listener не перелочил экран сразу после успеха.
@@ -86,7 +88,7 @@ export function BiometricGate({ children }: { children: React.ReactNode }) {
     } finally {
       inFlightRef.current = false;
     }
-  }, [kind]);
+  }, [kind, tr]);
 
   // Автоматически вызываем prompt при монтировании экрана — чтобы
   // пользователю не нужно было тапать «Разблокировать».
@@ -99,23 +101,23 @@ export function BiometricGate({ children }: { children: React.ReactNode }) {
   const Icon = kind === 'face' ? ScanFace : Fingerprint;
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]} accessibilityLabel="Экран блокировки">
+    <View style={[styles.container, { backgroundColor: colors.background }]} accessibilityLabel={tr('components.biometricLockScreenA11y')}>
       <MasterBookLogo size={96} />
 
       <Text style={[typo.h2, { color: colors.text, marginTop: sp.lg }]}>MasterBook</Text>
       <Text style={[typo.body, { color: colors.textSecondary, marginTop: sp.xs, textAlign: 'center' }]}>
-        Приложение заблокировано
+        {tr('components.biometricLocked')}
       </Text>
 
       <Pressable
         onPress={unlock}
         accessibilityRole="button"
-        accessibilityLabel={`Разблокировать через ${biometricLabel(kind)}`}
+        accessibilityLabel={tr('components.biometricUnlockA11y', { method: biometricLabel(kind) })}
         style={[styles.unlockBtn, { backgroundColor: colors.primary, borderRadius: br.md, marginTop: sp.xl }]}
       >
         <Icon size={22} color={colors.white} />
         <Text style={[typo.bodyBold, { color: colors.white, marginLeft: 10 }]}>
-          Разблокировать
+          {tr('components.biometricUnlock')}
         </Text>
       </Pressable>
 
@@ -125,12 +127,12 @@ export function BiometricGate({ children }: { children: React.ReactNode }) {
       <Pressable
         onPress={() => signOut()}
         accessibilityRole="button"
-        accessibilityLabel="Выйти из аккаунта"
+        accessibilityLabel={tr('components.biometricSignOutA11y')}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         style={{ marginTop: sp.lg }}
       >
         <Text style={[typo.caption, { color: colors.textTertiary, textDecorationLine: 'underline' }]}>
-          Не получается войти? Выйти из аккаунта
+          {tr('components.biometricCantSignIn')}
         </Text>
       </Pressable>
     </View>

@@ -10,6 +10,7 @@ import { useClientStore } from '@/src/stores/useClientStore';
 import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useServiceStore } from '@/src/stores/useServiceStore';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
+import { useT } from '@/src/hooks/useT';
 import { toDateKey } from '@/src/utils/date';
 import {
   findSleepingClients,
@@ -34,6 +35,7 @@ export function SleepingClientsCard() {
   const services = useServiceStore((s) => s.services);
   const masterName = useSettingsStore((s) => s.masterName);
   const toast = useToast();
+  const tr = useT();
 
   const [selected, setSelected] = useState<SleepingClient | null>(null);
 
@@ -68,7 +70,7 @@ export function SleepingClientsCard() {
             },
           ]}
         >
-          Давно не были · {sleeping.length}
+          {tr('components.sleepingTitle', { count: sleeping.length })}
         </Text>
       </View>
 
@@ -81,7 +83,7 @@ export function SleepingClientsCard() {
               setSelected(s);
             }}
             accessibilityRole="button"
-            accessibilityLabel={`${s.client.name}, не была ${s.daysSince} дней`}
+            accessibilityLabel={tr('components.sleepingClientA11y', { name: s.client.name, count: s.daysSince })}
             style={[
               styles.row,
               idx < topThree.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
@@ -93,7 +95,7 @@ export function SleepingClientsCard() {
                 {s.client.name}
               </Text>
               <Text style={[typo.small, { color: colors.textSecondary, marginTop: 1 }]} numberOfLines={1}>
-                {s.daysSince} дн. · {s.lastServiceName ?? 'визит'}
+                {tr('components.sleepingDaysAgo', { count: s.daysSince, service: s.lastServiceName ?? tr('components.sleepingVisitFallback') })}
               </Text>
             </View>
             <ChevronRight size={16} color={colors.textTertiary} />
@@ -106,7 +108,7 @@ export function SleepingClientsCard() {
         item={selected}
         masterName={masterName}
         onClose={close}
-        onCopied={() => toast.success('Сообщение скопировано')}
+        onCopied={() => toast.success(tr('components.sleepingCopied'))}
       />
     </Animated.View>
   );
@@ -124,6 +126,7 @@ interface DraftSheetProps {
 
 function DraftSheet({ visible, item, masterName, onClose, onCopied }: DraftSheetProps) {
   const { colors, typography: typo, spacing: sp, borderRadius: br } = useTheme();
+  const tr = useT();
   const [chosenIdx, setChosenIdx] = useState(0);
   const [copying, setCopying] = useState(false);
 
@@ -170,7 +173,7 @@ function DraftSheet({ visible, item, masterName, onClose, onCopied }: DraftSheet
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.modalBackdrop}>
-        <Pressable style={styles.backdropTap} onPress={onClose} accessibilityLabel="Закрыть" />
+        <Pressable style={styles.backdropTap} onPress={onClose} accessibilityLabel={tr('components.close')} />
         <View style={[styles.sheet, { backgroundColor: colors.background, borderTopLeftRadius: br.lg, borderTopRightRadius: br.lg }]}>
           <View style={styles.sheetHandle}>
             <View style={[styles.handle, { backgroundColor: colors.border }]} />
@@ -181,17 +184,19 @@ function DraftSheet({ visible, item, masterName, onClose, onCopied }: DraftSheet
                 {item.client.name}
               </Text>
               <Text style={[typo.caption, { color: colors.textSecondary, marginTop: 2 }]}>
-                {item.daysSince} дн. с последнего визита{item.lastServiceName ? ` · ${item.lastServiceName}` : ''}
+                {item.lastServiceName
+                  ? tr('components.sleepingSheetSubtitleService', { count: item.daysSince, service: item.lastServiceName })
+                  : tr('components.sleepingSheetSubtitle', { count: item.daysSince })}
               </Text>
             </View>
-            <Pressable onPress={onClose} hitSlop={12} accessibilityLabel="Закрыть">
+            <Pressable onPress={onClose} hitSlop={12} accessibilityLabel={tr('components.close')}>
               <X size={22} color={colors.textSecondary} />
             </Pressable>
           </View>
 
           <ScrollView style={{ maxHeight: 260 }} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 8 }}>
             <Text style={[typo.small, { color: colors.textSecondary, marginBottom: 8 }]}>
-              Выбери черновик
+              {tr('components.sleepingChooseDraft')}
             </Text>
             {drafts.map((d, i) => {
               const active = i === chosenIdx;
@@ -239,7 +244,7 @@ function DraftSheet({ visible, item, masterName, onClose, onCopied }: DraftSheet
             />
             <ActionBtn
               icon={copying ? <Check size={20} color={colors.primary} /> : <Copy size={20} color={colors.primary} />}
-              label={copying ? 'OK' : 'Копир.'}
+              label={copying ? tr('components.sleepingCopyDone') : tr('components.sleepingCopyAction')}
               bg={colors.primarySoft}
               onPress={copy}
             />

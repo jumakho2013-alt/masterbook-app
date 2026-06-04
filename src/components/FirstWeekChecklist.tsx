@@ -8,6 +8,7 @@ import { useTheme } from '@/src/theme';
 import { GlassCard } from '@/src/components/ui';
 import { useReduceMotion } from '@/src/hooks/useReduceMotion';
 import { useProfessionPack } from '@/src/hooks/useProfessionPack';
+import { useT } from '@/src/hooks/useT';
 import { useClientStore } from '@/src/stores/useClientStore';
 import { useServiceStore } from '@/src/stores/useServiceStore';
 import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
@@ -32,6 +33,7 @@ export function FirstWeekChecklist() {
   const { colors, typography: typo, spacing: sp, borderRadius: br } = useTheme();
   const reduceMotion = useReduceMotion();
   const { pack } = useProfessionPack();
+  const tr = useT();
 
   const clientsCount = useClientStore((s) => s.clients.length);
   const servicesCount = useServiceStore((s) => s.services.length);
@@ -105,12 +107,12 @@ export function FirstWeekChecklist() {
               <Sparkles size={14} color={colors.primary} />
             </View>
             <Text style={[typo.bodyBold, { color: colors.text, marginLeft: sp.sm }]}>
-              Старт недели
+              {tr('components.checklistTitle')}
             </Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Text style={[typo.small, { color: colors.textSecondary }]}>
-              {doneCount} из {items.length}
+              {tr('components.checklistProgress', { done: doneCount, total: items.length })}
             </Text>
             <Pressable
               onPress={() => {
@@ -118,7 +120,7 @@ export function FirstWeekChecklist() {
                 dismissChecklist();
               }}
               accessibilityRole="button"
-              accessibilityLabel="Скрыть чеклист"
+              accessibilityLabel={tr('components.checklistHide')}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               style={{ marginLeft: 4 }}
             >
@@ -154,7 +156,7 @@ export function FirstWeekChecklist() {
                 }}
                 accessibilityRole="button"
                 accessibilityState={{ disabled: done }}
-                accessibilityLabel={`${item.label}${done ? ', выполнено' : ''}`}
+                accessibilityLabel={done ? tr('components.checklistItemDoneA11y', { label: item.label }) : item.label}
                 style={[styles.itemRow, { opacity: done ? 0.55 : 1 }]}
               >
                 <View

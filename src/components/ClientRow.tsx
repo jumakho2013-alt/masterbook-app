@@ -5,6 +5,7 @@ import { ChevronRight } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
 import { Avatar } from '@/src/components/ui';
 import { useReduceMotion } from '@/src/hooks/useReduceMotion';
+import { useT } from '@/src/hooks/useT';
 import { formatCurrency } from '@/src/utils/currency';
 import type { Client } from '@/src/types';
 import { daysSince } from '@/src/utils/date';
@@ -26,6 +27,7 @@ interface ClientRowProps {
 export const ClientRow = React.memo(function ClientRow({ client, lastVisitDate, onPress }: ClientRowProps) {
   const { colors, typography: typo, spacing: sp } = useTheme();
   const reduceMotion = useReduceMotion();
+  const tr = useT();
   const scale = useSharedValue(1);
 
   const isVIP = client.tags.includes('vip');
@@ -41,10 +43,10 @@ export const ClientRow = React.memo(function ClientRow({ client, lastVisitDate, 
   const a11yLabel = [
     client.name,
     isVIP && 'VIP',
-    isProblematic && 'проблемный',
-    isNew && 'новый',
-    hasDebt && `долг ${formatCurrency(client.debt!)}`,
-    lastVisitDate && `последний визит ${lastVisitDate}`,
+    isProblematic && tr('components.clientTagProblematic'),
+    isNew && tr('components.clientTagNew'),
+    hasDebt && tr('components.clientDebtA11y', { amount: formatCurrency(client.debt!) }),
+    lastVisitDate && tr('components.clientLastVisitA11y', { date: lastVisitDate }),
   ]
     .filter(Boolean)
     .join(', ');
@@ -62,7 +64,7 @@ export const ClientRow = React.memo(function ClientRow({ client, lastVisitDate, 
       }}
       accessibilityRole="button"
       accessibilityLabel={a11yLabel}
-      accessibilityHint="Открыть профиль клиента"
+      accessibilityHint={tr('components.clientOpenProfileHint')}
       style={[animStyle, styles.container]}
     >
       {/* Красная вертикальная полоса слева — для problematic клиентов.
@@ -109,7 +111,7 @@ export const ClientRow = React.memo(function ClientRow({ client, lastVisitDate, 
           </Text>
         ) : (
           <Text style={[typo.caption, { color: colors.textTertiary, marginTop: 3 }]}>
-            ещё не приходил
+            {tr('components.clientNeverVisited')}
           </Text>
         )}
       </View>

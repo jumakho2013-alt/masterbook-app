@@ -3,6 +3,7 @@ import { Platform, View, StyleSheet, type ViewStyle } from 'react-native';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { supabase } from '@/src/lib/supabase';
 import { useTheme } from '@/src/theme';
+import { useT } from '@/src/hooks/useT';
 
 interface AppleSignInButtonProps {
   style?: ViewStyle;
@@ -27,6 +28,7 @@ interface AppleSignInButtonProps {
  */
 export function AppleSignInButton({ style, onSuccess, onError }: AppleSignInButtonProps) {
   const { isDark, borderRadius: br } = useTheme();
+  const tr = useT();
   const [supported, setSupported] = useState(false);
 
   useEffect(() => {
@@ -47,7 +49,7 @@ export function AppleSignInButton({ style, onSuccess, onError }: AppleSignInButt
       // Supabase принимает identityToken (JWT от Apple), обменивает его
       // на свою сессию.
       if (!credential.identityToken) {
-        onError?.('Apple не вернул identity token');
+        onError?.(tr('components.appleNoToken'));
         return;
       }
       const { error } = await supabase.auth.signInWithIdToken({

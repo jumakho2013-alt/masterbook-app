@@ -2,6 +2,7 @@ import React from 'react';
 import { View, TextInput, StyleSheet, Pressable, Platform, type ReturnKeyTypeOptions } from 'react-native';
 import { Search, X } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
+import { useT } from '@/src/hooks/useT';
 
 interface SearchBarProps {
   value: string;
@@ -16,13 +17,16 @@ interface SearchBarProps {
 export function SearchBar({
   value,
   onChangeText,
-  placeholder = 'Поиск...',
+  placeholder,
   autoFocus,
   returnKeyType = 'search',
   onSubmit,
-  accessibilityLabel = 'Поле поиска',
+  accessibilityLabel,
 }: SearchBarProps) {
   const { colors, typography: typo, borderRadius: br } = useTheme();
+  const tr = useT();
+  const ph = placeholder ?? tr('components.searchPlaceholder');
+  const a11y = accessibilityLabel ?? tr('components.searchFieldA11y');
 
   return (
     <View
@@ -38,7 +42,7 @@ export function SearchBar({
       <TextInput
         value={value}
         onChangeText={onChangeText}
-        placeholder={placeholder}
+        placeholder={ph}
         placeholderTextColor={colors.textTertiary}
         style={[styles.input, typo.body, { color: colors.text }]}
         autoCorrect={false}
@@ -50,14 +54,14 @@ export function SearchBar({
         onSubmitEditing={onSubmit}
         keyboardAppearance="default"
         autoFocus={autoFocus}
-        accessibilityLabel={accessibilityLabel}
+        accessibilityLabel={a11y}
       />
       {value.length > 0 && (
         <Pressable
           onPress={() => onChangeText('')}
           hitSlop={12}
           accessibilityRole="button"
-          accessibilityLabel="Очистить поиск"
+          accessibilityLabel={tr('components.searchClearA11y')}
           style={styles.clearBtn}
         >
           <X size={16} color={colors.textTertiary} />

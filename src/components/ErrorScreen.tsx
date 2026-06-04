@@ -6,6 +6,7 @@ import Constants from 'expo-constants';
 import { AlertTriangle, Copy, RotateCw } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
 import { captureException } from '@/src/lib/crashReporter';
+import { useT } from '@/src/hooks/useT';
 
 interface ErrorScreenProps {
   error: Error;
@@ -23,6 +24,7 @@ interface ErrorScreenProps {
  */
 export function ErrorScreen({ error, retry }: ErrorScreenProps) {
   const { colors, typography: typo, spacing: sp, borderRadius: br } = useTheme();
+  const tr = useT();
   const version = Constants.expoConfig?.version ?? '—';
   const platform = `${Platform.OS} ${Platform.Version}`;
 
@@ -53,11 +55,10 @@ export function ErrorScreen({ error, retry }: ErrorScreenProps) {
           <AlertTriangle size={36} color={colors.danger} />
         </View>
         <Text style={[typo.h2, { color: colors.text, marginTop: sp.md, textAlign: 'center' }]}>
-          Что-то пошло не так
+          {tr('components.errorTitle')}
         </Text>
         <Text style={[typo.body, { color: colors.textSecondary, marginTop: sp.xs, textAlign: 'center' }]}>
-          Приложение наткнулось на ошибку. Попробуйте снова — если не помогло,
-          скопируйте диагностику и напишите в поддержку.
+          {tr('components.errorBody')}
         </Text>
       </View>
 
@@ -67,7 +68,7 @@ export function ErrorScreen({ error, retry }: ErrorScreenProps) {
         showsVerticalScrollIndicator={false}
       >
         <Text style={[typo.caption, { color: colors.textSecondary, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.6 }]}>
-          Диагностика
+          {tr('components.errorDiagnostics')}
         </Text>
         <View style={[styles.traceBox, { backgroundColor: colors.surfaceElevated, borderRadius: br.md }]}>
           <Text
@@ -88,20 +89,20 @@ export function ErrorScreen({ error, retry }: ErrorScreenProps) {
         <Pressable
           onPress={copyDiagnostics}
           accessibilityRole="button"
-          accessibilityLabel="Скопировать диагностику"
+          accessibilityLabel={tr('components.errorCopyA11y')}
           style={[styles.btnSecondary, { backgroundColor: colors.surfaceElevated, borderRadius: br.md }]}
         >
           <Copy size={18} color={colors.text} />
-          <Text style={[typo.bodyBold, { color: colors.text, marginLeft: 8 }]}>Копировать</Text>
+          <Text style={[typo.bodyBold, { color: colors.text, marginLeft: 8 }]}>{tr('components.errorCopy')}</Text>
         </Pressable>
         <Pressable
           onPress={retry}
           accessibilityRole="button"
-          accessibilityLabel="Перезапустить приложение"
+          accessibilityLabel={tr('components.errorRetryA11y')}
           style={[styles.btnPrimary, { backgroundColor: colors.primary, borderRadius: br.md }]}
         >
           <RotateCw size={18} color={colors.white} />
-          <Text style={[typo.bodyBold, { color: colors.white, marginLeft: 8 }]}>Попробовать снова</Text>
+          <Text style={[typo.bodyBold, { color: colors.white, marginLeft: 8 }]}>{tr('components.errorRetry')}</Text>
         </Pressable>
       </View>
     </SafeAreaView>

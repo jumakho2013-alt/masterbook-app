@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useTheme } from '@/src/theme';
+import { useT } from '@/src/hooks/useT';
 import { formatCurrency } from '@/src/utils/currency';
 import { timeToMinutes, nowMinutesOfDay } from '@/src/utils/time';
 import type { Appointment, Client, Service } from '@/src/types';
@@ -44,6 +45,7 @@ export function DayView({
   bottomOffset = 0,
 }: DayViewProps) {
   const { colors, typography: typo, borderRadius: br } = useTheme();
+  const tr = useT();
   const scrollRef = useRef<ScrollView>(null);
 
   const isToday = useMemo(() => {
@@ -104,7 +106,7 @@ export function DayView({
               key={h}
               onPress={() => onPressEmpty(h)}
               accessibilityRole="button"
-              accessibilityLabel={`Создать запись в ${h.toString().padStart(2, '0')}:00`}
+              accessibilityLabel={tr('components.dayCreateApptA11y', { time: `${h.toString().padStart(2, '0')}:00` })}
               style={[
                 styles.hourRow,
                 {
@@ -176,7 +178,7 @@ export function DayView({
                   ]}
                   numberOfLines={1}
                 >
-                  {client?.name ?? 'Клиент'}
+                  {client?.name ?? tr('components.clientFallback')}
                 </Text>
                 {heightPx >= 38 && (
                   <Text

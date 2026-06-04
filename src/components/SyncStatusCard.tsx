@@ -7,6 +7,7 @@ import { useAuthStore } from '@/src/stores/useAuthStore';
 import { useSyncStore } from '@/src/stores/useSyncStore';
 import { syncNow } from '@/src/lib/cloudSync';
 import { daysSince } from '@/src/utils/date';
+import { useT } from '@/src/hooks/useT';
 
 /**
  * Карточка статуса облачной синхронизации в Профиле. Тап → ручная
@@ -19,6 +20,7 @@ export function SyncStatusCard() {
   const localOnly = useAuthStore((s) => s.localOnlyMode);
   const status = useSyncStore((s) => s.status);
   const lastSyncedAt = useSyncStore((s) => s.lastSyncedAt);
+  const tr = useT();
   const [busy, setBusy] = useState(false);
 
   const onPress = async () => {
@@ -37,9 +39,9 @@ export function SyncStatusCard() {
       <View style={[styles.row, { paddingHorizontal: sp.md }]}>
         <CloudOff size={20} color={colors.textTertiary} />
         <View style={{ flex: 1 }}>
-          <Text style={[typo.body, { color: colors.text }]}>Облако выключено</Text>
+          <Text style={[typo.body, { color: colors.text }]}>{tr('components.syncCloudOff')}</Text>
           <Text style={[typo.small, { color: colors.textTertiary, marginTop: 1 }]}>
-            Вход без аккаунта — данные только на этом телефоне
+            {tr('components.syncCloudOffHint')}
           </Text>
         </View>
       </View>
@@ -54,20 +56,20 @@ export function SyncStatusCard() {
   let subtitle: string;
   if (syncing) {
     icon = <ActivityIndicator size="small" color={colors.primary} />;
-    title = 'Синхронизация…';
-    subtitle = 'Сохраняем копию в облако';
+    title = tr('components.syncSyncing');
+    subtitle = tr('components.syncSyncingHint');
   } else if (isError) {
     icon = <CloudOff size={20} color={colors.danger} />;
-    title = 'Не удалось синхронизировать';
-    subtitle = 'Нажмите, чтобы повторить';
+    title = tr('components.syncError');
+    subtitle = tr('components.syncErrorHint');
   } else if (lastSyncedAt) {
     icon = <CheckCircle2 size={20} color={colors.success} />;
-    title = 'Синхронизировано';
-    subtitle = `Резервная копия ${daysSince(lastSyncedAt)}`;
+    title = tr('components.syncDone');
+    subtitle = tr('components.syncDoneHint', { ago: daysSince(lastSyncedAt) });
   } else {
     icon = <Cloud size={20} color={colors.primary} />;
-    title = 'Облачная копия';
-    subtitle = 'Нажмите, чтобы синхронизировать';
+    title = tr('components.syncIdle');
+    subtitle = tr('components.syncIdleHint');
   }
 
   return (

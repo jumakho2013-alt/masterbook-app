@@ -7,6 +7,7 @@ import { useTheme } from '@/src/theme';
 import { ClientRow } from '@/src/components/ClientRow';
 import { useClientStore } from '@/src/stores/useClientStore';
 import { phoneForWhatsApp, normalizePhoneForLink } from '@/src/lib/sleepingClients';
+import { useT } from '@/src/hooks/useT';
 import type { Client } from '@/src/types';
 
 interface SwipeableClientRowProps {
@@ -27,6 +28,7 @@ interface SwipeableClientRowProps {
 export function SwipeableClientRow({ client, lastVisitDate, onPress }: SwipeableClientRowProps) {
   const { colors, typography: typo } = useTheme();
   const deleteClient = useClientStore((s) => s.deleteClient);
+  const tr = useT();
   const swipeRef = useRef<Swipeable>(null);
 
   const closeSwipe = () => swipeRef.current?.close();
@@ -40,7 +42,7 @@ export function SwipeableClientRow({ client, lastVisitDate, onPress }: Swipeable
       const canOpen = await Linking.canOpenURL(appUrl);
       await Linking.openURL(canOpen ? appUrl : `https://wa.me/${num}`);
     } catch {
-      Alert.alert('WhatsApp', 'Не удалось открыть WhatsApp');
+      Alert.alert('WhatsApp', tr('components.swipeWaFailed'));
     }
   };
 
@@ -50,19 +52,19 @@ export function SwipeableClientRow({ client, lastVisitDate, onPress }: Swipeable
     try {
       await Linking.openURL(`tel:${normalizePhoneForLink(client.phone)}`);
     } catch {
-      Alert.alert('Звонок', 'Не удалось начать звонок');
+      Alert.alert(tr('components.swipeCallTitle'), tr('components.swipeCallFailed'));
     }
   };
 
   const onDelete = () => {
     closeSwipe();
     Alert.alert(
-      'Удалить клиента?',
-      `«${client.name}» будет удалён. Записи останутся, но без привязки к клиенту.`,
+      tr('components.swipeDeleteTitle'),
+      tr('components.swipeDeleteMessage', { name: client.name }),
       [
-        { text: 'Отмена', style: 'cancel' },
+        { text: tr('common.cancel'), style: 'cancel' },
         {
-          text: 'Удалить',
+          text: tr('common.delete'),
           style: 'destructive',
           onPress: () => {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
@@ -82,25 +84,25 @@ export function SwipeableClientRow({ client, lastVisitDate, onPress }: Swipeable
         style={[styles.actionBtn, { backgroundColor: '#25D366' }]}
       >
         <MessageCircle size={20} color="#FFFFFF" />
-        <Text style={[typo.small, { color: '#FFFFFF', marginTop: 4 }]}>WA</Text>
+        <Text style={[typo.small, { color: '#FFFFFF', marginTop: 4 }]}>{tr('components.swipeWaShort')}</Text>
       </Pressable>
       <Pressable
         onPress={onCall}
         accessibilityRole="button"
-        accessibilityLabel="Позвонить"
+        accessibilityLabel={tr('components.call')}
         style={[styles.actionBtn, { backgroundColor: colors.primary }]}
       >
         <Phone size={20} color="#FFFFFF" />
-        <Text style={[typo.small, { color: '#FFFFFF', marginTop: 4 }]}>Звонок</Text>
+        <Text style={[typo.small, { color: '#FFFFFF', marginTop: 4 }]}>{tr('components.swipeCallShort')}</Text>
       </Pressable>
       <Pressable
         onPress={onDelete}
         accessibilityRole="button"
-        accessibilityLabel="Удалить"
+        accessibilityLabel={tr('common.delete')}
         style={[styles.actionBtn, { backgroundColor: colors.danger }]}
       >
         <Trash2 size={20} color="#FFFFFF" />
-        <Text style={[typo.small, { color: '#FFFFFF', marginTop: 4 }]}>Удалить</Text>
+        <Text style={[typo.small, { color: '#FFFFFF', marginTop: 4 }]}>{tr('common.delete')}</Text>
       </Pressable>
     </View>
   );
