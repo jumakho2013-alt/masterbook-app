@@ -12,6 +12,7 @@ import { useServiceStore } from '@/src/stores/useServiceStore';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { toDateKey, formatTimeRange } from '@/src/utils/date';
 import { openOutreach } from '@/src/lib/sleepingClients';
+import { buildReminderMessage } from '@/src/lib/reminderTemplate';
 
 function tomorrowKey(): string {
   const d = new Date();
@@ -28,7 +29,8 @@ export default function RemindersTomorrowScreen() {
   const appointments = useAppointmentStore((s) => s.appointments);
   const clients = useClientStore((s) => s.clients);
   const services = useServiceStore((s) => s.services);
-  const masterName = useSettingsStore((s) => s.masterName);
+  const reminderTemplate = useSettingsStore((s) => s.reminderTemplate);
+  const reminderChannel = useSettingsStore((s) => s.reminderChannel);
 
   const rows = useMemo(() => {
     const key = tomorrowKey();
@@ -48,11 +50,13 @@ export default function RemindersTomorrowScreen() {
       return;
     }
     const firstName = clientName.split(' ')[0] || clientName;
-    const svc = serviceName ? tr('misc.remindSvc', { service: serviceName }) : '';
-    const sig = masterName ? `\n\n— ${masterName}` : '';
-    const msg = tr('misc.remindText', { name: firstName, time, svc }) + sig;
-    const ok = await openOutreach('whatsapp', phone, msg);
-    if (!ok) toast.error(tr('misc.remindWhatsappFailed'));
+    const msg = buildReminderMessage(reminderTemplate, {
+      name: firstName,
+      time,
+      service: serviceName,
+    });
+    const ok = await openOutreach(reminderChannel, phone, msg);
+    if (!ok) toast.error(tr('misc.remindSendFailed'));
   };
 
   return (

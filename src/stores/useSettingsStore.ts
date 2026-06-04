@@ -44,6 +44,11 @@ interface SettingsState {
    *  с готовыми WhatsApp-черновиками). Авто-отправка SMS требует платного
    *  шлюза — отложено. Opt-in, по умолчанию выключено. */
   autoClientReminders: boolean;
+  /** Шаблон текста напоминания клиенту (мастер задаёт сам). null = дефолт из
+   *  i18n. Плейсхолдеры: {имя}/{name}, {время}/{time}, {услуга}/{service}. */
+  reminderTemplate: string | null;
+  /** Канал по умолчанию для напоминаний: whatsapp | sms. */
+  reminderChannel: 'whatsapp' | 'sms';
 
   setTheme: (theme: ThemeSetting) => void;
   setWorkHours: (start: string, end: string) => void;
@@ -62,6 +67,8 @@ interface SettingsState {
   setLanguage: (lang: 'system' | 'ru' | 'en') => void;
   setReduceEffects: (enabled: boolean) => void;
   setAutoClientReminders: (enabled: boolean) => void;
+  setReminderTemplate: (template: string | null) => void;
+  setReminderChannel: (channel: 'whatsapp' | 'sms') => void;
   /** Полный сброс к дефолтам (используется при signOut / deleteAccount).
    *  Сохраняет тему (UI preference) — это про устройство, не про аккаунт.
    *  Валюту тоже сохраняем — она привязана к региону, не к юзеру. */
@@ -99,6 +106,8 @@ export const useSettingsStore = create<SettingsState>()(
       language: 'system',
       reduceEffects: false,
       autoClientReminders: false,
+      reminderTemplate: null,
+      reminderChannel: 'whatsapp',
       ...defaultSettingsForAccount,
 
       setTheme: (theme) => set({ theme }),
@@ -119,6 +128,8 @@ export const useSettingsStore = create<SettingsState>()(
       setLanguage: (lang) => set({ language: lang }),
       setReduceEffects: (enabled) => set({ reduceEffects: enabled }),
       setAutoClientReminders: (enabled) => set({ autoClientReminders: enabled }),
+      setReminderTemplate: (template) => set({ reminderTemplate: template }),
+      setReminderChannel: (channel) => set({ reminderChannel: channel }),
 
       reset: () =>
         set({
@@ -128,6 +139,8 @@ export const useSettingsStore = create<SettingsState>()(
           checklistDismissedAt: null,
           calendarSyncEnabled: false,
           autoClientReminders: false,
+          reminderTemplate: null,
+          reminderChannel: 'whatsapp',
         }),
     }),
     {
