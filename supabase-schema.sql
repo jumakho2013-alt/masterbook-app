@@ -107,3 +107,27 @@ $$ language plpgsql security definer;
 create or replace trigger on_auth_user_created
   after insert on auth.users
   for each row execute function handle_new_user();
+
+-- ==========================================================================
+-- Account deletion (App Store requirement — Guideline 5.1.1(v))
+-- Call from client via supabase.rpc('delete_user'). Uses session auth.uid()
+-- so users can only delete their own row. Cascade on profiles.id removes
+-- clients / services / appointments / finance entries automatically.
+-- ==========================================================================
+create or replace function delete_user()
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if auth.uid() is null then
+    raise exception 'Not authenticated';
+  end if;
+  -- Deleting the auth.users row cascades through profiles.id → everything.
+  delete from auth.users where id = auth.uid();
+end;
+$$;
+
+revoke all on function delete_user() from public;
+grant execute on function delete_user() to authenticated;

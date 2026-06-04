@@ -40,3 +40,21 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# EAS local artefacts
+.eas/
+*.aab
+*.apk
+*.ipa
+eas-*.log
+
+# App Store / Google Play screenshots — собираются локально скриптом
+# scripts/take-screenshots.sh и заливаются напрямую в Store Console.
+# В репозиторий коммитить не надо (большие бинарники).
+store-screenshots/
+
+# Store credentials — never commit
+google-service-account.json
+AuthKey_*.p8
+*.p12
+*.mobileprovision

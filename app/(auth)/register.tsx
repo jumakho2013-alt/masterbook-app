@@ -9,6 +9,7 @@ import { Button, Input, CustomAlert } from '@/src/components/ui';
 import { useAlert } from '@/src/hooks/useAlert';
 import { useAuthStore } from '@/src/stores/useAuthStore';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
+import { signUpSchema } from '@/src/lib/validation';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -26,23 +27,25 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     Keyboard.dismiss();
-    const newErrors: typeof errors = {};
-    if (!name.trim()) newErrors.name = 'Введите имя';
-    if (!email.trim()) newErrors.email = 'Введите email';
-    if (password.length < 6) newErrors.password = 'Минимум 6 символов';
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
+    const parsed = signUpSchema.safeParse({ name, email, password });
+    if (!parsed.success) {
+      const fieldErrors: typeof errors = {};
+      for (const issue of parsed.error.errors) {
+        const field = issue.path[0] as 'name' | 'email' | 'password';
+        if (field) fieldErrors[field] = issue.message;
+      }
+      setErrors(fieldErrors);
       return;
     }
 
     setLoading(true);
-    const { error } = await signUp(email.trim(), password, name.trim());
+    const { error } = await signUp(parsed.data.email, parsed.data.password, parsed.data.name);
     setLoading(false);
 
     if (error) {
       showError('Ошибка', error);
     } else {
-      setMasterName(name.trim());
+      setMasterName(parsed.data.name);
       router.replace('/');
     }
   };

@@ -1,0 +1,33 @@
+# .easignore is uploaded to EAS Build; paths below are excluded from the
+# build context. Keep this tight so builds are reproducible and fast.
+
+# Dev-only scripts and docs
+scripts/
+store-listing.md
+PRIVACY_POLICY.md
+PRIVACY_POLICY_PLAIN.txt
+
+# IDE + OS metadata
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Claude worktree / agent metadata (never ship)
+.claude/
+
+# Tests & coverage (uncomment once tests exist)
+# **/__tests__/**
+# **/*.test.ts
+# **/*.test.tsx
+# coverage/
+
+# Local env / secrets — belt-and-braces on top of .gitignore
+.env
+.env.*
+google-service-account.json
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.jks

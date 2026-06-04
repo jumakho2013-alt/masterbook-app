@@ -16,4 +16,5 @@ export interface Appointment {
   notes?: string;
   address?: string;
   photos?: string[]; // URI локальных фото
+  reminderNotificationId?: string; // id запланированного локального уведомления
 }

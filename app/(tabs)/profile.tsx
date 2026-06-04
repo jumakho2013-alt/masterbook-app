@@ -16,6 +16,7 @@ import {
   TrendingUp,
   RefreshCw,
   LogOut,
+  ShieldCheck,
 } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
 import { GlassCard, Avatar, Divider, CustomAlert } from '@/src/components/ui';
@@ -25,6 +26,7 @@ import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { useClientStore } from '@/src/stores/useClientStore';
 import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useFinanceStore } from '@/src/stores/useFinanceStore';
+import { useTabBarOffset } from '@/src/hooks/useTabBarOffset';
 import { getSpecialization } from '@/src/data/professions';
 import { formatCurrency } from '@/src/utils/currency';
 
@@ -54,6 +56,7 @@ function MenuItem({ icon, label, onPress, subtitle }: MenuItemProps) {
 export default function ProfileScreen() {
   const router = useRouter();
   const { colors, typography: typo, spacing: sp, borderRadius: br } = useTheme();
+  const bottomOffset = useTabBarOffset(0);
   const masterName = useSettingsStore((s) => s.masterName);
   const specializationId = useAuthStore((s) => s.specializationId);
   const theme = useSettingsStore((s) => s.theme);
@@ -94,7 +97,7 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ paddingBottom: bottomOffset + 24 }} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={[typo.h2, { color: colors.text }]}>Профиль</Text>
         </View>
@@ -184,6 +187,13 @@ export default function ProfileScreen() {
               label="Тема"
               subtitle={themeLabel}
               onPress={toggleTheme}
+            />
+            <Divider style={{ marginVertical: 0, marginLeft: 52 }} />
+            <MenuItem
+              icon={<ShieldCheck size={20} color={colors.primary} />}
+              label="Безопасность и данные"
+              subtitle="Face ID, экспорт, удаление аккаунта"
+              onPress={() => router.push('/settings/account' as any)}
             />
             <Divider style={{ marginVertical: 0, marginLeft: 52 }} />
             <MenuItem

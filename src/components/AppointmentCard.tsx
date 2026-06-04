@@ -30,11 +30,23 @@ export const AppointmentCard = React.memo(function AppointmentCard({
     transform: [{ scale: scale.value }],
   }));
 
+  // Одной строкой описываем карточку для VoiceOver — иначе он читает отдельно
+  // время, цену, название, клиента и "кнопка" — пользователю не собрать целое.
+  const a11yLabel = [
+    `${formatTimeRange(appointment.startTime, appointment.endTime)}`,
+    service?.name ?? 'услуга',
+    client?.name ?? 'клиент',
+    formatCurrency(appointment.price),
+  ].join(', ');
+
   return (
     <AnimatedPressable
       onPress={onPress}
       onPressIn={() => { scale.value = withSpring(0.97, { damping: 15, stiffness: 400 }); }}
       onPressOut={() => { scale.value = withSpring(1, { damping: 15, stiffness: 400 }); }}
+      accessibilityRole="button"
+      accessibilityLabel={a11yLabel}
+      accessibilityHint="Открыть детали записи"
       style={[
         animStyle,
         styles.card,

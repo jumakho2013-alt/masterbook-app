@@ -1,17 +1,20 @@
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Platform, Pressable, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Pressable, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Plus, CalendarCheck, TrendingUp, Calendar } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
-import { EmptyState, GlassCard, CountUp } from '@/src/components/ui';
+import { EmptyState, GlassCard, CountUp, LiquidGlass } from '@/src/components/ui';
 import { AppointmentCard } from '@/src/components/AppointmentCard';
 import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useClientStore } from '@/src/stores/useClientStore';
 import { useServiceStore } from '@/src/stores/useServiceStore';
+import { useTabBarOffset } from '@/src/hooks/useTabBarOffset';
+import { useReduceMotion } from '@/src/hooks/useReduceMotion';
 import { formatDateFull, toDateKey } from '@/src/utils/date';
 import { formatCurrency } from '@/src/utils/currency';
+import { nowMinutesOfDay, timeToMinutes } from '@/src/utils/time';
 
 type Filter = 'upcoming' | 'completed' | 'all';
 
@@ -21,20 +24,14 @@ const FILTER_LABELS: Record<Filter, string> = {
   all: 'Все',
 };
 
-function timeToMinutes(time: string): number {
-  const [h, m] = time.split(':').map(Number);
-  return h * 60 + m;
-}
-
 export default function TodayScreen() {
   const router = useRouter();
   const { colors, typography: typo, spacing: sp, borderRadius: br } = useTheme();
+  const fabOffset = useTabBarOffset(16);
+  const reduceMotion = useReduceMotion();
   const [filter, setFilter] = useState<Filter>('upcoming');
   const [refreshing, setRefreshing] = useState(false);
-  const [nowMinutes, setNowMinutes] = useState(() => {
-    const now = new Date();
-    return now.getHours() * 60 + now.getMinutes();
-  });
+  const [nowMinutes, setNowMinutes] = useState(() => nowMinutesOfDay());
 
   const appointments = useAppointmentStore((s) => s.appointments);
   const clients = useClientStore((s) => s.clients);
@@ -42,11 +39,10 @@ export default function TodayScreen() {
 
   const todayKey = toDateKey(new Date());
 
-  // Update "now" every minute
+  // Update "now" every minute — двигает индикатор «сейчас идёт».
   useEffect(() => {
     const interval = setInterval(() => {
-      const now = new Date();
-      setNowMinutes(now.getHours() * 60 + now.getMinutes());
+      setNowMinutes(nowMinutesOfDay());
     }, 60 * 1000);
     return () => clearInterval(interval);
   }, []);
@@ -112,7 +108,7 @@ export default function TodayScreen() {
       <FlatList
         data={todayAppointments}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 90 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: fabOffset + 72 }}
         ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />
@@ -120,7 +116,7 @@ export default function TodayScreen() {
         ListHeaderComponent={
           <>
             {/* Forecast cards */}
-            <Animated.View entering={FadeInDown.duration(400)} style={[styles.forecastRow, { marginBottom: sp.md }]}>
+            <Animated.View entering={reduceMotion ? undefined : FadeInDown.duration(400)} style={[styles.forecastRow, { marginBottom: sp.md }]}>
               <GlassCard style={styles.forecastCard}>
                 <TrendingUp size={16} color={colors.success} />
                 <Text style={[typo.small, { color: colors.textSecondary, marginTop: 4 }]}>Сегодня</Text>
@@ -147,26 +143,36 @@ export default function TodayScreen() {
               </GlassCard>
             </Animated.View>
 
-            {/* "Сейчас" indicator */}
+            {/* "Сейчас" indicator — branded liquid glass with primary tint */}
             {currentAppointment && currentClient && currentService && (
-              <Animated.View entering={FadeInDown.delay(50)} style={{ marginBottom: sp.md }}>
-                <Pressable onPress={() => router.push(`/appointment/${currentAppointment.id}`)}>
-                  <View style={[styles.nowCard, { backgroundColor: colors.primary, borderRadius: br.lg }]}>
+              <Animated.View entering={reduceMotion ? undefined : FadeInDown.delay(50)} style={{ marginBottom: sp.md }}>
+                <Pressable
+                  onPress={() => router.push(`/appointment/${currentAppointment.id}`)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Сейчас идёт: ${currentClient.name}, ${currentService.name}`}
+                >
+                  <LiquidGlass
+                    variant="floating"
+                    tint={colors.primary}
+                    tintStrength={0.7}
+                    radius={br.lg}
+                    style={styles.nowCard}
+                  >
                     <View style={styles.pulseDot}>
                       <View style={[styles.pulseDotInner, { backgroundColor: colors.white }]} />
                     </View>
                     <View style={{ flex: 1, marginLeft: 12 }}>
-                      <Text style={[typo.small, { color: colors.white, opacity: 0.8, textTransform: 'uppercase', letterSpacing: 0.5 }]}>
+                      <Text style={[typo.small, { color: colors.white, opacity: 0.85, textTransform: 'uppercase', letterSpacing: 0.5 }]}>
                         Сейчас идёт
                       </Text>
                       <Text style={[typo.bodyBold, { color: colors.white, marginTop: 2 }]}>
                         {currentClient.name} — {currentService.name}
                       </Text>
-                      <Text style={[typo.caption, { color: colors.white, opacity: 0.8 }]}>
+                      <Text style={[typo.caption, { color: colors.white, opacity: 0.85 }]}>
                         {currentAppointment.startTime} — {currentAppointment.endTime}
                       </Text>
                     </View>
-                  </View>
+                  </LiquidGlass>
                 </Pressable>
               </Animated.View>
             )}
@@ -179,6 +185,10 @@ export default function TodayScreen() {
                   <Pressable
                     key={key}
                     onPress={() => setFilter(key)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Фильтр: ${FILTER_LABELS[key]}`}
+                    accessibilityState={{ selected: active }}
+                    hitSlop={{ top: 6, bottom: 6 }}
                     style={[
                       styles.filterChip,
                       {
@@ -215,7 +225,7 @@ export default function TodayScreen() {
           />
         }
         renderItem={({ item, index }) => (
-          <Animated.View entering={FadeInDown.delay(100 + index * 50).duration(400)}>
+          <Animated.View entering={reduceMotion ? undefined : FadeInDown.delay(100 + index * 50).duration(400)}>
             <AppointmentCard
               appointment={item}
               client={getClient(item.clientId)}
@@ -228,10 +238,20 @@ export default function TodayScreen() {
 
       <TouchableOpacity
         onPress={() => router.push('/appointment/new')}
-        activeOpacity={0.8}
-        style={[styles.fab, { backgroundColor: colors.primary }]}
+        activeOpacity={0.85}
+        accessibilityRole="button"
+        accessibilityLabel="Новая запись"
+        style={[styles.fabWrap, { bottom: fabOffset }]}
       >
-        <Plus size={28} color={colors.white} />
+        <LiquidGlass
+          variant="floating"
+          tint={colors.primary}
+          tintStrength={0.72}
+          radius={20}
+          style={styles.fab}
+        >
+          <Plus size={28} color={colors.white} />
+        </LiquidGlass>
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -267,19 +287,21 @@ const styles = StyleSheet.create({
   },
   filterRow: { flexDirection: 'row', gap: 8 },
   filterChip: { paddingHorizontal: 14, paddingVertical: 8, alignItems: 'center', justifyContent: 'center' },
-  fab: {
+  fabWrap: {
     position: 'absolute',
     right: 20,
-    bottom: Platform.OS === 'ios' ? 90 : 80,
+    // Coloured drop-shadow matching the primary tint — gives the liquid
+    // glass surface a branded glow that anchors it to the theme.
+    shadowColor: '#7C5DFA',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  fab: {
     width: 56,
     height: 56,
-    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 6,
   },
 });

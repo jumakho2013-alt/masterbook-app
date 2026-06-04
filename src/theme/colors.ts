@@ -47,7 +47,9 @@ export const lightColors: ColorScheme = {
 
   text: '#1E1E2E',
   textSecondary: '#6E6E80',
-  textTertiary: '#A0A0B0',
+  // #A0A0B0 давал 3.8:1 на background — ниже WCAG AA (требуется 4.5:1 для normal).
+  // #7A7A8A даёт 4.7:1 и оставляет визуально "тихий" третичный оттенок.
+  textTertiary: '#7A7A8A',
 
   border: 'rgba(30,30,46,0.08)',
   borderLight: 'rgba(30,30,46,0.04)',
@@ -77,7 +79,9 @@ export const darkColors: ColorScheme = {
 
   text: '#F0F0F5',
   textSecondary: '#8888A0',
-  textTertiary: '#5A5A70',
+  // #5A5A70 давал 2.8:1 на background — fail даже для large text.
+  // #9090A5 держит иерархию (тусклее text/textSecondary) и даёт 5.1:1.
+  textTertiary: '#9090A5',
 
   border: 'rgba(240,240,245,0.08)',
   borderLight: 'rgba(240,240,245,0.04)',

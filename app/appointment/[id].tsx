@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, Pressable, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, Pressable } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -19,7 +20,7 @@ import { useFinanceStore } from '@/src/stores/useFinanceStore';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { formatDate, formatTimeRange, toDateKey } from '@/src/utils/date';
 import { formatCurrency } from '@/src/utils/currency';
-import type { ColorScheme } from '@/src/theme';
+import { addMinutes, generateTimeSlots } from '@/src/utils/time';
 
 const statusLabels: Record<string, { label: string; color: string }> = {
   scheduled: { label: 'Запланировано', color: '#7C5DFA' },
@@ -34,27 +35,6 @@ const REBOOK_OPTIONS = [
   { label: '3 нед', weeks: 3 },
   { label: '4 нед', weeks: 4 },
 ];
-
-function generateTimeSlots(start: string, end: string, step: number): string[] {
-  const slots: string[] = [];
-  const [sh, sm] = start.split(':').map(Number);
-  const [eh, em] = end.split(':').map(Number);
-  let mins = sh * 60 + sm;
-  const endMins = eh * 60 + em;
-  while (mins < endMins) {
-    const h = Math.floor(mins / 60);
-    const m = mins % 60;
-    slots.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
-    mins += step;
-  }
-  return slots;
-}
-
-function addMinutesToTime(time: string, minutes: number): string {
-  const [h, m] = time.split(':').map(Number);
-  const total = h * 60 + m + minutes;
-  return `${Math.floor(total / 60).toString().padStart(2, '0')}:${(total % 60).toString().padStart(2, '0')}`;
-}
 
 export default function AppointmentDetailScreen() {
   const router = useRouter();
@@ -131,7 +111,7 @@ export default function AppointmentDetailScreen() {
   const handleReschedule = () => {
     if (!rescheduleTime) return;
     const duration = service?.duration ?? 60;
-    const newEnd = addMinutesToTime(rescheduleTime, duration);
+    const newEnd = addMinutes(rescheduleTime, duration);
     updateAppointment(appointment.id, {
       date: toDateKey(rescheduleDate),
       startTime: rescheduleTime,
@@ -189,9 +169,9 @@ export default function AppointmentDetailScreen() {
 
         {/* Info card */}
         <GlassCard elevated style={styles.infoCard}>
-          <InfoRow icon={<User size={18} color={colors.primary} />} label="Клиент" value={client?.name ?? ''} colors={colors} typo={typo} />
-          <InfoRow icon={<Scissors size={18} color={colors.primary} />} label="Услуга" value={service?.name ?? ''} colors={colors} typo={typo} />
-          <InfoRow icon={<Clock size={18} color={colors.primary} />} label="Время" value={`${formatDate(appointment.date)}, ${formatTimeRange(appointment.startTime, appointment.endTime)}`} colors={colors} typo={typo} />
+          <InfoRow icon={<User size={18} color={colors.primary} />} label="Клиент" value={client?.name ?? ''} />
+          <InfoRow icon={<Scissors size={18} color={colors.primary} />} label="Услуга" value={service?.name ?? ''} />
+          <InfoRow icon={<Clock size={18} color={colors.primary} />} label="Время" value={`${formatDate(appointment.date)}, ${formatTimeRange(appointment.startTime, appointment.endTime)}`} />
           <View style={styles.infoRow}>
             <Text style={[typo.bodyBold, { color: colors.text }]}>Стоимость</Text>
             <Text style={[typo.h3, { color: colors.primary }]}>{formatCurrency(appointment.price)}</Text>
@@ -316,8 +296,15 @@ export default function AppointmentDetailScreen() {
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 {appointment.photos!.map((uri, i) => (
                   <Image
-                    key={i}
+                    key={uri}
                     source={{ uri }}
+                    // expo-image делает cache на диске + декомпрессию в native
+                    // слое. Memory-cache по умолчанию, transition — лёгкий
+                    // fade чтобы новые фото не возникали резко.
+                    cachePolicy="memory-disk"
+                    contentFit="cover"
+                    transition={150}
+                    accessibilityLabel={`Фото работы ${i + 1}`}
                     style={[styles.photo, { borderRadius: br.md, borderColor: colors.border }]}
                   />
                 ))}
@@ -343,7 +330,8 @@ export default function AppointmentDetailScreen() {
   );
 }
 
-function InfoRow({ icon, label, value, colors, typo }: { icon: React.ReactNode; label: string; value: string; colors: ColorScheme; typo: Record<string, any> }) {
+function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  const { colors, typography: typo } = useTheme();
   return (
     <View style={styles.infoRow}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>

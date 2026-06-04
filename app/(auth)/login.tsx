@@ -6,8 +6,16 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { BookOpen } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
 import { Button, Input, CustomAlert } from '@/src/components/ui';
+import { AppleSignInButton } from '@/src/components/AppleSignInButton';
 import { useAlert } from '@/src/hooks/useAlert';
 import { useAuthStore } from '@/src/stores/useAuthStore';
+import { signInSchema } from '@/src/lib/validation';
+import {
+  checkAuthRateLimit,
+  recordAuthFailure,
+  resetAuthRateLimit,
+  formatRetryDuration,
+} from '@/src/lib/authRateLimit';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -23,21 +31,40 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     Keyboard.dismiss();
-    const newErrors: typeof errors = {};
-    if (!email.trim()) newErrors.email = 'Введите email';
-    if (!password) newErrors.password = 'Введите пароль';
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
+    const parsed = signInSchema.safeParse({ email, password });
+    if (!parsed.success) {
+      const fieldErrors: typeof errors = {};
+      for (const issue of parsed.error.errors) {
+        const field = issue.path[0] as 'email' | 'password';
+        if (field) fieldErrors[field] = issue.message;
+      }
+      setErrors(fieldErrors);
+      return;
+    }
+
+    // Rate limit: если перебрали попыток — не шлём даже на бэкенд
+    const rl = await checkAuthRateLimit();
+    if (rl.locked) {
+      showError('Слишком много попыток', `Подождите ${formatRetryDuration(rl.retryInMs)} и попробуйте снова`);
       return;
     }
 
     setLoading(true);
-    const { error } = await signIn(email.trim(), password);
+    const { error } = await signIn(parsed.data.email, parsed.data.password);
     setLoading(false);
 
     if (error) {
-      showError('Ошибка', error);
+      const next = await recordAuthFailure();
+      if (next.locked) {
+        showError(
+          'Слишком много попыток',
+          `Ваш вход временно заблокирован на ${formatRetryDuration(next.retryInMs)}`,
+        );
+      } else {
+        showError('Ошибка', error);
+      }
     } else {
+      await resetAuthRateLimit();
       router.replace('/');
     }
   };
@@ -88,6 +115,13 @@ export default function LoginScreen() {
             size="lg"
             fullWidth
             style={{ marginTop: sp.md }}
+          />
+
+          {/* Apple Sign-In — рендерится только на iOS, где доступен. */}
+          <AppleSignInButton
+            style={{ marginTop: sp.md }}
+            onSuccess={() => router.replace('/')}
+            onError={(msg) => showError('Apple Sign-In', msg)}
           />
         </Animated.View>
 

@@ -10,6 +10,7 @@ import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, LayoutGrid, Calend
 import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useClientStore } from '@/src/stores/useClientStore';
 import { useServiceStore } from '@/src/stores/useServiceStore';
+import { useTabBarOffset } from '@/src/hooks/useTabBarOffset';
 import { toDateKey, getDayOfWeekShort, getDayNumber, getMonthName } from '@/src/utils/date';
 
 type ViewMode = 'week' | 'month';
@@ -50,6 +51,7 @@ const WEEKDAY_LABELS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 export default function CalendarScreen() {
   const router = useRouter();
   const { colors, typography: typo, borderRadius: br, spacing: sp } = useTheme();
+  const bottomOffset = useTabBarOffset(0);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('week');
   const [monthCursor, setMonthCursor] = useState(new Date());
@@ -271,7 +273,7 @@ export default function CalendarScreen() {
       <FlatList
         data={appointments}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 90 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: bottomOffset + 20 }}
         ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />

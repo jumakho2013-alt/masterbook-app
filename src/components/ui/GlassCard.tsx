@@ -1,37 +1,68 @@
 import React from 'react';
-import { StyleSheet, View, type ViewStyle } from 'react-native';
+import { View, StyleSheet, type ViewStyle, type ColorValue } from 'react-native';
 import { useTheme } from '@/src/theme';
+import { LiquidGlass, type LiquidGlassVariant } from './LiquidGlass';
 
 interface GlassCardProps {
   children: React.ReactNode;
   style?: ViewStyle;
+  /** `elevated` keeps the existing API — renders as a floating liquid-glass card. */
   elevated?: boolean;
+  /** Optional brand tint for branded cards (e.g. primary for the "Now" card). */
+  tint?: ColorValue;
+  tintStrength?: number;
+  variant?: LiquidGlassVariant;
+  /** Opt out of liquid glass for content that needs an opaque background. */
+  solid?: boolean;
 }
 
-export function GlassCard({ children, style, elevated = false }: GlassCardProps) {
+export function GlassCard({
+  children,
+  style,
+  elevated = false,
+  tint,
+  tintStrength,
+  variant,
+  solid = false,
+}: GlassCardProps) {
   const { colors, borderRadius: br, shadows: sh } = useTheme();
 
+  if (solid) {
+    return (
+      <View
+        style={[
+          styles.card,
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+            borderRadius: br.lg,
+            ...(elevated ? sh.md : sh.sm),
+          },
+          style,
+        ]}
+      >
+        {children}
+      </View>
+    );
+  }
+
   return (
-    <View
-      style={[
-        styles.card,
-        {
-          backgroundColor: elevated ? colors.surface : colors.surfaceGlass,
-          borderColor: colors.border,
-          borderRadius: br.lg,
-          ...(elevated ? sh.md : sh.sm),
-        },
-        style,
-      ]}
+    <LiquidGlass
+      variant={variant ?? (elevated ? 'floating' : 'raised')}
+      tint={tint}
+      tintStrength={tintStrength}
+      radius={br.lg}
+      padding={20}
+      style={style}
     >
       {children}
-    </View>
+    </LiquidGlass>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    borderWidth: 0.5,
+    borderWidth: StyleSheet.hairlineWidth,
     padding: 20,
   },
 });

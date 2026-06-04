@@ -14,14 +14,23 @@ export default function Index() {
   const setSession = useAuthStore((s) => s.setSession);
 
   useEffect(() => {
-    checkSession();
+    let mounted = true;
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
+    // Subscribe FIRST so any restored session emitted by Supabase during
+    // bootstrap is not dropped on the floor. getSession() then syncs the
+    // initial state explicitly.
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (!mounted) return;
+      setSession(nextSession);
     });
 
-    return () => { listener.subscription.unsubscribe(); };
-  }, []);
+    checkSession();
+
+    return () => {
+      mounted = false;
+      listener.subscription.unsubscribe();
+    };
+  }, [checkSession, setSession]);
 
   if (loading) {
     return (
@@ -29,6 +38,13 @@ export default function Index() {
         <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
+  }
+
+  // Dev preview — ТОЛЬКО когда явно задан EXPO_PUBLIC_DEV_PREVIEW=1.
+  // Никаких heuristic по URL: production-сборка с реальным Supabase URL
+  // гарантированно не сработает даже при ошибке в env.
+  if (__DEV__ && process.env.EXPO_PUBLIC_DEV_PREVIEW === '1') {
+    return <Redirect href="/(tabs)" />;
   }
 
   // No session → login
