@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Switch } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Switch, TouchableOpacity, Platform, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, BellRing, MessageCircle } from 'lucide-react-native';
+import { ArrowLeft, BellRing, MessageCircle, BatteryWarning } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/src/theme';
 import { GlassCard, IconButton, CustomAlert, useToast } from '@/src/components/ui';
@@ -145,6 +145,31 @@ export default function RemindersSettingsScreen() {
         >
           {tr('settings.remindersNote')}
         </Text>
+
+        {/* Android: локальные уведомления глушит агрессивная экономия батареи
+            (Xiaomi/Huawei/Samsung/Oppo). Подсказка + переход в настройки. */}
+        {Platform.OS === 'android' && (
+          <GlassCard style={{ marginTop: sp.lg, gap: sp.sm }}>
+            <View style={[styles.row, { gap: sp.sm }]}>
+              <BatteryWarning size={20} color={colors.warning} />
+              <Text style={[typo.bodyBold, { color: colors.text, flex: 1 }]}>
+                {tr('settings.batteryHintTitle')}
+              </Text>
+            </View>
+            <Text style={[typo.caption, { color: colors.textSecondary, lineHeight: 18 }]}>
+              {tr('settings.batteryHintBody')}
+            </Text>
+            <TouchableOpacity
+              onPress={() => Linking.openSettings()}
+              accessibilityRole="button"
+              style={[styles.batteryBtn, { borderColor: colors.border }]}
+            >
+              <Text style={[typo.caption, { color: colors.primary, fontFamily: 'Manrope_700Bold' }]}>
+                {tr('settings.batteryHintButton')}
+              </Text>
+            </TouchableOpacity>
+          </GlassCard>
+        )}
       </ScrollView>
 
       <CustomAlert {...alertConfig} />
@@ -172,6 +197,14 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  batteryBtn: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    marginTop: 4,
   },
   stepNum: {
     width: 26,
