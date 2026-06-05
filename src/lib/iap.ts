@@ -23,10 +23,10 @@
  *  Цены — fallback для UI; на проде реальную локализованную цену вернёт стор. */
 export const TRIAL_DAYS = 7;
 
-export const PRO_PRICE_MONTHLY = '$3.99';
-export const PRO_PRICE_YEARLY = '$38.30'; // 12 × 3.99 − 20%
-export const PRO_PRICE_YEARLY_PER_MONTH = '$3.19'; // эффективно в месяц при годовом
-export const PRO_YEARLY_SAVE_PERCENT = 20;
+export const PRO_PRICE_MONTHLY = '399 ₽';
+export const PRO_PRICE_YEARLY = '2 990 ₽'; // ≈ 12 × 399 − 38%
+export const PRO_PRICE_YEARLY_PER_MONTH = '249 ₽'; // эффективно в месяц при годовом
+export const PRO_YEARLY_SAVE_PERCENT = 38;
 
 export const PRO_PRODUCT_ID_MONTHLY = 'pro_monthly';
 export const PRO_PRODUCT_ID_YEARLY = 'pro_yearly';

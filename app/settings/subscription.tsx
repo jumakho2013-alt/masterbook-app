@@ -1,19 +1,17 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Check } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { X, Crown, Check } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/src/theme';
-import { IconButton, Button, CustomAlert } from '@/src/components/ui';
-import { MasterBookLogo } from '@/src/components/MasterBookLogo';
+import { Button, CustomAlert } from '@/src/components/ui';
 import { useAlert } from '@/src/hooks/useAlert';
 import { useT } from '@/src/hooks/useT';
-import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import {
   purchasePro,
   restorePurchases,
-  trialDaysLeft,
   PRO_PRICE_MONTHLY,
   PRO_PRICE_YEARLY,
   PRO_PRICE_YEARLY_PER_MONTH,
@@ -23,35 +21,34 @@ import {
 } from '@/src/lib/iap';
 
 type Period = 'monthly' | 'yearly';
+const SERIF = 'CormorantGaramond_600SemiBold';
+const GOLD_GRAD = ['#E6C588', '#C79B57'] as const;
 
 /**
- * MasterBook Pro — премиальный paywall (стиль: изумруд-золото, стекло).
- * Помесячно / Годовой (−20%), 7 дней бесплатно, список возможностей, CTA.
- * Реальная оплата подключается через RevenueCat (см. docs/PAYWALL_SETUP.md);
- * пока purchasePro возвращает unavailable → честное «скоро».
- * ?locked=1 → режим жёсткого paywall (без «назад»).
+ * MasterBook PRO paywall — точно по макету Atelier: золотая корона → «MASTERBOOK»
+ * → серифное «PRO» → курсивный слоган; фичи с золотыми галочками; тарифы
+ * Месяц/Год (−38%, золотая рамка); нижний CTA + ссылки. Реальная оплата —
+ * через RevenueCat (purchasePro пока возвращает unavailable → честное «скоро»).
+ * ?locked=1 → жёсткий paywall (без крестика).
  */
 export default function SubscriptionScreen() {
   const router = useRouter();
   const tr = useT();
-  const { colors, typography: typo, spacing: sp, borderRadius: br } = useTheme();
+  const { colors, typography: typo } = useTheme();
   const { alertConfig, info } = useAlert();
-  const firstUseAt = useSettingsStore((s) => s.firstUseAt);
   const { locked } = useLocalSearchParams<{ locked?: string }>();
   const isLocked = locked === '1';
 
   const [period, setPeriod] = useState<Period>('yearly'); // годовой выгоднее — по умолчанию
-  const trialLeft = trialDaysLeft(firstUseAt);
 
-  const benefits = [
-    tr('settings.proBenefit1'),
-    tr('settings.proBenefit2'),
-    tr('settings.proBenefit3'),
-    tr('settings.proBenefit4'),
+  const feats: [string, string][] = [
+    [tr('settings.paywallFeat1L'), tr('settings.paywallFeat1S')],
+    [tr('settings.paywallFeat2L'), tr('settings.paywallFeat2S')],
+    [tr('settings.paywallFeat3L'), tr('settings.paywallFeat3S')],
+    [tr('settings.paywallFeat4L'), tr('settings.paywallFeat4S')],
   ];
 
-  const comingSoon = () =>
-    info(tr('settings.proComingSoonTitle'), tr('settings.proComingSoonBody'));
+  const comingSoon = () => info(tr('settings.proComingSoonTitle'), tr('settings.proComingSoonBody'));
 
   const onSubscribe = async () => {
     Haptics.selectionAsync();
@@ -65,168 +62,102 @@ export default function SubscriptionScreen() {
     if (!res.ok) comingSoon();
   };
 
-  const PlanCard = ({
-    value,
-    title,
-    price,
-    note,
-    badge,
-  }: {
-    value: Period;
-    title: string;
-    price: string;
-    note?: string;
-    badge?: string;
+  const Plan = ({ value, label, price, sub, gold, badge }: {
+    value: Period; label: string; price: string; sub: string; gold?: boolean; badge?: string;
   }) => {
     const selected = period === value;
     return (
       <Pressable
-        onPress={() => {
-          Haptics.selectionAsync();
-          setPeriod(value);
-        }}
+        onPress={() => { Haptics.selectionAsync(); setPeriod(value); }}
         accessibilityRole="button"
         accessibilityState={{ selected }}
         style={[
-          styles.planCard,
+          styles.plan,
           {
             backgroundColor: selected ? colors.primarySoft : colors.surface,
-            borderColor: selected ? colors.primary : colors.border,
-            borderWidth: selected ? 2 : 1,
-            borderRadius: br.lg,
+            borderColor: gold ? colors.gold : selected ? colors.primary : colors.border,
+            borderWidth: gold ? 1.5 : selected ? 1.5 : StyleSheet.hairlineWidth,
           },
         ]}
       >
         {badge ? (
-          <View style={[styles.badge, { backgroundColor: colors.primary, borderRadius: br.full }]}>
-            <Text style={[typo.small, { color: colors.white, fontFamily: 'Manrope_700Bold' }]}>
-              {badge}
-            </Text>
+          <View style={[styles.badge, { backgroundColor: colors.gold }]}>
+            <Text style={[typo.label, { color: '#2A2030' }]}>{badge}</Text>
           </View>
         ) : null}
-
-        <View style={styles.planTitleRow}>
-          <Text style={[typo.caption, { color: colors.textSecondary }]}>{title}</Text>
-          <View
-            style={[
-              styles.radio,
-              { borderColor: selected ? colors.primary : colors.border },
-              selected && { backgroundColor: colors.primary },
-            ]}
-          >
-            {selected ? <Check size={12} color={colors.white} /> : null}
-          </View>
-        </View>
-
-        <View style={styles.priceRow}>
-          <Text style={[typo.h2, { color: colors.text }]}>{price}</Text>
-          <Text style={[typo.caption, { color: colors.textSecondary, marginBottom: 4 }]}>
-            {tr('settings.paywallPerMonth')}
-          </Text>
-        </View>
-
-        <Text style={[typo.small, { color: colors.textTertiary, minHeight: 16 }]}>{note ?? ''}</Text>
+        <Text style={[typo.label, { color: gold ? colors.gold : colors.textTertiary }]}>{label}</Text>
+        <Text style={{ fontFamily: SERIF, fontSize: 26, color: colors.text, marginTop: 4 }}>{price}</Text>
+        <Text style={[typo.caption, { color: colors.textTertiary, marginTop: 2 }]}>{sub}</Text>
       </Pressable>
     );
   };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]} edges={['top']}>
-      <View style={styles.topBar}>
-        {isLocked ? (
-          <View style={{ width: 48 }} />
-        ) : (
-          <IconButton
-            icon={<ArrowLeft size={22} color={colors.text} />}
-            onPress={() => router.back()}
-            variant="ghost"
-            accessibilityLabel={tr('common.back')}
-          />
-        )}
-        <View style={{ width: 48 }} />
-      </View>
-
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Бренд */}
-        <View style={styles.brand}>
-          <MasterBookLogo size={52} />
-          <Text style={[typo.h3, { color: colors.text, marginTop: sp.sm }]}>MasterBook</Text>
-          <Text style={[typo.caption, { color: colors.textSecondary, marginTop: 2, textAlign: 'center' }]}>
-            {tr('settings.paywallTagline')}
-          </Text>
+      <ScrollView contentContainerStyle={{ paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
+        {/* HERO */}
+        <View style={styles.hero}>
+          <View style={styles.heroTop}>
+            {!isLocked && (
+              <Pressable onPress={() => router.back()} hitSlop={12} accessibilityRole="button" accessibilityLabel={tr('common.back')}>
+                <X size={22} color={colors.textTertiary} strokeWidth={1.8} />
+              </Pressable>
+            )}
+          </View>
+          <View style={{ alignItems: 'center', marginTop: 6 }}>
+            <LinearGradient colors={GOLD_GRAD} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.crownTile}>
+              <Crown size={30} color="#2A2030" strokeWidth={1.8} />
+            </LinearGradient>
+            <Text style={[typo.label, { color: colors.gold, marginTop: 16 }]}>MasterBook</Text>
+            <Text style={{ fontFamily: 'CormorantGaramond_700Bold', fontSize: 52, letterSpacing: -0.5, color: colors.text, lineHeight: 54, marginTop: 2 }}>PRO</Text>
+            <Text style={{ fontFamily: 'CormorantGaramond_500Medium', fontStyle: 'italic', fontSize: 21, color: colors.textSecondary, marginTop: 8 }}>
+              {tr('settings.paywallProTagline')}
+            </Text>
+          </View>
         </View>
 
-        {/* Заголовок */}
-        <Text style={[typo.h1, { color: colors.text, textAlign: 'center', marginTop: sp.lg }]}>
-          {tr('settings.paywallHeadline')}
-        </Text>
-        <Text
-          style={[
-            typo.body,
-            { color: colors.textSecondary, textAlign: 'center', marginTop: sp.xs, paddingHorizontal: 8 },
-          ]}
-        >
-          {tr('settings.paywallSub')}
-        </Text>
-
-        {/* Планы: помесячно / годовой */}
-        <View style={styles.plansRow}>
-          <PlanCard
-            value="monthly"
-            title={tr('settings.planMonthly')}
-            price={PRO_PRICE_MONTHLY}
-            note={tr('settings.paywallTrialFree')}
-          />
-          <PlanCard
-            value="yearly"
-            title={tr('settings.planYearly')}
-            price={PRO_PRICE_YEARLY_PER_MONTH}
-            note={tr('settings.paywallYearBilled', { price: PRO_PRICE_YEARLY })}
-            badge={tr('settings.planSave', { percent: PRO_YEARLY_SAVE_PERCENT })}
-          />
-        </View>
-
-        <Button
-          title={tr('settings.paywallCta')}
-          onPress={onSubscribe}
-          size="lg"
-          style={{ marginTop: sp.lg }}
-        />
-
-        {/* Что входит */}
-        <Text style={[typo.bodyBold, { color: colors.text, marginTop: sp.xl, marginBottom: sp.sm }]}>
-          {tr('settings.paywallWhatsIncluded')}
-        </Text>
-        <View style={{ gap: sp.md }}>
-          {benefits.map((b, i) => (
-            <View key={i} style={styles.benefitRow}>
-              <View style={[styles.checkWrap, { backgroundColor: colors.successSoft }]}>
-                <Check size={15} color={colors.success} />
+        {/* FEATURES */}
+        <View style={styles.feats}>
+          {feats.map(([label, sub], i) => (
+            <View key={i} style={[styles.featRow, i < feats.length - 1 && { borderBottomColor: colors.borderLight, borderBottomWidth: StyleSheet.hairlineWidth }]}>
+              <View style={[styles.featCheck, { backgroundColor: colors.goldSoft }]}>
+                <Check size={15} color={colors.gold} strokeWidth={2.4} />
               </View>
-              <Text style={[typo.body, { color: colors.text, flex: 1 }]}>{b}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={[typo.bodyBold, { color: colors.text }]}>{label}</Text>
+                <Text style={[typo.caption, { color: colors.textSecondary, marginTop: 1 }]}>{sub}</Text>
+              </View>
             </View>
           ))}
         </View>
 
-        {/* Статус триала + восстановление */}
-        <Text
-          style={[
-            typo.caption,
-            {
-              color: trialLeft > 0 ? colors.success : colors.textTertiary,
-              textAlign: 'center',
-              marginTop: sp.lg,
-            },
-          ]}
-        >
-          {trialLeft > 0
-            ? tr('settings.proTrialLeft', { n: trialLeft })
-            : tr('settings.proTrialEnded')}
-        </Text>
-        <TouchableOpacity onPress={onRestore} style={styles.restoreBtn} accessibilityRole="button">
-          <Text style={[typo.body, { color: colors.textSecondary }]}>{tr('settings.proRestore')}</Text>
-        </TouchableOpacity>
+        {/* PLANS */}
+        <View style={styles.plansRow}>
+          <Plan value="monthly" label={tr('settings.paywallPlanMonth')} price={PRO_PRICE_MONTHLY} sub={tr('settings.paywallPerMonthWord')} />
+          <Plan
+            value="yearly"
+            gold
+            badge={tr('settings.planSave', { percent: PRO_YEARLY_SAVE_PERCENT })}
+            label={tr('settings.paywallPlanYear')}
+            price={PRO_PRICE_YEARLY_PER_MONTH}
+            sub={tr('settings.paywallYearSub', { price: PRO_PRICE_YEARLY })}
+          />
+        </View>
       </ScrollView>
+
+      {/* CTA bar */}
+      <View style={[styles.ctaBar, { backgroundColor: colors.surfaceGlass, borderTopColor: colors.border }]}>
+        <Button title={tr('settings.paywallCta')} onPress={onSubscribe} size="lg" fullWidth />
+        <View style={styles.links}>
+          <Pressable onPress={onRestore} hitSlop={8} accessibilityRole="button">
+            <Text style={[typo.caption, { color: colors.textTertiary }]}>{tr('settings.paywallLinkRestore')}</Text>
+          </Pressable>
+          <View style={[styles.linkDot, { backgroundColor: colors.textTertiary }]} />
+          <Text style={[typo.caption, { color: colors.textTertiary }]}>{tr('settings.paywallLinkTerms')}</Text>
+          <View style={[styles.linkDot, { backgroundColor: colors.textTertiary }]} />
+          <Text style={[typo.caption, { color: colors.textTertiary }]}>{tr('settings.paywallLinkCancel')}</Text>
+        </View>
+      </View>
 
       <CustomAlert {...alertConfig} />
     </SafeAreaView>
@@ -235,61 +166,16 @@ export default function SubscriptionScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-  },
-  content: { paddingHorizontal: 24, paddingBottom: 40 },
-  brand: { alignItems: 'center', marginTop: 4 },
-  plansRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 24,
-  },
-  planCard: {
-    flex: 1,
-    padding: 16,
-    minHeight: 132,
-    justifyContent: 'flex-start',
-  },
-  planTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  radio: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 2,
-    marginTop: 10,
-  },
-  badge: {
-    position: 'absolute',
-    top: -10,
-    right: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    zIndex: 1,
-  },
-  benefitRow: { flexDirection: 'row', alignItems: 'center' },
-  checkWrap: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  restoreBtn: { alignItems: 'center', paddingVertical: 14 },
+  hero: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 18 },
+  heroTop: { flexDirection: 'row', justifyContent: 'flex-end', minHeight: 24 },
+  crownTile: { width: 60, height: 60, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  feats: { paddingHorizontal: 28 },
+  featRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 11 },
+  featCheck: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  plansRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 24, marginTop: 20 },
+  plan: { flex: 1, borderRadius: 16, padding: 14 },
+  badge: { position: 'absolute', top: -10, right: 12, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 2 },
+  ctaBar: { paddingHorizontal: 24, paddingTop: 14, paddingBottom: 28, borderTopWidth: StyleSheet.hairlineWidth },
+  links: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 14, marginTop: 12 },
+  linkDot: { width: 3, height: 3, borderRadius: 2 },
 });
