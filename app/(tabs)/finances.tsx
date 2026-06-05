@@ -60,6 +60,8 @@ const PERIOD_KEYS: Record<Period, string> = {
   month: 'finances.periodMonth',
 };
 
+const SERIF = 'CormorantGaramond_600SemiBold';
+
 function FinancesScreen() {
   const router = useRouter();
   const { colors, typography: typo, spacing: sp, borderRadius: br, isDark } = useTheme();
@@ -156,26 +158,6 @@ function FinancesScreen() {
     return { avgCheck, hours, topClients, popularService, totalAppts: periodAppts.length };
   }, [allAppointments, range, clients, services]);
 
-  // Дневные ряды для мини-спарклайнов на карточках Доход/Расход.
-  const sparks = useMemo(() => {
-    const days: string[] = [];
-    const cur = new Date(range.start);
-    const end = new Date(range.end);
-    // Защита от бесконечного цикла на кривых датах.
-    let guard = 0;
-    while (cur <= end && guard < 400) {
-      days.push(toDateKey(new Date(cur)));
-      cur.setDate(cur.getDate() + 1);
-      guard += 1;
-    }
-    const sumFor = (key: string, type: 'income' | 'expense') =>
-      allEntries.filter((e) => e.date === key && e.type === type).reduce((s, e) => s + e.amount, 0);
-    return {
-      income: days.map((k) => sumFor(k, 'income')),
-      expense: days.map((k) => sumFor(k, 'expense')),
-    };
-  }, [allEntries, range]);
-
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 600);
@@ -209,50 +191,44 @@ function FinancesScreen() {
           ))}
         </View>
 
-        {/* === HERO: Чистая прибыль — large card во всю ширину === */}
+        {/* === HERO (Atelier): Чистая прибыль 56 + Доход/Расход одной картой === */}
         <View style={{ paddingHorizontal: 16, marginBottom: 12 }}>
-          <FinanceMetricCard
-            variant="large"
-            label={tr('finances.netProfit')}
-            icon={<Wallet size={20} color={colors.primary} />}
-            value={summary.net}
-            accentColor={colors.primary}
-            status={
-              summary.income > 0 || summary.expense > 0
-                ? { label: summary.net >= 0 ? tr('finances.inProfit') : tr('finances.inLoss'), tone: summary.net >= 0 ? 'good' : 'bad' }
-                : undefined
-            }
-            sub={
-              summary.incomeDiff !== 0
-                ? tr('finances.vsPrevPeriod', { sign: summary.incomeDiff > 0 ? '↗' : '↘', percent: Math.abs(summary.incomeDiff) })
-                : tr('finances.incomeMinusExpense')
-            }
+          <Pressable
             onPress={() => router.push({ pathname: '/finance/report', params: { kind: 'net', period } })}
-          />
-        </View>
-
-        {/* === 2 compact: Доход + Расход === */}
-        <View style={{ flexDirection: 'row', paddingHorizontal: 16, gap: 10, marginBottom: 10 }}>
-          <View style={{ flex: 1 }}>
-            <FinanceMetricCard
-              label={tr('finances.income')}
-              icon={<TrendingUp size={18} color={colors.success} />}
-              value={summary.income}
-              accentColor={colors.success}
-              spark={sparks.income}
-              onPress={() => router.push({ pathname: '/finance/report', params: { kind: 'income', period } })}
+            accessibilityRole="button"
+            style={[styles.heroCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+          >
+            <Text style={[typo.label, { color: colors.textTertiary }]}>{tr('finances.netProfit')}</Text>
+            <CountUp
+              value={summary.net}
+              style={{ fontFamily: SERIF, fontSize: 56, letterSpacing: -1.5, lineHeight: 58, color: colors.text }}
+              formatter={(n) => formatCurrency(Math.round(n))}
             />
-          </View>
-          <View style={{ flex: 1 }}>
-            <FinanceMetricCard
-              label={tr('finances.expense')}
-              icon={<TrendingDown size={18} color={colors.danger} />}
-              value={summary.expense}
-              accentColor={colors.danger}
-              spark={sparks.expense}
-              onPress={() => router.push({ pathname: '/finance/report', params: { kind: 'expense', period } })}
-            />
-          </View>
+            {summary.incomeDiff !== 0 && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 }}>
+                <View style={[styles.diffPill, { backgroundColor: summary.incomeDiff > 0 ? colors.successSoft : colors.dangerSoft }]}>
+                  {summary.incomeDiff > 0
+                    ? <TrendingUp size={13} color={colors.success} strokeWidth={2} />
+                    : <TrendingDown size={13} color={colors.danger} strokeWidth={2} />}
+                  <Text style={[typo.caption, { color: summary.incomeDiff > 0 ? colors.success : colors.danger, fontFamily: 'Manrope_700Bold' }]}>
+                    {summary.incomeDiff > 0 ? '+' : ''}{summary.incomeDiff}%
+                  </Text>
+                </View>
+                <Text style={[typo.caption, { color: colors.textSecondary }]}>{tr('finances.vsPrev')}</Text>
+              </View>
+            )}
+            <View style={[styles.heroDivider, { borderTopColor: colors.border }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={[typo.label, { color: colors.textTertiary }]}>{tr('finances.income')}</Text>
+                <Text style={{ fontFamily: SERIF, fontSize: 26, color: colors.text, marginTop: 4 }}>{formatCurrency(summary.income)}</Text>
+              </View>
+              <View style={{ width: StyleSheet.hairlineWidth, backgroundColor: colors.border }} />
+              <View style={{ flex: 1, paddingLeft: 18 }}>
+                <Text style={[typo.label, { color: colors.textTertiary }]}>{tr('finances.expense')}</Text>
+                <Text style={{ fontFamily: SERIF, fontSize: 26, color: colors.textSecondary, marginTop: 4 }}>{formatCurrency(summary.expense)}</Text>
+              </View>
+            </View>
+          </Pressable>
         </View>
 
         {/* === 2 compact: Средний чек + Отработано === */}
@@ -506,6 +482,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  heroCard: { borderRadius: 20, borderWidth: StyleSheet.hairlineWidth, padding: 22 },
+  diffPill: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 3 },
+  heroDivider: { flexDirection: 'row', marginTop: 20, paddingTop: 18, borderTopWidth: StyleSheet.hairlineWidth },
 });
 
 // --- Tab-level Error Boundary wrapper ---
