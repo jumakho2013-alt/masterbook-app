@@ -3,13 +3,12 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, Pressable, RefreshC
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { Plus, CalendarCheck, TrendingUp, Calendar } from 'lucide-react-native';
+import { Plus, CalendarCheck, TrendingUp, Calendar, Bell } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
 import { EmptyState, GlassCard, CountUp, Button, useToast } from '@/src/components/ui';
-import { SwipeableAppointmentCard } from '@/src/components/SwipeableAppointmentCard';
+import { AtelierScheduleRow } from '@/src/components/AtelierScheduleRow';
 import { SleepingClientsCard } from '@/src/components/SleepingClientsCard';
 import { TrialBanner } from '@/src/components/TrialBanner';
-import { MasterBookLogo } from '@/src/components/MasterBookLogo';
 import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useClientStore } from '@/src/stores/useClientStore';
 import { useServiceStore } from '@/src/stores/useServiceStore';
@@ -170,16 +169,23 @@ function TodayScreen() {
           </Text>
           <Text style={[typo.display, { color: colors.text, marginTop: 2 }]}>{tr('today.title')}</Text>
         </View>
-        {/* Маленький логотип справа — поддерживает brand identity на главном
-            экране. Не интерактивный, чисто визуальная подпись. */}
-        <MasterBookLogo size={44} />
+        {/* Колокольчик (по макету Atelier) → авто-напоминания клиентам. */}
+        <Pressable
+          onPress={() => router.push('/settings/reminders')}
+          accessibilityRole="button"
+          accessibilityLabel={tr('profile.autoReminders')}
+          style={[styles.bellBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
+        >
+          <Bell size={19} color={colors.textSecondary} strokeWidth={1.5} />
+          <View style={[styles.bellDot, { backgroundColor: colors.gold, borderColor: colors.background }]} />
+        </Pressable>
       </View>
 
       <FlatList
         data={todayAppointments}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: fabOffset + 72 }}
-        ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
+        ItemSeparatorComponent={() => <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginHorizontal: 8 }} />}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />
         }
@@ -214,7 +220,7 @@ function TodayScreen() {
                     </Text>
                     <CountUp
                       value={forecast.weekIncome}
-                      style={{ ...typo.numberLg, color: colors.primary, marginTop: 2 }}
+                      style={{ ...typo.numberLg, color: colors.text, marginTop: 2 }}
                       formatter={(n) => formatCurrency(Math.round(n))}
                     />
                     <Text style={[typo.small, { color: colors.textSecondary, marginTop: 2 }]}>
@@ -233,21 +239,22 @@ function TodayScreen() {
                   accessibilityRole="button"
                   accessibilityLabel={tr('today.nowOngoingA11y', { client: currentClient.name, service: currentService.name })}
                 >
-                  <View style={[styles.nowCard, { backgroundColor: '#46384D', borderRadius: br.lg }]}>
+                  <View style={[styles.nowCard, { backgroundColor: isDark ? '#2A2230' : '#241E29', borderRadius: br.lg }]}>
                     <View style={[styles.pulseDot, { backgroundColor: 'rgba(219,186,124,0.32)' }]}>
                       <View style={[styles.pulseDotInner, { backgroundColor: colors.gold }]} />
                     </View>
-                    <View style={{ flex: 1, marginLeft: 12 }}>
-                      <Text style={[typo.label, { color: '#E9DEC8' }]}>
-                        {tr('today.nowOngoing')}
+                    <View style={{ flex: 1, marginLeft: 14, minWidth: 0 }}>
+                      <Text style={[typo.label, { color: 'rgba(255,255,255,0.6)' }]}>{tr('today.nowOngoing')}</Text>
+                      <Text numberOfLines={1} style={{ fontFamily: 'CormorantGaramond_600SemiBold', fontSize: 23, letterSpacing: -0.3, color: '#FFFFFF', marginTop: 3 }}>
+                        {currentClient.name}
                       </Text>
-                      <Text style={[typo.bodyBold, { color: '#FFFFFF', marginTop: 2 }]}>
-                        {currentClient.name} — {currentService.name}
-                      </Text>
-                      <Text style={[typo.numberMd, { color: '#FFFFFF', marginTop: 2 }]}>
-                        {currentAppointment.startTime} — {currentAppointment.endTime}
+                      <Text numberOfLines={1} style={[typo.caption, { color: 'rgba(255,255,255,0.6)', marginTop: 1 }]}>
+                        {currentService.name} · {currentAppointment.endTime}
                       </Text>
                     </View>
+                    <Text style={{ fontFamily: 'CormorantGaramond_600SemiBold', fontSize: 22, color: colors.gold, marginLeft: 10 }}>
+                      {formatCurrency(currentAppointment.price)}
+                    </Text>
                   </View>
                 </Pressable>
               </Animated.View>
@@ -310,8 +317,8 @@ function TodayScreen() {
               const done = todayAll.filter((a) => a.status === 'completed').length;
               return (
                 <View style={styles.dayListHeader}>
-                  <Text style={[typo.bodyBold, { color: colors.text }]}>
-                    {filter === 'upcoming' ? tr('today.title') : tr(FILTER_KEYS[filter])}
+                  <Text style={{ fontFamily: 'CormorantGaramond_600SemiBold', fontSize: 22, color: colors.text }}>
+                    {tr('today.scheduleTitle')}
                   </Text>
                   <Text style={[typo.caption, { color: colors.textSecondary }]}>
                     {tr('today.doneOfCount', { done, total: todayAll.length })}
@@ -364,7 +371,7 @@ function TodayScreen() {
         }
         renderItem={({ item, index }) => (
           <Animated.View entering={reduceMotion ? undefined : FadeInDown.delay(100 + index * 50).duration(400)}>
-            <SwipeableAppointmentCard
+            <AtelierScheduleRow
               appointment={item}
               client={getClient(item.clientId)}
               service={getService(item.serviceId)}
@@ -394,6 +401,8 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 16 },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  bellBtn: { width: 42, height: 42, borderRadius: 21, borderWidth: StyleSheet.hairlineWidth, alignItems: 'center', justifyContent: 'center' },
+  bellDot: { position: 'absolute', top: 9, right: 10, width: 6, height: 6, borderRadius: 3, borderWidth: 1 },
   dayListHeader: {
     flexDirection: 'row',
     alignItems: 'baseline',
