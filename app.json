@@ -53,7 +53,7 @@
       "allowBackup": false,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#047857"
+        "backgroundColor": "#46384D"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
@@ -89,7 +89,7 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 340,
           "resizeMode": "contain",
-          "backgroundColor": "#0A0F0C"
+          "backgroundColor": "#16121A"
         }
       ],
       [
@@ -103,7 +103,7 @@
         "expo-notifications",
         {
           "icon": "./assets/images/icon.png",
-          "color": "#059669",
+          "color": "#6B4E71",
           "defaultChannel": "reminders"
         }
       ],

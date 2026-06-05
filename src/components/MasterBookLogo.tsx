@@ -29,8 +29,8 @@ export function MasterBookLogo({ size = 64, withBackground = false, style }: Mas
       <Svg width={size} height={size} viewBox={`0 0 ${VB} ${VB}`}>
         <Defs>
           <LinearGradient id="mbBg" x1="0" y1="0" x2="717" y2="1024" gradientUnits="userSpaceOnUse">
-            <Stop offset="0" stopColor="#2EE6A6" />
-            <Stop offset="1" stopColor="#047857" />
+            <Stop offset="0" stopColor="#6B4E71" />
+            <Stop offset="1" stopColor="#46384D" />
           </LinearGradient>
           <LinearGradient id="mbGlint" x1="0" y1="0" x2="0" y2="1">
             <Stop offset="0" stopColor="#FFFFFF" stopOpacity="0.10" />
@@ -38,12 +38,12 @@ export function MasterBookLogo({ size = 64, withBackground = false, style }: Mas
           </LinearGradient>
           <LinearGradient id="mbCard" x1="0" y1="0" x2="0" y2="1">
             <Stop offset="0" stopColor="#FFFFFF" />
-            <Stop offset="1" stopColor="#EAF5EF" />
+            <Stop offset="1" stopColor="#F1ECE4" />
           </LinearGradient>
           <LinearGradient id="mbRibbon" x1="0" y1="0" x2="0.3" y2="1">
-            <Stop offset="0" stopColor="#FFC766" />
-            <Stop offset="0.5" stopColor="#FFB84D" />
-            <Stop offset="1" stopColor="#D88A20" />
+            <Stop offset="0" stopColor="#E6CF9E" />
+            <Stop offset="0.5" stopColor="#DBBA7C" />
+            <Stop offset="1" stopColor="#B08D57" />
           </LinearGradient>
           {/* Лента обрезается по форме листа — не торчит за скруглённый угол. */}
           <ClipPath id="mbCardClip">
@@ -62,14 +62,14 @@ export function MasterBookLogo({ size = 64, withBackground = false, style }: Mas
         <Rect x="200" y="180" width="624" height="720" rx="64" fill="url(#mbCard)" />
 
         {/* 4 lines of "writing" — varied opacity for hierarchy */}
-        <Rect x="280" y="320" width="360" height="22" rx="11" fill="#C7E6D8" />
-        <Rect x="280" y="400" width="460" height="22" rx="11" fill="#C7E6D8" opacity="0.88" />
-        <Rect x="280" y="480" width="300" height="22" rx="11" fill="#C7E6D8" opacity="0.75" />
-        <Rect x="280" y="560" width="380" height="22" rx="11" fill="#C7E6D8" opacity="0.62" />
+        <Rect x="280" y="320" width="360" height="22" rx="11" fill="#E2D7E8" />
+        <Rect x="280" y="400" width="460" height="22" rx="11" fill="#E2D7E8" opacity="0.88" />
+        <Rect x="280" y="480" width="300" height="22" rx="11" fill="#E2D7E8" opacity="0.75" />
+        <Rect x="280" y="560" width="380" height="22" rx="11" fill="#E2D7E8" opacity="0.62" />
 
         {/* Highlighted entry — «today / marked» (emerald dot + line) */}
-        <Circle cx="296" cy="720" r="20" fill="#2EE6A6" />
-        <Rect x="340" y="708" width="180" height="22" rx="11" fill="#2EE6A6" opacity="0.7" />
+        <Circle cx="296" cy="720" r="20" fill="#6B4E71" />
+        <Rect x="340" y="708" width="180" height="22" rx="11" fill="#6B4E71" opacity="0.7" />
 
         {/* Gold ribbon — обрезана по форме листа (clip), верх вровень с краем */}
         <G clipPath="url(#mbCardClip)">
