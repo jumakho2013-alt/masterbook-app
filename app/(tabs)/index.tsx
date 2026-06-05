@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Plus, CalendarCheck, TrendingUp, Calendar } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
-import { EmptyState, GlassCard, CountUp, LiquidGlass, Button, useToast } from '@/src/components/ui';
+import { EmptyState, GlassCard, CountUp, Button, useToast } from '@/src/components/ui';
 import { SwipeableAppointmentCard } from '@/src/components/SwipeableAppointmentCard';
 import { SleepingClientsCard } from '@/src/components/SleepingClientsCard';
 import { TrialBanner } from '@/src/components/TrialBanner';
@@ -47,7 +47,7 @@ const FILTER_KEYS: Record<Filter, string> = {
 
 function TodayScreen() {
   const router = useRouter();
-  const { colors, typography: typo, spacing: sp, borderRadius: br } = useTheme();
+  const { colors, typography: typo, spacing: sp, borderRadius: br, isDark } = useTheme();
   const fabOffset = useTabBarOffset(16);
   const reduceMotion = useReduceMotion();
   const [filter, setFilter] = useState<Filter>('upcoming');
@@ -165,10 +165,10 @@ function TodayScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]} edges={['top']}>
       <View style={[styles.header, styles.headerRow]}>
         <View style={{ flex: 1 }}>
-          <Text style={[typo.h1, { color: colors.text }]}>{tr('today.title')}</Text>
-          <Text style={[typo.body, { color: colors.textSecondary, marginTop: 2, textTransform: 'capitalize' }]}>
+          <Text style={[typo.label, { color: colors.textTertiary }]}>
             {formatDateFull(new Date())}
           </Text>
+          <Text style={[typo.display, { color: colors.text, marginTop: 2 }]}>{tr('today.title')}</Text>
         </View>
         {/* Маленький логотип справа — поддерживает brand identity на главном
             экране. Не интерактивный, чисто визуальная подпись. */}
@@ -195,12 +195,12 @@ function TodayScreen() {
               >
                 <GlassCard style={styles.forecastInline}>
                   <View style={styles.forecastSegment}>
-                    <Text style={[typo.small, { color: colors.textTertiary, textTransform: 'uppercase', letterSpacing: 0.6 }]}>
+                    <Text style={[typo.label, { color: colors.textTertiary }]}>
                       {tr('today.forecastToday')}
                     </Text>
                     <CountUp
                       value={forecast.todayIncome}
-                      style={{ ...typo.h3, color: colors.text, marginTop: 2 }}
+                      style={{ ...typo.numberLg, color: colors.success, marginTop: 2 }}
                       formatter={(n) => formatCurrency(Math.round(n))}
                     />
                     <Text style={[typo.small, { color: colors.textSecondary, marginTop: 2 }]}>
@@ -209,12 +209,12 @@ function TodayScreen() {
                   </View>
                   <View style={[styles.forecastDivider, { backgroundColor: colors.border }]} />
                   <View style={styles.forecastSegment}>
-                    <Text style={[typo.small, { color: colors.textTertiary, textTransform: 'uppercase', letterSpacing: 0.6 }]}>
+                    <Text style={[typo.label, { color: colors.textTertiary }]}>
                       {tr('today.forecastWeek')}
                     </Text>
                     <CountUp
                       value={forecast.weekIncome}
-                      style={{ ...typo.h3, color: colors.primary, marginTop: 2 }}
+                      style={{ ...typo.numberLg, color: colors.primary, marginTop: 2 }}
                       formatter={(n) => formatCurrency(Math.round(n))}
                     />
                     <Text style={[typo.small, { color: colors.textSecondary, marginTop: 2 }]}>
@@ -233,28 +233,22 @@ function TodayScreen() {
                   accessibilityRole="button"
                   accessibilityLabel={tr('today.nowOngoingA11y', { client: currentClient.name, service: currentService.name })}
                 >
-                  <LiquidGlass
-                    variant="floating"
-                    tint={colors.primary}
-                    tintStrength={0.7}
-                    radius={br.lg}
-                    style={styles.nowCard}
-                  >
-                    <View style={styles.pulseDot}>
-                      <View style={[styles.pulseDotInner, { backgroundColor: colors.white }]} />
+                  <View style={[styles.nowCard, { backgroundColor: '#46384D', borderRadius: br.lg }]}>
+                    <View style={[styles.pulseDot, { backgroundColor: 'rgba(219,186,124,0.32)' }]}>
+                      <View style={[styles.pulseDotInner, { backgroundColor: colors.gold }]} />
                     </View>
                     <View style={{ flex: 1, marginLeft: 12 }}>
-                      <Text style={[typo.small, { color: colors.white, opacity: 0.85, textTransform: 'uppercase', letterSpacing: 0.5 }]}>
+                      <Text style={[typo.label, { color: '#E9DEC8' }]}>
                         {tr('today.nowOngoing')}
                       </Text>
-                      <Text style={[typo.bodyBold, { color: colors.white, marginTop: 2 }]}>
+                      <Text style={[typo.bodyBold, { color: '#FFFFFF', marginTop: 2 }]}>
                         {currentClient.name} — {currentService.name}
                       </Text>
-                      <Text style={[typo.caption, { color: colors.white, opacity: 0.85 }]}>
+                      <Text style={[typo.numberMd, { color: '#FFFFFF', marginTop: 2 }]}>
                         {currentAppointment.startTime} — {currentAppointment.endTime}
                       </Text>
                     </View>
-                  </LiquidGlass>
+                  </View>
                 </Pressable>
               </Animated.View>
             )}
@@ -388,15 +382,9 @@ function TodayScreen() {
         accessibilityLabel={tr('today.newAppointment')}
         style={[styles.fabWrap, { bottom: fabOffset }]}
       >
-        <LiquidGlass
-          variant="floating"
-          tint={colors.primary}
-          tintStrength={0.72}
-          radius={20}
-          style={styles.fab}
-        >
-          <Plus size={28} color={colors.white} />
-        </LiquidGlass>
+        <View style={[styles.fab, { backgroundColor: colors.primary, borderRadius: 20 }]}>
+          <Plus size={28} color={isDark ? '#2A2030' : colors.white} />
+        </View>
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -431,7 +419,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    shadowColor: '#10B981',
+    shadowColor: '#6B4E71',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
@@ -457,7 +445,7 @@ const styles = StyleSheet.create({
     right: 20,
     // Coloured drop-shadow matching the primary tint — gives the liquid
     // glass surface a branded emerald glow that anchors it to the theme.
-    shadowColor: '#10B981',
+    shadowColor: '#6B4E71',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.35,
     shadowRadius: 20,

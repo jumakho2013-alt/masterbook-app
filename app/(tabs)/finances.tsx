@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { TrendingUp, TrendingDown, Wallet, ArrowUp, ArrowDown, Trophy, Clock, Scissors, Plus } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
-import { GlassCard, Divider, Avatar, CountUp, LiquidGlass } from '@/src/components/ui';
+import { GlassCard, Divider, Avatar, CountUp } from '@/src/components/ui';
 import { FinanceChart } from '@/src/components/FinanceChart';
 import { FinanceMetricCard } from '@/src/components/FinanceMetricCard';
 import { useFinanceStore } from '@/src/stores/useFinanceStore';
@@ -62,7 +62,7 @@ const PERIOD_KEYS: Record<Period, string> = {
 
 function FinancesScreen() {
   const router = useRouter();
-  const { colors, typography: typo, spacing: sp, borderRadius: br } = useTheme();
+  const { colors, typography: typo, spacing: sp, borderRadius: br, isDark } = useTheme();
   const tr = useT();
   const bottomOffset = useTabBarOffset(0);
   const fabOffset = useTabBarOffset(16);
@@ -297,7 +297,7 @@ function FinancesScreen() {
                   <Text style={[typo.body, { color: colors.text, flex: 1, marginLeft: 10 }]} numberOfLines={1}>
                     {t.client!.name}
                   </Text>
-                  <Text style={[typo.bodyBold, { color: colors.success }]}>
+                  <Text style={[typo.numberMd, { color: colors.success }]}>
                     {formatCurrency(t.revenue)}
                   </Text>
                 </View>
@@ -350,7 +350,7 @@ function FinancesScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]} edges={['top']}>
       <View style={styles.header}>
-        <Text style={[typo.h2, { color: colors.text }]}>{tr('finances.title')}</Text>
+        <Text style={[typo.display, { color: colors.text }]}>{tr('finances.title')}</Text>
       </View>
 
       <SectionList
@@ -396,7 +396,7 @@ function FinancesScreen() {
             </View>
             <Text
               style={[
-                typo.bodyBold,
+                typo.numberMd,
                 { color: item.type === 'income' ? colors.success : colors.danger },
               ]}
             >
@@ -415,15 +415,9 @@ function FinancesScreen() {
         accessibilityLabel="Добавить операцию"
         style={[styles.fabWrap, { bottom: fabOffset }]}
       >
-        <LiquidGlass
-          variant="floating"
-          tint={colors.primary}
-          tintStrength={0.72}
-          radius={20}
-          style={styles.fab}
-        >
-          <Plus size={28} color={colors.white} />
-        </LiquidGlass>
+        <View style={[styles.fab, { backgroundColor: colors.primary, borderRadius: 20 }]}>
+          <Plus size={28} color={isDark ? '#2A2030' : colors.white} />
+        </View>
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -500,7 +494,7 @@ const styles = StyleSheet.create({
   fabWrap: {
     position: 'absolute',
     right: 20,
-    shadowColor: '#10B981',
+    shadowColor: '#6B4E71',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.35,
     shadowRadius: 20,

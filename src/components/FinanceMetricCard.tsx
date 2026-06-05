@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { ArrowUpRight, ChevronRight } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
@@ -80,13 +79,9 @@ export function FinanceMetricCard({
     onPress();
   };
 
-  // Tint строится от accent: переходим от 14% accent (вверх) к 4% (низ) на
-  // surface — даёт реальный «окрашенный стеклянный» feel.
-  const tintTop = accentColor + (isDark ? '28' : '20');
-  const tintBottom = accentColor + (isDark ? '0E' : '08');
-
+  // Atelier: деньги серифом — hero число на large, крупное на compact.
   const valueStyle =
-    variant === 'large' ? typo.h1 : typo.h2;
+    variant === 'large' ? typo.numberHero : typo.numberLg;
 
   const cardPadding = variant === 'large' ? 20 : 16;
 
@@ -102,35 +97,17 @@ export function FinanceMetricCard({
         animStyle,
         styles.card,
         {
+          backgroundColor: colors.surface,
           borderRadius: br.lg,
-          borderColor: accentColor + '24',
-          // Coloured drop-shadow — premium брендовый halo
-          shadowColor: accentColor,
+          borderColor: colors.border,
+          shadowColor: '#000000',
           shadowOffset: { width: 0, height: 6 },
-          shadowOpacity: isDark ? 0.35 : 0.15,
-          shadowRadius: 16,
-          elevation: 4,
+          shadowOpacity: isDark ? 0.35 : 0.06,
+          shadowRadius: 14,
+          elevation: 3,
         },
       ]}
     >
-      <LinearGradient
-        colors={[tintTop, tintBottom]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-        style={[StyleSheet.absoluteFill, { borderRadius: br.lg }]}
-      />
-      {/* Сплошной surface слой ниже gradient — gradient рисуется поверх */}
-      <View
-        pointerEvents="none"
-        style={[
-          StyleSheet.absoluteFill,
-          {
-            backgroundColor: colors.surface,
-            borderRadius: br.lg,
-            opacity: isDark ? 0.85 : 0.92,
-          },
-        ]}
-      />
       <View style={{ padding: cardPadding }}>
         <View style={styles.headerRow}>
           <View
@@ -170,13 +147,8 @@ export function FinanceMetricCard({
 
         <Text
           style={[
-            typo.small,
-            {
-              color: colors.textSecondary,
-              marginTop: variant === 'large' ? 12 : 10,
-              textTransform: 'uppercase',
-              letterSpacing: 0.6,
-            },
+            typo.label,
+            { color: colors.textTertiary, marginTop: variant === 'large' ? 12 : 10 },
           ]}
         >
           {label}
