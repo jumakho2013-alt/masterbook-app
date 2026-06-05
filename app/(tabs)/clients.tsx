@@ -1,11 +1,11 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, Pressable, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, SectionList, TouchableOpacity, RefreshControl, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { Plus, Users, Moon, ArrowUpDown, UserPlus } from 'lucide-react-native';
+import { Plus, Users, Moon, UserPlus } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
-import { SearchBar, EmptyState, Divider, GlassCard, Badge, LiquidGlass } from '@/src/components/ui';
+import { SearchBar, EmptyState, GlassCard, Badge } from '@/src/components/ui';
 import { SwipeableClientRow } from '@/src/components/SwipeableClientRow';
 import { useClientStore } from '@/src/stores/useClientStore';
 import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
@@ -15,90 +15,73 @@ import { findSleepingClients } from '@/src/lib/sleepingClients';
 import { toDateKey } from '@/src/utils/date';
 import { useProfessionPack } from '@/src/hooks/useProfessionPack';
 import { useT } from '@/src/hooks/useT';
+import type { Client } from '@/src/types';
 
 const SLEEPING_DAYS = 45;
 
-type SortBy = 'name' | 'recent' | 'lastVisit' | 'debt';
-
-// i18n-ключи лейблов сортировки (резолвятся в рендере через useT).
-const SORT_KEYS: Record<SortBy, string> = {
-  name: 'clients.sortName',
-  recent: 'clients.sortRecent',
-  lastVisit: 'clients.sortVisit',
-  debt: 'clients.sortDebt',
+type Filter = 'all' | 'vip' | 'new' | 'debt';
+const FILTER_KEYS: Record<Filter, string> = {
+  all: 'clients.filterAll',
+  vip: 'clients.filterVip',
+  new: 'clients.filterNew',
+  debt: 'clients.filterDebt',
 };
+
+const SERIF = 'CormorantGaramond_600SemiBold';
 
 function ClientsScreen() {
   const router = useRouter();
-  const { colors, typography: typo, spacing: sp, borderRadius: br } = useTheme();
+  const { colors, typography: typo, spacing: sp, isDark } = useTheme();
   const fabOffset = useTabBarOffset(16);
   const [search, setSearch] = useState('');
-  const [sortBy, setSortBy] = useState<SortBy>('recent');
+  const [filter, setFilter] = useState<Filter>('all');
   const [refreshing, setRefreshing] = useState(false);
   const allClients = useClientStore((s) => s.clients);
   const allAppointments = useAppointmentStore((s) => s.appointments);
   const services = useServiceStore((s) => s.services);
-  const { t, pack } = useProfessionPack();
+  const { pack } = useProfessionPack();
   const tr = useT();
+  const onPrimary = isDark ? '#2A2030' : colors.white;
 
-  // Last visit per client
   const lastVisitMap = useMemo(() => {
     const map: Record<string, string> = {};
     for (const a of allAppointments) {
-      if (a.status === 'completed') {
-        if (!map[a.clientId] || a.date > map[a.clientId]) {
-          map[a.clientId] = a.date;
-        }
+      if (a.status === 'completed' && (!map[a.clientId] || a.date > map[a.clientId])) {
+        map[a.clientId] = a.date;
       }
     }
     return map;
   }, [allAppointments]);
 
-  const clients = useMemo(() => {
-    // Filter — расширенный поиск: имя, телефон, заметки, предпочтения,
-    // адрес. Без fuzzy matching пока что: simple includes() работает быстро
-    // на N<1000 и достаточно для основного UX (пользователь обычно ищет
-    // по началу имени или фрагменту телефона).
+  // Поиск + фильтр (Все/VIP/Новые/Должники), затем алфавитная группировка.
+  const sections = useMemo(() => {
     const q = search.toLowerCase().trim();
-    let list = q
-      ? allClients.filter(
-          (c) =>
-            c.name.toLowerCase().includes(q) ||
-            c.phone.includes(q) ||
-            c.notes.toLowerCase().includes(q) ||
-            (c.preferences?.toLowerCase().includes(q) ?? false) ||
-            (c.address?.toLowerCase().includes(q) ?? false),
-        )
-      : [...allClients];
+    const filtered = allClients.filter((c) => {
+      if (q && !(
+        c.name.toLowerCase().includes(q) ||
+        c.phone.includes(q) ||
+        c.notes.toLowerCase().includes(q) ||
+        (c.preferences?.toLowerCase().includes(q) ?? false) ||
+        (c.address?.toLowerCase().includes(q) ?? false)
+      )) return false;
+      if (filter === 'vip') return c.tags.includes('vip');
+      if (filter === 'new') return c.tags.includes('new');
+      if (filter === 'debt') return (c.debt ?? 0) > 0;
+      return true;
+    });
 
-    // Sort
-    switch (sortBy) {
-      case 'name':
-        list.sort((a, b) => a.name.localeCompare(b.name, 'ru'));
-        break;
-      case 'recent':
-        list.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-        break;
-      case 'lastVisit':
-        list.sort((a, b) => {
-          const la = lastVisitMap[a.id] ?? '';
-          const lb = lastVisitMap[b.id] ?? '';
-          return lb.localeCompare(la);
-        });
-        break;
-      case 'debt':
-        list.sort((a, b) => (b.debt ?? 0) - (a.debt ?? 0));
-        break;
+    const byLetter: Record<string, Client[]> = {};
+    for (const c of filtered) {
+      const letter = (c.name.trim()[0] || '#').toUpperCase();
+      (byLetter[letter] ??= []).push(c);
     }
+    return Object.keys(byLetter)
+      .sort((a, b) => a.localeCompare(b, 'ru'))
+      .map((letter) => ({ title: letter, data: byLetter[letter].sort((a, b) => a.name.localeCompare(b.name, 'ru')) }));
+  }, [allClients, search, filter]);
 
-    return list;
-  }, [allClients, search, sortBy, lastVisitMap]);
-
-  // Sleeping clients — используем shared логику из src/lib/sleepingClients
-  // чтобы behavior был консистентен с виджетом на Today screen (исключение
-  // problematic-тегов, upcoming appointments).
   const sleeping = useMemo(() => {
-    if (search) return [];
+    if (search || filter !== 'all') return [];
     return findSleepingClients({
       clients: allClients,
       appointments: allAppointments,
@@ -106,10 +89,7 @@ function ClientsScreen() {
       thresholdDays: SLEEPING_DAYS,
       serviceNameById: (sid) => services.find((s) => s.id === sid)?.name,
     });
-  }, [allClients, allAppointments, services, search]);
-
-  // Для legacy markup ниже — массив сами клиенты.
-  const sleepingClients = useMemo(() => sleeping.map((s) => s.client), [sleeping]);
+  }, [allClients, allAppointments, services, search, filter]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -118,139 +98,95 @@ function ClientsScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]} edges={['top']}>
+      {/* Header: title + count (его раскладка) + кнопка импорта (наша фича) */}
       <View style={[styles.header, styles.headerRow]}>
-        <View style={{ flex: 1 }}>
-          <Text style={[typo.display, { color: colors.text, textTransform: 'capitalize' }]}>
-            {t('client.plural', 'Клиенты')}
-          </Text>
-          <Text style={[typo.caption, { color: colors.textSecondary, marginTop: 2 }]}>
-            {allClients.length} {t('client.plural', 'клиентов')}
-          </Text>
+        <Text style={[typo.display, { color: colors.text, textTransform: 'capitalize' }]}>{tr('clients.title')}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <Text style={[typo.label, { color: colors.textTertiary }]}>{tr('clients.totalCount', { count: allClients.length })}</Text>
+          <Pressable
+            onPress={() => router.push('/client/import')}
+            accessibilityRole="button"
+            accessibilityLabel={tr('clientImport.title')}
+            hitSlop={8}
+            style={[styles.importBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
+          >
+            <UserPlus size={18} color={colors.primary} strokeWidth={1.7} />
+          </Pressable>
         </View>
-        <Pressable
-          onPress={() => router.push('/client/import')}
-          accessibilityRole="button"
-          accessibilityLabel={tr('clientImport.title')}
-          style={[styles.importBtn, { backgroundColor: colors.primarySoft, borderRadius: br.full }]}
-        >
-          <UserPlus size={16} color={colors.primary} />
-          <Text style={[typo.caption, { color: colors.primary, fontFamily: 'Manrope_700Bold' }]}>
-            {tr('clientImport.button')}
-          </Text>
-        </Pressable>
       </View>
 
-      <View style={{ paddingHorizontal: 16, marginBottom: 10 }}>
+      <View style={{ paddingHorizontal: 16, marginBottom: 12 }}>
         <SearchBar value={search} onChangeText={setSearch} placeholder={tr('clients.searchPlaceholder')} />
       </View>
 
-      {/* Sort chips */}
-      <View style={styles.sortContainer}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.sortScroll}
-        >
-          <View style={[styles.sortIcon, { backgroundColor: colors.surfaceElevated, borderRadius: br.sm }]}>
-            <ArrowUpDown size={14} color={colors.textSecondary} />
-          </View>
-        {(Object.keys(SORT_KEYS) as SortBy[]).map((key) => {
-          const active = sortBy === key;
+      {/* Filter chips */}
+      <View style={styles.chipsRow}>
+        {(Object.keys(FILTER_KEYS) as Filter[]).map((key) => {
+          const active = filter === key;
           return (
             <Pressable
               key={key}
-              onPress={() => setSortBy(key)}
+              onPress={() => setFilter(key)}
               accessibilityRole="button"
-              accessibilityLabel={tr('clients.sortA11y', { label: tr(SORT_KEYS[key]) })}
               accessibilityState={{ selected: active }}
-              // Chip визуально тонкий (32pt), но hitSlop расширяет touch-target
-              // до 44pt по вертикали — iOS Human Interface Guidelines minimum.
-              hitSlop={{ top: 6, bottom: 6, left: 0, right: 0 }}
-              style={[
-                styles.sortChip,
-                {
-                  backgroundColor: active ? colors.primary : colors.surfaceElevated,
-                  borderRadius: br.sm,
-                },
-              ]}
+              hitSlop={{ top: 6, bottom: 6 }}
+              style={[styles.chip, { backgroundColor: active ? colors.primary : colors.surface, borderColor: active ? 'transparent' : colors.border }]}
             >
-              <Text
-                style={[
-                  typo.caption,
-                  { color: active ? colors.white : colors.textSecondary },
-                ]}
-              >
-                {tr(SORT_KEYS[key])}
+              <Text style={[typo.caption, { color: active ? onPrimary : colors.textSecondary, fontFamily: 'Manrope_600SemiBold' }]}>
+                {tr(FILTER_KEYS[key])}
               </Text>
             </Pressable>
           );
         })}
-        </ScrollView>
       </View>
 
-      <FlatList
-        data={clients}
+      <SectionList
+        sections={sections}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingBottom: fabOffset + 72 }}
+        contentContainerStyle={{ paddingBottom: fabOffset + 72, paddingHorizontal: 8 }}
+        showsVerticalScrollIndicator={false}
+        stickySectionHeadersEnabled={false}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={colors.primary}
-            colors={[colors.primary]}
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />
         }
         ListHeaderComponent={
-          sleepingClients.length > 0 ? (
-            <Animated.View entering={FadeInDown} style={{ paddingHorizontal: 16, marginBottom: sp.md }}>
+          sleeping.length > 0 ? (
+            <Animated.View entering={FadeInDown} style={{ paddingHorizontal: 8, marginBottom: sp.md }}>
               <GlassCard style={{ padding: 16 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                   <Moon size={16} color={colors.warning} />
                   <Text style={[typo.bodyBold, { color: colors.text }]}>{tr('clients.sleepingTitle')}</Text>
-                  <Badge label={`${sleepingClients.length}`} color={colors.warning} />
+                  <Badge label={`${sleeping.length}`} color={colors.warning} />
                 </View>
                 {sleeping.slice(0, 3).map((s) => (
-                  <TouchableOpacity
-                    key={s.client.id}
-                    onPress={() => router.push(`/client/${s.client.id}`)}
-                    activeOpacity={0.7}
-                    style={[styles.sleepingRow, { borderColor: colors.border }]}
-                  >
-                    <Text style={[typo.body, { color: colors.text, flex: 1 }]} numberOfLines={1}>
-                      {s.client.name}
-                    </Text>
-                    <Text style={[typo.caption, { color: colors.warning }]}>
-                      {tr('clients.daysShort', { count: s.daysSince })}
-                    </Text>
+                  <TouchableOpacity key={s.client.id} onPress={() => router.push(`/client/${s.client.id}`)} activeOpacity={0.7} style={[styles.sleepingRow, { borderColor: colors.border }]}>
+                    <Text style={[typo.body, { color: colors.text, flex: 1 }]} numberOfLines={1}>{s.client.name}</Text>
+                    <Text style={[typo.caption, { color: colors.warning }]}>{tr('clients.daysShort', { count: s.daysSince })}</Text>
                   </TouchableOpacity>
                 ))}
-                {sleepingClients.length > 3 && (
+                {sleeping.length > 3 && (
                   <Text style={[typo.caption, { color: colors.textTertiary, marginTop: 8, textAlign: 'center' }]}>
-                    {tr('clients.andMore', { count: sleepingClients.length - 3 })}
+                    {tr('clients.andMore', { count: sleeping.length - 3 })}
                   </Text>
                 )}
               </GlassCard>
             </Animated.View>
           ) : null
         }
-        ItemSeparatorComponent={() => <Divider style={{ marginVertical: 0, marginLeft: 76 }} />}
+        renderSectionHeader={({ section }) => (
+          <Text style={{ fontFamily: SERIF, fontSize: 15, color: colors.textTertiary, paddingHorizontal: 16, marginTop: 14, marginBottom: 2 }}>
+            {section.title}
+          </Text>
+        )}
         ListEmptyComponent={
           <EmptyState
             icon={<Users size={48} color={colors.textTertiary} />}
             title={pack.emptyStates.clients?.title ?? tr('clients.emptyTitle')}
-            subtitle={
-              search
-                ? tr('clients.noneFound')
-                : pack.emptyStates.clients?.subtitle ?? tr('clients.addFirst')
-            }
+            subtitle={search ? tr('clients.noneFound') : pack.emptyStates.clients?.subtitle ?? tr('clients.addFirst')}
           />
         }
         renderItem={({ item }) => (
-          <SwipeableClientRow
-            client={item}
-            lastVisitDate={lastVisitMap[item.id]}
-            onPress={() => router.push(`/client/${item.id}`)}
-          />
+          <SwipeableClientRow client={item} lastVisitDate={lastVisitMap[item.id]} onPress={() => router.push(`/client/${item.id}`)} />
         )}
       />
 
@@ -261,15 +197,9 @@ function ClientsScreen() {
         accessibilityLabel={tr('clients.newClient')}
         style={[styles.fabWrap, { bottom: fabOffset }]}
       >
-        <LiquidGlass
-          variant="floating"
-          tint={colors.primary}
-          tintStrength={0.72}
-          radius={20}
-          style={styles.fab}
-        >
-          <Plus size={28} color={colors.white} />
-        </LiquidGlass>
+        <View style={[styles.fab, { backgroundColor: colors.primary, borderRadius: 20 }]}>
+          <Plus size={28} color={onPrimary} />
+        </View>
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -278,56 +208,21 @@ function ClientsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 12 },
-  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  importBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  sortContainer: {
-    height: 44,
-    marginBottom: 12,
-  },
-  sortScroll: {
-    paddingHorizontal: 16,
-    gap: 8,
-    alignItems: 'center',
-  },
-  sortIcon: {
-    width: 32,
-    height: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sortChip: {
-    height: 32,
-    paddingHorizontal: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sleepingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    borderBottomWidth: 0.5,
-  },
+  headerRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' },
+  importBtn: { width: 40, height: 40, borderRadius: 20, borderWidth: StyleSheet.hairlineWidth, alignItems: 'center', justifyContent: 'center' },
+  chipsRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, marginBottom: 8 },
+  chip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999, borderWidth: StyleSheet.hairlineWidth },
+  sleepingRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 0.5 },
   fabWrap: {
     position: 'absolute',
     right: 20,
-    shadowColor: '#10B981',
+    shadowColor: '#6B4E71',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.35,
     shadowRadius: 20,
     elevation: 10,
   },
-  fab: {
-    width: 56,
-    height: 56,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  fab: { width: 56, height: 56, alignItems: 'center', justifyContent: 'center' },
 });
 
 // --- Tab-level Error Boundary wrapper ---
