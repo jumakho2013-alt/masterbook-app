@@ -21,6 +21,8 @@
     "statVisits": "Visits",
     "statTotal": "Total",
     "statDebt": "Debt",
+    "statAvg": "Avg. check",
+    "ctaRebook": "Book again",
     "actionCall": "Call",
     "actionBook": "Book",
     "addressRouteLabel": "Open directions to %{address}",

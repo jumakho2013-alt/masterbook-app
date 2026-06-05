@@ -4,8 +4,8 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import {
-  ArrowLeft, Phone, MessageCircle, Plus, Pencil, Check, X,
-  ChevronDown, ChevronUp, Heart, Send, MapPin, Camera,
+  ArrowLeft, Phone, MessageCircle, Pencil, Check, X,
+  ChevronDown, ChevronUp, Heart, Send, MapPin, Camera, Calendar, Star,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
@@ -36,7 +36,7 @@ export default function ClientDetailScreen() {
   const router = useRouter();
   const tr = useT();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { colors, typography: typo, spacing: sp, borderRadius: br } = useTheme();
+  const { colors, typography: typo, spacing: sp, borderRadius: br, isDark } = useTheme();
 
   // Цвета тегов клиента — из темы (единая гамма): VIP=золото, проблемный=
   // красный, новый=изумруд. Раньше были ad-hoc хексы мимо палитры.
@@ -77,9 +77,13 @@ export default function ClientDetailScreen() {
   if (!client) return null;
 
   const lastVisit = appointments.find((a) => a.status === 'completed');
+  const completedCount = appointments.filter((a) => a.status === 'completed').length;
   const totalSpent = appointments
     .filter((a) => a.status === 'completed')
     .reduce((sum, a) => sum + a.price, 0);
+  const avgCheck = completedCount ? Math.round(totalSpent / completedCount) : 0;
+  // На тёмной теме primary — светлая лаванда, поэтому контент на нём — тёмный.
+  const onPrimary = isDark ? '#2A2030' : colors.white;
 
   // === HANDLERS ===
 
@@ -124,20 +128,17 @@ export default function ClientDetailScreen() {
   };
 
   const pickPhoto = async () => {
-    // Permission check ДО открытия пикера. Иначе на denied launchImageLibrary
-    // молча возвращает canceled — пользователь думает «не работает».
-    const perm = await ImagePicker.getMediaLibraryPermissionsAsync();
-    if (!perm.granted) {
-      const req = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!req.granted) {
-        showError(
-          tr('clientDetail.photoAccessTitle'),
-          tr('clientDetail.photoAccessBody'),
-        );
-        return;
-      }
-    }
+    // Весь флоу в одном try (вкл. permission) — pickPhoto зовётся из onPress,
+    // без обёртки throw из permission API стал бы unhandled rejection.
     try {
+      const perm = await ImagePicker.getMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        const req = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!req.granted) {
+          showError(tr('clientDetail.photoAccessTitle'), tr('clientDetail.photoAccessBody'));
+          return;
+        }
+      }
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         quality: 0.7,
@@ -150,8 +151,7 @@ export default function ClientDetailScreen() {
         updateClient(client.id, { photoUri: persisted }); // мгновенно (локально)
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         toast.success(tr('clientDetail.photoUpdated'));
-        // Заливаем в облако (минус №13) и меняем на storage-path. Best-effort:
-        // без аккаунта/при ошибке остаётся локальный URI.
+        // Заливаем в облако и меняем на storage-path. Best-effort.
         const path = await uploadPhoto(persisted, `clients/${client.id}`);
         if (path) updateClient(client.id, { photoUri: path });
       }
@@ -178,8 +178,27 @@ export default function ClientDetailScreen() {
     }
   };
 
+  const callClient = async () => {
+    try { await Linking.openURL(`tel:${client.phone}`); }
+    catch { showError(tr('common.error'), tr('clientDetail.callError')); }
+  };
+
+  // 3 быстрых действия (по макету Atelier): Позвонить / WhatsApp / Telegram —
+  // все в рамке, плам-иконка. Бронирование вынесено в нижний CTA «Записать снова».
+  const quickActions = [
+    { key: 'call', icon: <Phone size={19} color={colors.primary} strokeWidth={1.6} />, label: tr('clientDetail.actionCall'), onPress: callClient },
+    { key: 'wa', icon: <MessageCircle size={19} color={colors.primary} strokeWidth={1.6} />, label: 'WhatsApp', onPress: openWhatsApp },
+    { key: 'tg', icon: <Send size={19} color={colors.primary} strokeWidth={1.6} />, label: 'Telegram', onPress: openTelegram },
+  ];
+
+  const stats: [string, string][] = [
+    [String(appointments.length), tr('clientDetail.statVisits')],
+    [formatCurrency(totalSpent), tr('clientDetail.statTotal')],
+    [formatCurrency(avgCheck), tr('clientDetail.statAvg')],
+  ];
+
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]} edges={['top']}>
       <View style={styles.topBar}>
         <IconButton icon={<ArrowLeft size={22} color={colors.text} />} onPress={() => router.back()} variant="ghost" />
         <View style={{ flex: 1 }} />
@@ -194,22 +213,23 @@ export default function ClientDetailScreen() {
       </View>
 
       <FlatList
-        data={appointments}
+        data={editing ? [] : appointments}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: editing ? 40 : 130 }}
+        showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <>
-            {/* Profile */}
-            <Animated.View entering={FadeInDown} style={styles.profile}>
+            {/* Identity */}
+            <Animated.View entering={FadeInDown} style={styles.identity}>
               <Pressable onPress={pickPhoto}>
-                <Avatar name={client.name} size={80} photoUri={client.photoUri} />
+                <Avatar name={client.name} size={78} photoUri={client.photoUri} />
                 <View style={[styles.cameraBadge, { backgroundColor: colors.primary, borderColor: colors.background }]}>
-                  <Camera size={12} color={colors.white} />
+                  <Camera size={12} color={onPrimary} />
                 </View>
               </Pressable>
 
               {editing ? (
-                <View style={{ width: '100%', paddingHorizontal: 24, marginTop: sp.md, gap: 10 }}>
+                <View style={{ width: '100%', paddingHorizontal: 8, marginTop: sp.md, gap: 10 }}>
                   <TextInput
                     value={editName}
                     onChangeText={setEditName}
@@ -240,7 +260,6 @@ export default function ClientDetailScreen() {
                     placeholderTextColor={colors.textTertiary}
                     multiline
                   />
-                  {/* Tag picker */}
                   <View style={{ flexDirection: 'row', gap: 8, justifyContent: 'center' }}>
                     {ALL_TAGS.map((tag) => {
                       const tagColor = tagColors[tag];
@@ -256,19 +275,25 @@ export default function ClientDetailScreen() {
                 </View>
               ) : (
                 <>
-                  <Text style={[typo.h2, { color: colors.text, marginTop: sp.md }]}>{client.name}</Text>
-                  <Pressable onPress={copyPhone} hitSlop={12}>
-                    <Text style={[typo.body, { color: colors.textSecondary, marginTop: 2 }]}>{client.phone}</Text>
-                  </Pressable>
-                  <View style={styles.tags}>
-                    {client.tags.map((tag) => {
+                  <Text style={[typo.h1, { color: colors.text, marginTop: 14, textAlign: 'center' }]}>{client.name}</Text>
+                  <View style={styles.identityTags}>
+                    {client.tags.includes('vip') && (
+                      <View style={[styles.vipPill, { backgroundColor: colors.goldSoft }]}>
+                        <Star size={12} color={colors.gold} fill={colors.gold} />
+                        <Text style={[typo.label, { color: colors.gold }]}>{tr(tagLabelKeys.vip)}</Text>
+                      </View>
+                    )}
+                    {client.tags.filter((t) => t !== 'vip').map((tag) => {
                       const tagColor = tagColors[tag];
                       const labelKey = tagLabelKeys[tag];
                       return tagColor ? <Badge key={tag} label={tr(labelKey)} color={tagColor} /> : null;
                     })}
                   </View>
+                  <Pressable onPress={copyPhone} hitSlop={12}>
+                    <Text style={[typo.body, { color: colors.textSecondary, marginTop: 8 }]}>{client.phone}</Text>
+                  </Pressable>
                   {lastVisit && (
-                    <Text style={[typo.caption, { color: colors.textSecondary, marginTop: sp.sm }]}>
+                    <Text style={[typo.caption, { color: colors.textTertiary, marginTop: 4 }]}>
                       {tr('clientDetail.lastVisit', { ago: daysSince(lastVisit.date) })}
                     </Text>
                   )}
@@ -276,156 +301,160 @@ export default function ClientDetailScreen() {
               )}
             </Animated.View>
 
-            {/* Stats */}
             {!editing && (
-              <View style={[styles.statsRow, { paddingHorizontal: 16, marginBottom: sp.md }]}>
-                <GlassCard style={styles.statCard}>
-                  <Text style={[typo.h3, { color: colors.primary }]}>{appointments.length}</Text>
-                  <Text style={[typo.small, { color: colors.textSecondary }]}>{tr('clientDetail.statVisits')}</Text>
-                </GlassCard>
-                <GlassCard style={styles.statCard}>
-                  <Text style={[typo.h3, { color: colors.success }]}>{formatCurrency(totalSpent)}</Text>
-                  <Text style={[typo.small, { color: colors.textSecondary }]}>{tr('clientDetail.statTotal')}</Text>
-                </GlassCard>
+              <>
+                {/* 3 quick actions */}
+                <View style={styles.actionsRow}>
+                  {quickActions.map((a) => (
+                    <Pressable key={a.key} onPress={a.onPress}
+                      style={[styles.actionCard, { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: br.md }]}>
+                      {a.icon}
+                      <Text style={[typo.caption, { color: colors.text }]}>{a.label}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+
+                {/* Stats — 3 cols, serif numbers */}
+                <View style={[styles.statsRow, { borderTopColor: colors.border, borderBottomColor: colors.border }]}>
+                  {stats.map(([v, lb], i) => (
+                    <React.Fragment key={lb}>
+                      {i > 0 && <View style={{ width: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginVertical: 2 }} />}
+                      <View style={styles.statCol}>
+                        <Text style={[typo.numberLg, { color: colors.text }]} numberOfLines={1} adjustsFontSizeToFit>{v}</Text>
+                        <Text style={[typo.label, { color: colors.textTertiary, marginTop: 4 }]}>{lb}</Text>
+                      </View>
+                    </React.Fragment>
+                  ))}
+                </View>
+
                 {(client.debt ?? 0) > 0 && (
-                  <GlassCard style={styles.statCard}>
-                    <Text style={[typo.h3, { color: colors.danger }]}>{formatCurrency(client.debt!)}</Text>
-                    <Text style={[typo.small, { color: colors.textSecondary }]}>{tr('clientDetail.statDebt')}</Text>
-                  </GlassCard>
+                  <View style={{ paddingHorizontal: 24, marginTop: sp.md }}>
+                    <View style={[styles.debtPill, { backgroundColor: colors.dangerSoft }]}>
+                      <Text style={[typo.caption, { color: colors.danger }]}>{tr('clientDetail.statDebt')}</Text>
+                      <Text style={[typo.numberMd, { color: colors.danger }]}>−{formatCurrency(client.debt!)}</Text>
+                    </View>
+                  </View>
                 )}
-              </View>
-            )}
 
-            {/* Action buttons */}
-            {!editing && (
-              <View style={[styles.actions, { paddingHorizontal: 16, marginBottom: sp.md }]}>
-                <Pressable style={[styles.actionBtn, { backgroundColor: colors.success + '15' }]} onPress={async () => { try { await Linking.openURL(`tel:${client.phone}`); } catch { showError(tr('common.error'), tr('clientDetail.callError')); } }}>
-                  <Phone size={18} color={colors.success} />
-                  <Text style={[typo.caption, { color: colors.success }]}>{tr('clientDetail.actionCall')}</Text>
-                </Pressable>
-                <Pressable style={[styles.actionBtn, { backgroundColor: '#25D366' + '15' }]} onPress={openWhatsApp}>
-                  <MessageCircle size={18} color="#25D366" />
-                  <Text style={[typo.caption, { color: '#25D366' }]}>WhatsApp</Text>
-                </Pressable>
-                <Pressable style={[styles.actionBtn, { backgroundColor: '#0088cc' + '15' }]} onPress={openTelegram}>
-                  <Send size={18} color="#0088cc" />
-                  <Text style={[typo.caption, { color: '#0088cc' }]}>Telegram</Text>
-                </Pressable>
-                <Pressable style={[styles.actionBtn, { backgroundColor: colors.primary + '15' }]} onPress={() => router.push({ pathname: '/appointment/new', params: { clientId: client.id } })}>
-                  <Plus size={18} color={colors.primary} />
-                  <Text style={[typo.caption, { color: colors.primary }]}>{tr('clientDetail.actionBook')}</Text>
-                </Pressable>
-              </View>
-            )}
+                {/* Address — тап открывает карты с маршрутом */}
+                {client.address ? (
+                  <Pressable
+                    onPress={async () => {
+                      const ok = await openAddressInMaps(client.address!);
+                      if (!ok) showError(tr('common.error'), tr('clientDetail.mapsError'));
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel={tr('clientDetail.addressRouteLabel', { address: client.address })}
+                    accessibilityHint={tr('clientDetail.addressRouteHint')}
+                    style={{ paddingHorizontal: 24, marginTop: sp.md }}
+                  >
+                    <GlassCard>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                        <View style={[styles.tile, { backgroundColor: colors.primarySoft }]}>
+                          <MapPin size={18} color={colors.primary} strokeWidth={1.6} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={[typo.label, { color: colors.textTertiary }]}>{tr('clientDetail.addressCardLabel')}</Text>
+                          <Text style={[typo.body, { color: colors.text, marginTop: 2 }]}>{client.address}</Text>
+                        </View>
+                      </View>
+                    </GlassCard>
+                  </Pressable>
+                ) : null}
 
-            {/* Address — тап открывает Apple Maps / Google Maps с маршрутом */}
-            {!editing && client.address ? (
-              <Pressable
-                onPress={async () => {
-                  const ok = await openAddressInMaps(client.address!);
-                  if (!ok) showError(tr('common.error'), tr('clientDetail.mapsError'));
-                }}
-                accessibilityRole="button"
-                accessibilityLabel={tr('clientDetail.addressRouteLabel', { address: client.address })}
-                accessibilityHint={tr('clientDetail.addressRouteHint')}
-                style={{ paddingHorizontal: 16, marginBottom: sp.md }}
-              >
-                <GlassCard>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                    <View style={[styles.addressIcon, { backgroundColor: colors.primarySoft }]}>
-                      <MapPin size={18} color={colors.primary} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[typo.small, { color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5 }]}>
-                        {tr('clientDetail.addressCardLabel')}
-                      </Text>
-                      <Text style={[typo.body, { color: colors.text, marginTop: 2 }]}>{client.address}</Text>
-                    </View>
+                {/* Notes */}
+                {client.notes ? (
+                  <View style={{ paddingHorizontal: 24, marginTop: sp.md }}>
+                    <GlassCard>
+                      <Text style={[typo.label, { color: colors.textTertiary }]}>{tr('clientDetail.notesLabel')}</Text>
+                      <Text style={[typo.body, { color: colors.text, marginTop: 6 }]}>{client.notes}</Text>
+                    </GlassCard>
                   </View>
-                </GlassCard>
-              </Pressable>
-            ) : null}
+                ) : null}
 
-            {/* Notes */}
-            {!editing && client.notes ? (
-              <View style={{ paddingHorizontal: 16, marginBottom: sp.md }}>
-                <GlassCard>
-                  <Text style={[typo.small, { color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5 }]}>{tr('clientDetail.notesLabel')}</Text>
-                  <Text style={[typo.body, { color: colors.text, marginTop: 6 }]}>{client.notes}</Text>
-                </GlassCard>
-              </View>
-            ) : null}
-
-            {/* Preferences */}
-            {!editing && (
-              <Pressable onPress={() => { setPrefsExpanded(!prefsExpanded); setPrefsText(client.preferences ?? ''); }} style={{ paddingHorizontal: 16, marginBottom: sp.md }}>
-                <GlassCard>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                      <Heart size={16} color={colors.primary} />
-                      <Text style={[typo.bodyBold, { color: colors.text }]}>{tr('clientDetail.preferences')}</Text>
+                {/* Preferences */}
+                <Pressable onPress={() => { setPrefsExpanded(!prefsExpanded); setPrefsText(client.preferences ?? ''); }} style={{ paddingHorizontal: 24, marginTop: sp.md }}>
+                  <GlassCard>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <Heart size={16} color={colors.primary} strokeWidth={1.6} />
+                        <Text style={[typo.bodyBold, { color: colors.text }]}>{tr('clientDetail.preferences')}</Text>
+                      </View>
+                      {prefsExpanded ? <ChevronUp size={18} color={colors.textTertiary} /> : <ChevronDown size={18} color={colors.textTertiary} />}
                     </View>
-                    {prefsExpanded ? <ChevronUp size={18} color={colors.textTertiary} /> : <ChevronDown size={18} color={colors.textTertiary} />}
-                  </View>
-                  {prefsExpanded && (
-                    <Animated.View entering={FadeInDown.duration(200)} style={{ marginTop: 12 }}>
-                      {editingPrefs ? (
-                        <>
-                          <TextInput
-                            value={prefsText}
-                            onChangeText={setPrefsText}
-                            placeholder={tr('clientDetail.preferencesPlaceholder')}
-                            placeholderTextColor={colors.textTertiary}
-                            style={[typo.body, { color: colors.text, backgroundColor: colors.surfaceElevated, borderRadius: br.sm, padding: 12, minHeight: 70, textAlignVertical: 'top' }]}
-                            multiline
-                            autoFocus
-                          />
-                          <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
-                            <Button title={tr('common.save')} onPress={savePreferences} size="sm" style={{ flex: 1 }} />
-                            <Button title={tr('common.cancel')} onPress={() => setEditingPrefs(false)} variant="ghost" size="sm" style={{ flex: 1 }} />
-                          </View>
-                        </>
-                      ) : (
-                        <Pressable onPress={() => setEditingPrefs(true)}>
-                          <Text style={[typo.body, { color: client.preferences ? colors.text : colors.textTertiary }]}>
-                            {client.preferences || tr('clientDetail.preferencesEmpty')}
-                          </Text>
-                        </Pressable>
-                      )}
-                    </Animated.View>
-                  )}
-                </GlassCard>
-              </Pressable>
-            )}
+                    {prefsExpanded && (
+                      <Animated.View entering={FadeInDown.duration(200)} style={{ marginTop: 12 }}>
+                        {editingPrefs ? (
+                          <>
+                            <TextInput
+                              value={prefsText}
+                              onChangeText={setPrefsText}
+                              placeholder={tr('clientDetail.preferencesPlaceholder')}
+                              placeholderTextColor={colors.textTertiary}
+                              style={[typo.body, { color: colors.text, backgroundColor: colors.surfaceElevated, borderRadius: br.sm, padding: 12, minHeight: 70, textAlignVertical: 'top' }]}
+                              multiline
+                              autoFocus
+                            />
+                            <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
+                              <Button title={tr('common.save')} onPress={savePreferences} size="sm" style={{ flex: 1 }} />
+                              <Button title={tr('common.cancel')} onPress={() => setEditingPrefs(false)} variant="ghost" size="sm" style={{ flex: 1 }} />
+                            </View>
+                          </>
+                        ) : (
+                          <Pressable onPress={() => setEditingPrefs(true)}>
+                            <Text style={[typo.body, { color: client.preferences ? colors.text : colors.textTertiary }]}>
+                              {client.preferences || tr('clientDetail.preferencesEmpty')}
+                            </Text>
+                          </Pressable>
+                        )}
+                      </Animated.View>
+                    )}
+                  </GlassCard>
+                </Pressable>
 
-            {/* History header */}
-            <Text style={[typo.bodyBold, { color: colors.text, paddingHorizontal: 24, marginBottom: 12 }]}>
-              {tr('clientDetail.historyTitle', { count: appointments.length })}
-            </Text>
+                {/* History header */}
+                <View style={styles.historyHeader}>
+                  <Text style={[typo.h3, { color: colors.text }]}>{tr('clientDetail.historyTitle', { count: appointments.length })}</Text>
+                </View>
+              </>
+            )}
           </>
         }
-        ItemSeparatorComponent={() => <Divider style={{ marginLeft: 16, marginRight: 16, marginVertical: 0 }} />}
+        ItemSeparatorComponent={() => <Divider style={{ marginLeft: 24, marginRight: 24, marginVertical: 0 }} />}
         renderItem={({ item }) => {
           const service = getService(item.serviceId);
+          const tileColor = item.status === 'completed' ? colors.successSoft
+            : item.status === 'cancelled' || item.status === 'no-show' ? colors.dangerSoft
+            : colors.primarySoft;
           return (
             <Pressable style={styles.historyRow} onPress={() => router.push(`/appointment/${item.id}`)}>
-              <View style={[styles.statusDot, {
-                backgroundColor: item.status === 'completed' ? colors.success
-                  : item.status === 'cancelled' ? colors.danger
-                  : item.status === 'no-show' ? colors.warning
-                  : colors.primary,
-              }]} />
+              <View style={[styles.historyTile, { backgroundColor: tileColor, borderColor: colors.border }]} />
               <View style={{ flex: 1 }}>
-                <Text style={[typo.body, { color: colors.text }]}>{service?.name ?? tr('clientDetail.serviceFallback')}</Text>
-                <Text style={[typo.caption, { color: colors.textSecondary }]}>
-                  {formatDate(item.date)} / {formatTimeRange(item.startTime, item.endTime)}
+                <Text style={[typo.bodyBold, { color: colors.text }]} numberOfLines={1}>{service?.name ?? tr('clientDetail.serviceFallback')}</Text>
+                <Text style={[typo.caption, { color: colors.textSecondary, marginTop: 2 }]}>
+                  {formatDate(item.date)} · {formatTimeRange(item.startTime, item.endTime)}
                 </Text>
               </View>
-              <Text style={[typo.bodyBold, { color: colors.text }]}>{formatCurrency(item.price)}</Text>
+              <Text style={[typo.numberMd, { color: colors.text }]}>{formatCurrency(item.price)}</Text>
             </Pressable>
           );
         }}
       />
+
+      {/* Bottom CTA — «Записать снова» (по макету Atelier) */}
+      {!editing && (
+        <View style={[styles.ctaBar, { backgroundColor: colors.surfaceGlass, borderTopColor: colors.border }]}>
+          <Pressable
+            onPress={() => router.push({ pathname: '/appointment/new', params: { clientId: client.id } })}
+            accessibilityRole="button"
+            style={[styles.ctaBtn, { backgroundColor: colors.primary }]}
+          >
+            <Calendar size={19} color={onPrimary} strokeWidth={1.7} />
+            <Text style={{ fontFamily: 'Manrope_700Bold', fontSize: 15.5, color: onPrimary }}>{tr('clientDetail.ctaRebook')}</Text>
+          </Pressable>
+        </View>
+      )}
+
       <CustomAlert {...alertConfig} />
     </SafeAreaView>
   );
@@ -434,33 +463,21 @@ export default function ClientDetailScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   topBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 4 },
-  profile: { alignItems: 'center', paddingVertical: 16 },
-  tags: { flexDirection: 'row', gap: 6, marginTop: 8 },
-  statsRow: { flexDirection: 'row', gap: 12 },
-  statCard: { flex: 1, alignItems: 'center', paddingVertical: 16 },
-  actions: { flexDirection: 'row', gap: 8 },
-  actionBtn: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    paddingVertical: 14,
-    borderRadius: 14,
-  },
+  identity: { alignItems: 'center', paddingTop: 8, paddingBottom: 20, paddingHorizontal: 24 },
+  identityTags: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12, flexWrap: 'wrap', justifyContent: 'center' },
+  vipPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 11, paddingVertical: 4, borderRadius: 999 },
+  actionsRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 24, marginBottom: 16 },
+  actionCard: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 12, borderWidth: StyleSheet.hairlineWidth },
+  statsRow: { flexDirection: 'row', marginHorizontal: 24, paddingVertical: 18, borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth },
+  statCol: { flex: 1, alignItems: 'center', paddingHorizontal: 6 },
+  debtPill: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 14 },
   editInput: { paddingHorizontal: 16, paddingVertical: 12, textAlign: 'center' },
   tagChip: { paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1 },
-  historyRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, paddingHorizontal: 16 },
-  statusDot: { width: 8, height: 8, borderRadius: 4 },
-  addressIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  cameraBadge: {
-    position: 'absolute',
-    bottom: -2,
-    right: -2,
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-  },
+  tile: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  historyHeader: { paddingHorizontal: 24, marginTop: 22, marginBottom: 8 },
+  historyRow: { flexDirection: 'row', alignItems: 'center', gap: 13, paddingVertical: 12, paddingHorizontal: 24 },
+  historyTile: { width: 46, height: 46, borderRadius: 12, borderWidth: StyleSheet.hairlineWidth },
+  cameraBadge: { position: 'absolute', bottom: -2, right: -2, width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center', borderWidth: 2 },
+  ctaBar: { position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 24, paddingTop: 14, paddingBottom: 30, borderTopWidth: StyleSheet.hairlineWidth },
+  ctaBtn: { height: 54, borderRadius: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
 });

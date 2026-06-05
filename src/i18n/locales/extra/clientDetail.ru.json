@@ -21,6 +21,8 @@
     "statVisits": "Визитов",
     "statTotal": "Всего",
     "statDebt": "Долг",
+    "statAvg": "Средний чек",
+    "ctaRebook": "Записать снова",
     "actionCall": "Позвонить",
     "actionBook": "Записать",
     "addressRouteLabel": "Открыть маршрут к адресу %{address}",
