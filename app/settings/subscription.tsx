@@ -99,7 +99,7 @@ export default function SubscriptionScreen() {
       >
         {badge ? (
           <View style={[styles.badge, { backgroundColor: colors.primary, borderRadius: br.full }]}>
-            <Text style={[typo.small, { color: colors.white, fontFamily: 'PlusJakartaSans_700Bold' }]}>
+            <Text style={[typo.small, { color: colors.white, fontFamily: 'Manrope_700Bold' }]}>
               {badge}
             </Text>
           </View>

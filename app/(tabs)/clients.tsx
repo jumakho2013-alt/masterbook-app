@@ -134,7 +134,7 @@ function ClientsScreen() {
           style={[styles.importBtn, { backgroundColor: colors.primarySoft, borderRadius: br.full }]}
         >
           <UserPlus size={16} color={colors.primary} />
-          <Text style={[typo.caption, { color: colors.primary, fontFamily: 'PlusJakartaSans_700Bold' }]}>
+          <Text style={[typo.caption, { color: colors.primary, fontFamily: 'Manrope_700Bold' }]}>
             {tr('clientImport.button')}
           </Text>
         </Pressable>

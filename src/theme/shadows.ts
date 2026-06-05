@@ -50,12 +50,11 @@ function makeShadows(isDark: boolean) {
       android: { elevation: 8 },
       default: {},
     }),
-    /** Branded glow — изумруд (фирменный halo). Подстраивается под тему:
-     *  ярче на dark, насыщеннее на light. Раньше был фиолетовый (#7C5DFA) —
-     *  наследие старой палитры, не совпадал с emerald-gold брендом. */
+    /** Branded glow — Atelier: плам на light, золото на dark. Мягкий halo под
+     *  primary-кнопками и активными элементами (под цвет бренда темы). */
     glow: Platform.select({
       ios: {
-        shadowColor: isDark ? '#2EE6A6' : '#059669',
+        shadowColor: isDark ? '#DBBA7C' : '#6B4E71',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: isDark ? 0.5 : 0.3,
         shadowRadius: isDark ? 18 : 12,
