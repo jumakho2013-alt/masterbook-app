@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Pressable, Text, StyleSheet, Platform } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, withSequence } from 'react-native-reanimated';
-import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/src/theme';
 import {
@@ -63,15 +62,8 @@ function TabItem({
         {/* Активная вкладка: pill-фон под иконкой (визуально жирнее
             маленькой точки сверху) + label жирнее. Старый dot был слабым
             сигналом, юзер не сразу понимал где он. */}
-        <View
-          style={[
-            styles.iconBubble,
-            focused && {
-              backgroundColor: colors.primarySoft,
-            },
-          ]}
-        >
-          <Icon size={22} color={color} strokeWidth={focused ? 2.4 : 2} />
+        <View style={styles.iconBubble}>
+          <Icon size={22} color={color} strokeWidth={focused ? 1.9 : 1.55} />
         </View>
         <Text
           style={[
@@ -91,16 +83,13 @@ function TabItem({
 }
 
 export function GlassTabBar({ state, navigation }: BottomTabBarProps) {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const tr = useT();
   const bottomPad = Math.max(insets.bottom, Platform.OS === 'ios' ? 8 : 6);
 
-  // Стекло на обеих темах: за tab bar — mesh-фон AppBackground, blur его
-  // размывает → красивая полупрозрачная панель. Без specular-glint.
-  const useBlur = Platform.OS === 'ios';
-  const veil = isDark ? 'rgba(10,15,12,0.72)' : 'rgba(255,255,255,0.72)';
-
+  // Atelier: плоская полупрозрачная панель (surfaceGlass) + верхний хайрлайн,
+  // без тяжёлого блюра — чище и легче для бюджетного Android.
   return (
     <View
       style={[
@@ -108,16 +97,10 @@ export function GlassTabBar({ state, navigation }: BottomTabBarProps) {
         {
           paddingBottom: bottomPad,
           borderTopColor: colors.border,
-          backgroundColor: useBlur ? 'transparent' : colors.surface,
+          backgroundColor: colors.surfaceGlass,
         },
       ]}
     >
-      {useBlur && (
-        <>
-          <BlurView tint={isDark ? 'dark' : 'light'} intensity={80} style={StyleSheet.absoluteFill} />
-          <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: veil }]} />
-        </>
-      )}
       <View style={styles.row}>
         {state.routes.map((route, index) => {
           const focused = state.index === index;

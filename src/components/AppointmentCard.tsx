@@ -105,10 +105,10 @@ export const AppointmentCard = React.memo(function AppointmentCard({
             <Clock size={14} color={colors.textSecondary} />
             <Text
               style={[
-                typo.caption,
+                typo.numberMd,
                 {
-                  color: colors.textSecondary,
-                  marginLeft: 4,
+                  color: colors.text,
+                  marginLeft: 6,
                   textDecorationLine: isCancelled ? 'line-through' : 'none',
                 },
               ]}
@@ -116,7 +116,7 @@ export const AppointmentCard = React.memo(function AppointmentCard({
               {formatTimeRange(appointment.startTime, appointment.endTime)}
             </Text>
           </View>
-          <Text style={[typo.bodyBold, { color: isCompleted ? colors.success : colors.primary }]}>
+          <Text style={[typo.numberMd, { color: isCompleted ? colors.success : colors.primary }]}>
             {formatCurrency(appointment.price)}
           </Text>
         </View>
@@ -140,7 +140,7 @@ export const AppointmentCard = React.memo(function AppointmentCard({
         <View style={[styles.clientRow, { marginTop: sp.md }]}>
           {client && <Avatar name={client.name} size={36} />}
           <Text
-            style={[typo.body, { color: colors.text, marginLeft: sp.sm, flex: 1 }]}
+            style={[typo.caption, { color: colors.textSecondary, marginLeft: sp.sm, flex: 1 }]}
             numberOfLines={1}
           >
             {client?.name ?? tr('components.clientFallback')}

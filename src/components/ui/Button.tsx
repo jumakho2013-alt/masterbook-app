@@ -7,6 +7,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '@/src/theme';
 import { useReduceMotion } from '@/src/hooks/useReduceMotion';
 import * as Haptics from 'expo-haptics';
@@ -36,7 +37,7 @@ export function Button({
   fullWidth = false,
   accessibilityLabel,
 }: ButtonProps) {
-  const { colors, typography: typo, borderRadius: br, shadows: sh } = useTheme();
+  const { colors, shadows: sh, isDark } = useTheme();
   const reduceMotion = useReduceMotion();
   const scale = useSharedValue(1);
 
@@ -59,6 +60,9 @@ export function Button({
     onPress();
   };
 
+  // Atelier dark: primary — золотой металлик-градиент с тёмным текстом.
+  const goldButton = isDark && variant === 'primary';
+
   const bgColors = {
     primary: colors.primary,
     secondary: colors.surfaceElevated,
@@ -67,13 +71,14 @@ export function Button({
   };
 
   const textColors = {
-    primary: colors.white,
+    primary: goldButton ? '#2A2030' : colors.white,
     secondary: colors.text,
     ghost: colors.primary,
     danger: colors.white,
   };
 
-  const heights = { sm: 40, md: 52, lg: 58 };
+  const heights = { sm: 44, md: 54, lg: 58 };
+  const radius = 16;
 
   return (
     <AnimatedPressable
@@ -87,9 +92,9 @@ export function Button({
         animStyle,
         styles.base,
         {
-          backgroundColor: bgColors[variant],
+          backgroundColor: goldButton ? 'transparent' : bgColors[variant],
           height: heights[size],
-          borderRadius: br.md,
+          borderRadius: radius,
           opacity: disabled ? 0.4 : 1,
           ...(variant === 'primary' ? sh.glow : {}),
         },
@@ -97,15 +102,20 @@ export function Button({
         style,
       ]}
     >
+      {goldButton && (
+        // borderRadius на самом градиенте клипит его углы без overflow:hidden —
+        // иначе обрезался бы glow-shadow родителя.
+        <LinearGradient
+          colors={['#E6C588', '#C79B57']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[StyleSheet.absoluteFill, { borderRadius: radius }]}
+        />
+      )}
       {loading ? (
         <ActivityIndicator color={textColors[variant]} />
       ) : (
-        <Text
-          style={[
-            size === 'sm' ? typo.caption : typo.bodyBold,
-            { color: textColors[variant] },
-          ]}
-        >
+        <Text numberOfLines={1} style={[styles.label, { color: textColors[variant] }]}>
           {title}
         </Text>
       )}
@@ -119,5 +129,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 28,
     alignSelf: 'center',
+  },
+  label: {
+    fontFamily: 'Manrope_700Bold',
+    fontSize: 15.5,
+    letterSpacing: 0.2,
   },
 });
