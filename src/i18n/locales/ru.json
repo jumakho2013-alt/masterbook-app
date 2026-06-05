@@ -220,7 +220,10 @@
     "appleSignIn": "Apple Sign-In"
   },
   "onboarding": {
-    "professionTitle": "Чем вы\nзанимаетесь?"
+    "professionTitle": "Чем вы\nзанимаетесь?",
+    "step": "Шаг %{n} из %{total}",
+    "professionSubtitle": "Подберём услуги, цены и шаблоны записей под вашу профессию.",
+    "continueBtn": "Продолжить"
   },
   "clientForm": {
     "newTitle": "Новый клиент",

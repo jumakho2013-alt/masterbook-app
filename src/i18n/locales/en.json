@@ -220,7 +220,10 @@
     "appleSignIn": "Apple Sign-In"
   },
   "onboarding": {
-    "professionTitle": "What do you\ndo?"
+    "professionTitle": "What do you\ndo?",
+    "step": "Step %{n} of %{total}",
+    "professionSubtitle": "We'll set up services, prices and booking templates for your profession.",
+    "continueBtn": "Continue"
   },
   "clientForm": {
     "newTitle": "New client",
