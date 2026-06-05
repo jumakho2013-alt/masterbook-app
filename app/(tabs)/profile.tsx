@@ -25,6 +25,7 @@ import {
   BellRing,
   Camera,
 } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '@/src/theme';
 import { GlassCard, Divider, CustomAlert, useToast } from '@/src/components/ui';
 import { MasterBookLogo } from '@/src/components/MasterBookLogo';
@@ -32,7 +33,6 @@ import { SyncStatusCard } from '@/src/components/SyncStatusCard';
 import { flushPush } from '@/src/lib/cloudSync';
 import { persistImageToAppDir, deletePersistedImage } from '@/src/lib/photoStorage';
 import { useResolvedPhoto } from '@/src/lib/photoCloud';
-import { TRIAL_DAYS, PRO_PRICE } from '@/src/lib/iap';
 import { useAlert } from '@/src/hooks/useAlert';
 import { useT } from '@/src/hooks/useT';
 import { useAuthStore } from '@/src/stores/useAuthStore';
@@ -45,7 +45,6 @@ import { useServiceStore } from '@/src/stores/useServiceStore';
 import { useTabBarOffset } from '@/src/hooks/useTabBarOffset';
 import { getSpecialization } from '@/src/data/professions';
 import { localizeSpecName } from '@/src/data/professions.i18n';
-import { formatCurrency } from '@/src/utils/currency';
 
 interface MenuItemProps {
   icon: React.ReactNode;
@@ -60,14 +59,8 @@ function SectionLabel({ title }: { title: string }) {
   return (
     <Text
       style={[
-        typo.small,
-        {
-          color: colors.textTertiary,
-          paddingHorizontal: 24,
-          paddingBottom: 8,
-          textTransform: 'uppercase',
-          letterSpacing: 0.8,
-        },
+        typo.label,
+        { color: colors.textTertiary, paddingHorizontal: 24, paddingBottom: 8 },
       ]}
     >
       {title}
@@ -79,14 +72,14 @@ function MenuItem({ icon, label, onPress, subtitle }: MenuItemProps) {
   const { colors, typography: typo } = useTheme();
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.7} style={styles.menuItem}>
-      {icon}
+      <View style={[styles.menuTile, { backgroundColor: colors.primarySoft }]}>{icon}</View>
       <View style={{ flex: 1 }}>
-        <Text style={[typo.body, { color: colors.text }]}>{label}</Text>
+        <Text style={[typo.bodyBold, { color: colors.text }]}>{label}</Text>
         {subtitle && (
           <Text style={[typo.small, { color: colors.textTertiary, marginTop: 1 }]}>{subtitle}</Text>
         )}
       </View>
-      <ChevronRight size={18} color={colors.textTertiary} />
+      <ChevronRight size={16} color={colors.textTertiary} />
     </TouchableOpacity>
   );
 }
@@ -257,51 +250,58 @@ function ProfileScreen() {
         {/* Profile card — MasterBook logo вместо случайного яркого аватара.
             Аватары хороши для клиентов где много разных людей, но для
             самого мастера brand-identity > random color. */}
-        <Animated.View entering={FadeInDown.delay(50)} style={{ paddingHorizontal: 16, marginBottom: sp.md }}>
-          <GlassCard elevated style={styles.profileCard}>
-            <Pressable
-              onPress={onPhotoPress}
-              accessibilityRole="button"
-              accessibilityLabel={masterPhotoUri ? tr('profile.photoChangeA11y') : tr('profile.photoAddA11y')}
-              style={styles.photoWrap}
-            >
-              {resolvedPhoto ? (
-                <Image source={{ uri: resolvedPhoto }} style={[styles.photo, { borderColor: colors.border }]} />
-              ) : (
-                <MasterBookLogo size={64} />
-              )}
-              <View style={[styles.cameraBadge, { backgroundColor: colors.primary, borderColor: colors.surface }]}>
-                <Camera size={11} color="#FFFFFF" />
-              </View>
-            </Pressable>
-            <View style={{ marginLeft: sp.md, flex: 1 }}>
-              <Text style={[typo.h3, { color: colors.text }]}>
-                {masterName || tr('profile.masterFallback')}
-              </Text>
-              <Text style={[typo.caption, { color: colors.textSecondary, marginTop: 2 }]}>
-                {spec ? localizeSpecName(spec) : tr('profile.specFallback')}
-              </Text>
+        {/* Identity (Atelier): монограмма/фото + серифное имя + специализация */}
+        <Animated.View entering={FadeInDown.delay(50)} style={styles.identity}>
+          <Pressable
+            onPress={onPhotoPress}
+            accessibilityRole="button"
+            accessibilityLabel={masterPhotoUri ? tr('profile.photoChangeA11y') : tr('profile.photoAddA11y')}
+            style={styles.photoWrap}
+          >
+            {resolvedPhoto ? (
+              <Image source={{ uri: resolvedPhoto }} style={[styles.photo, { borderColor: colors.border }]} />
+            ) : (
+              <MasterBookLogo size={64} />
+            )}
+            <View style={[styles.cameraBadge, { backgroundColor: colors.primary, borderColor: colors.background }]}>
+              <Camera size={11} color="#FFFFFF" />
             </View>
-          </GlassCard>
+          </Pressable>
+          <View style={{ marginLeft: 16, flex: 1 }}>
+            <Text style={{ fontFamily: 'CormorantGaramond_600SemiBold', fontSize: 26, letterSpacing: -0.3, color: colors.text }} numberOfLines={1}>
+              {masterName || tr('profile.masterFallback')}
+            </Text>
+            <Text style={[typo.caption, { color: colors.textSecondary, marginTop: 2 }]}>
+              {spec ? localizeSpecName(spec) : tr('profile.specFallback')}
+            </Text>
+          </View>
         </Animated.View>
 
-        {/* Compact stats row — inline numbers, не три большие карточки */}
-        <View style={[styles.compactStatsRow, { paddingHorizontal: 16, marginBottom: sp.lg }]}>
-          <View style={styles.compactStat}>
-            <Text style={[typo.h3, { color: colors.text }]}>{stats.totalClients}</Text>
-            <Text style={[typo.small, { color: colors.textSecondary }]}>{tr('profile.statClients')}</Text>
+        {/* PRO — тёмная золотая карточка (Atelier) */}
+        <Pressable onPress={() => router.push('/settings/subscription')} style={styles.proWrap} accessibilityRole="button">
+          <View style={styles.proCard}>
+            <LinearGradient
+              colors={['rgba(219,186,124,0.34)', 'transparent']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0.9, y: 0.9 }}
+              style={StyleSheet.absoluteFill}
+            />
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Crown size={18} color="#DBBA7C" strokeWidth={1.8} />
+              <Text style={[typo.label, { color: '#DBBA7C' }]}>{tr('settings.proTitle')}</Text>
+            </View>
+            <Text style={{ fontFamily: 'CormorantGaramond_600SemiBold', fontSize: 23, letterSpacing: -0.3, color: '#FFFFFF', marginTop: 8 }}>
+              {tr('profile.proCardTitle')}
+            </Text>
+            <Text style={[typo.caption, { color: 'rgba(255,255,255,0.6)', marginTop: 5 }]}>{tr('profile.proCardSub')}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 16 }}>
+              <LinearGradient colors={['#E6C588', '#C79B57']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.proBtn}>
+                <Text style={{ fontFamily: 'Manrope_700Bold', fontSize: 13.5, color: '#2A2030' }}>{tr('profile.proCardTry')}</Text>
+              </LinearGradient>
+              <Text style={[typo.caption, { color: 'rgba(255,255,255,0.5)' }]}>{tr('profile.proCardTrial')}</Text>
+            </View>
           </View>
-          <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
-          <View style={styles.compactStat}>
-            <Text style={[typo.h3, { color: colors.text }]}>{stats.totalAppointments}</Text>
-            <Text style={[typo.small, { color: colors.textSecondary }]}>{tr('profile.statVisits')}</Text>
-          </View>
-          <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
-          <View style={styles.compactStat}>
-            <Text style={[typo.h3, { color: colors.text }]}>{formatCurrency(stats.totalIncome)}</Text>
-            <Text style={[typo.small, { color: colors.textSecondary }]}>{tr('profile.statEarned')}</Text>
-          </View>
-        </View>
+        </Pressable>
 
         {/* === Раздел: ОБЛАКО === */}
         <SectionLabel title={tr('profile.sectionCloud')} />
@@ -381,13 +381,6 @@ function ProfileScreen() {
         <View style={{ paddingHorizontal: 16, marginBottom: sp.md }}>
           <GlassCard style={{ padding: 0 }}>
             <MenuItem
-              icon={<Crown size={20} color={colors.warning} />}
-              label={tr('settings.proTitle')}
-              subtitle={tr('settings.proMenuSub', { days: TRIAL_DAYS, price: PRO_PRICE })}
-              onPress={() => router.push('/settings/subscription')}
-            />
-            <Divider style={{ marginVertical: 0, marginLeft: 52 }} />
-            <MenuItem
               icon={<ShieldCheck size={20} color={colors.primary} />}
               label={tr('profile.security')}
               subtitle={tr('profile.securitySub')}
@@ -465,9 +458,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    paddingVertical: 16,
+    paddingVertical: 14,
     paddingHorizontal: 16,
   },
+  menuTile: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  identity: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 22 },
+  proWrap: { paddingHorizontal: 16, marginBottom: 22 },
+  proCard: { borderRadius: 20, padding: 20, overflow: 'hidden', backgroundColor: '#2A2230' },
+  proBtn: { paddingHorizontal: 18, paddingVertical: 9, borderRadius: 12 },
 });
 
 // --- Tab-level Error Boundary wrapper ---
