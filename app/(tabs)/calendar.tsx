@@ -4,7 +4,6 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useTheme } from '@/src/theme';
-import { AppointmentCard } from '@/src/components/AppointmentCard';
 import { EmptyState } from '@/src/components/ui';
 import { DayView } from '@/src/components/CalendarDayView';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, LayoutGrid, CalendarDays, Clock } from 'lucide-react-native';
@@ -13,9 +12,10 @@ import { useClientStore } from '@/src/stores/useClientStore';
 import { useServiceStore } from '@/src/stores/useServiceStore';
 import { useTabBarOffset } from '@/src/hooks/useTabBarOffset';
 import { useT } from '@/src/hooks/useT';
-import { toDateKey, getDayOfWeekShort, getDayNumber, getMonthName, getMonthGrid, getWeekdayShortLabels } from '@/src/utils/date';
+import { toDateKey, getDayOfWeekShort, getDayNumber, getMonthName, getMonthGrid, getWeekdayShortLabels, formatDateFull } from '@/src/utils/date';
 
 type ViewMode = 'day' | 'week' | 'month';
+const SERIF = 'CormorantGaramond_600SemiBold';
 
 
 function getWeekDays(centerDate: Date): Date[] {
@@ -42,11 +42,12 @@ function plural(n: number, one: string, few: string, many: string): string {
 
 function CalendarScreen() {
   const router = useRouter();
-  const { colors, typography: typo, borderRadius: br, spacing: sp } = useTheme();
+  const { colors, typography: typo, borderRadius: br, spacing: sp, isDark } = useTheme();
   const tr = useT();
+  const onPrimary = isDark ? '#2A2030' : colors.white;
   const bottomOffset = useTabBarOffset(0);
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [viewMode, setViewMode] = useState<ViewMode>('week');
+  const [viewMode, setViewMode] = useState<ViewMode>('month');
   const [monthCursor, setMonthCursor] = useState(new Date());
   const [refreshing, setRefreshing] = useState(false);
   const allAppointments = useAppointmentStore((s) => s.appointments);
@@ -237,81 +238,42 @@ function CalendarScreen() {
             </Pressable>
           </View>
 
-          {/* Weekday labels */}
-          <View style={styles.weekdayRow}>
-            {getWeekdayShortLabels().map((label, i) => (
-              <Text key={i} style={[typo.small, styles.weekdayLabel, { color: colors.textTertiary }]}>
-                {label}
-              </Text>
-            ))}
-          </View>
-
-          {/* Month grid */}
-          <View style={styles.monthGrid}>
-            {monthGrid.map((day, i) => {
-              if (!day) {
-                return <View key={`empty-${i}`} style={styles.monthCell} />;
-              }
-              const key = toDateKey(day);
-              const selected = isSelectedDay(day);
-              const today = isToday(day);
-              const count = apptCountByDay[key] ?? 0;
-              // Density background — чем больше записей, тем заметнее
-              // primarySoft в ячейке. Сразу видно busy days vs пустые.
-              const densityOpacity = selected
-                ? 0 // selected уже залит primary
-                : count >= 4
-                  ? 0.35
-                  : count >= 2
-                    ? 0.20
-                    : count >= 1
-                      ? 0.10
-                      : 0;
-
-              return (
-                <Pressable
-                  key={key}
-                  onPress={() => setSelectedDate(day)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${day.getDate()}${count > 0 ? `, ${count} ${plural(count, 'запись', 'записи', 'записей')}` : ''}`}
-                  style={styles.monthCell}
-                >
-                  <View
-                    style={[
-                      styles.monthDayInner,
-                      {
-                        backgroundColor: selected
-                          ? colors.primary
-                          : densityOpacity > 0
-                            ? `${colors.primary}${Math.round(densityOpacity * 255).toString(16).padStart(2, '0')}`
-                            : 'transparent',
-                        borderRadius: br.sm,
-                      },
-                    ]}
+          {/* Calendar card (Atelier): серифные числа, плам-круг выбранного дня, точки */}
+          <View style={[styles.calCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={styles.weekdayRow}>
+              {getWeekdayShortLabels().map((label, i) => (
+                <Text key={i} style={[typo.label, styles.weekdayLabel, { color: colors.textTertiary }]}>{label}</Text>
+              ))}
+            </View>
+            <View style={styles.monthGrid}>
+              {monthGrid.map((day, i) => {
+                if (!day) return <View key={`empty-${i}`} style={styles.monthCell} />;
+                const key = toDateKey(day);
+                const selected = isSelectedDay(day);
+                const today = isToday(day);
+                const count = apptCountByDay[key] ?? 0;
+                return (
+                  <Pressable
+                    key={key}
+                    onPress={() => setSelectedDate(day)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${day.getDate()}${count > 0 ? `, ${count} ${plural(count, 'запись', 'записи', 'записей')}` : ''}`}
+                    style={styles.monthCell}
                   >
-                    <Text
-                      style={[
-                        typo.body,
-                        {
-                          color: selected ? colors.white : today ? colors.primary : colors.text,
-                          fontFamily: today || selected ? typo.bodyBold.fontFamily : typo.body.fontFamily,
-                        },
-                      ]}
-                    >
-                      {day.getDate()}
-                    </Text>
-                    {count > 0 && (
-                      <View
-                        style={[
-                          styles.monthDot,
-                          { backgroundColor: selected ? colors.white : colors.primary },
-                        ]}
-                      />
-                    )}
-                  </View>
-                </Pressable>
-              );
-            })}
+                    <View style={[styles.dayCircle, selected && { backgroundColor: colors.primary }]}>
+                      <Text style={{ fontFamily: SERIF, fontSize: 17, color: selected ? onPrimary : today ? colors.primary : colors.text }}>
+                        {day.getDate()}
+                      </Text>
+                    </View>
+                    <View style={styles.dayDotRow}>
+                      {count > 0 && !selected && (
+                        <View style={[styles.monthDot, { backgroundColor: count >= 4 ? colors.gold : colors.primary }]} />
+                      )}
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
           </View>
         </Animated.View>
       )}
@@ -320,9 +282,16 @@ function CalendarScreen() {
         data={appointments}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: bottomOffset + 20 }}
-        ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
+        ItemSeparatorComponent={() => <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border }} />}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />
+        }
+        ListHeaderComponent={
+          appointments.length > 0 ? (
+            <Text style={{ fontFamily: SERIF, fontSize: 20, color: colors.text, textTransform: 'capitalize', marginBottom: 6 }}>
+              {formatDateFull(selectedDate)}
+            </Text>
+          ) : null
         }
         ListEmptyComponent={
           <EmptyState
@@ -331,14 +300,21 @@ function CalendarScreen() {
             subtitle={tr('calendar.noAppointmentsThisDay')}
           />
         }
-        renderItem={({ item }) => (
-          <AppointmentCard
-            appointment={item}
-            client={getClient(item.clientId)}
-            service={getService(item.serviceId)}
-            onPress={() => router.push(`/appointment/${item.id}`)}
-          />
-        )}
+        renderItem={({ item, index }) => {
+          const service = getService(item.serviceId);
+          const client = getClient(item.clientId);
+          const ac = item.status === 'completed' ? colors.success : index % 2 === 0 ? colors.primary : colors.gold;
+          return (
+            <Pressable onPress={() => router.push(`/appointment/${item.id}`)} style={styles.agendaRow}>
+              <View style={[styles.agendaBar, { backgroundColor: ac }]} />
+              <Text style={{ fontFamily: SERIF, fontSize: 19, color: colors.text, width: 52 }}>{item.startTime}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={[typo.bodyBold, { color: colors.text }]} numberOfLines={1}>{service?.name ?? tr('components.serviceFallback')}</Text>
+                <Text style={[typo.caption, { color: colors.textSecondary, marginTop: 1 }]} numberOfLines={1}>{client?.name ?? tr('components.clientFallback')}</Text>
+              </View>
+            </Pressable>
+          );
+        }}
       />
     </SafeAreaView>
   );
@@ -366,13 +342,13 @@ const styles = StyleSheet.create({
   weekdayRow: { flexDirection: 'row', marginBottom: 8 },
   weekdayLabel: { flex: 1, textAlign: 'center' },
   monthGrid: { flexDirection: 'row', flexWrap: 'wrap' },
-  monthCell: { width: `${100 / 7}%`, aspectRatio: 1, padding: 2 },
-  monthDayInner: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  monthDot: { width: 4, height: 4, borderRadius: 2, marginTop: 2 },
+  monthCell: { width: `${100 / 7}%`, height: 46, alignItems: 'center', justifyContent: 'center', gap: 3 },
+  dayCircle: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  dayDotRow: { height: 5, flexDirection: 'row', alignItems: 'center', gap: 2 },
+  monthDot: { width: 4, height: 4, borderRadius: 2 },
+  calCard: { borderRadius: 20, borderWidth: StyleSheet.hairlineWidth, padding: 14, marginTop: 4 },
+  agendaRow: { flexDirection: 'row', alignItems: 'center', gap: 13, paddingVertical: 12 },
+  agendaBar: { width: 3, height: 38, borderRadius: 2 },
 });
 
 // --- Tab-level Error Boundary wrapper ---
