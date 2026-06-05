@@ -251,7 +251,7 @@ function ProfileScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]} edges={['top']}>
       <ScrollView contentContainerStyle={{ paddingBottom: bottomOffset + 24 }} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Text style={[typo.h2, { color: colors.text }]}>{tr('profile.title')}</Text>
+          <Text style={[typo.display, { color: colors.text }]}>{tr('profile.title')}</Text>
         </View>
 
         {/* Profile card — MasterBook logo вместо случайного яркого аватара.

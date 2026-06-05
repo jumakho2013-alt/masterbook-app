@@ -120,7 +120,7 @@ function ClientsScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]} edges={['top']}>
       <View style={[styles.header, styles.headerRow]}>
         <View style={{ flex: 1 }}>
-          <Text style={[typo.h2, { color: colors.text, textTransform: 'capitalize' }]}>
+          <Text style={[typo.display, { color: colors.text, textTransform: 'capitalize' }]}>
             {t('client.plural', 'Клиенты')}
           </Text>
           <Text style={[typo.caption, { color: colors.textSecondary, marginTop: 2 }]}>

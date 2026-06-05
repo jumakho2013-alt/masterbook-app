@@ -109,7 +109,7 @@ function CalendarScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]} edges={['top']}>
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
-          <Text style={[typo.h2, { color: colors.text }]}>{tr('calendar.title')}</Text>
+          <Text style={[typo.display, { color: colors.text }]}>{tr('calendar.title')}</Text>
           <Text style={[typo.caption, { color: colors.textSecondary, marginTop: 2, textTransform: 'capitalize' }]}>
             {getMonthName(viewMode === 'month' ? monthCursor : selectedDate)}
           </Text>

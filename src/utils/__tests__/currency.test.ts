@@ -1,5 +1,10 @@
 import { formatCurrency, formatCurrencyShort } from '../currency';
 
+// U+00A0 (неразрывный пробел): formatCurrency склеивает им разряды и символ,
+// чтобы суммы не переносились по строкам (Atelier). Строим в ASCII, без
+// literal-NBSP в исходнике (его невозможно надёжно набрать/сматчить).
+const N = String.fromCharCode(0xA0);
+
 // Тесты передают валюту явно, чтобы не зависеть от store-state (под jest
 // useSettingsStore.getState() работает, но дефолт может меняться).
 
@@ -37,24 +42,27 @@ describe('formatCurrency (RUB — default for CIS)', () => {
     // и знаком валюты. Регекс с \s покрывает оба варианта.
     expect(formatCurrency(2500, 'RUB')).toMatch(/2.500.+₽/);
     expect(formatCurrency(0, 'RUB')).toMatch(/0.+₽/);
+    // Контракт Atelier: только U+00A0, никаких обычных пробелов (иначе перенос).
+    expect(formatCurrency(14_800, 'RUB')).not.toMatch(/\x20/);
+    expect(formatCurrency(14_800, 'RUB')).toContain(N);
   });
 });
 
 describe('formatCurrencyShort — postfix symbols for postsoviet/turkish/georgian', () => {
   it('rouble after number', () => {
-    expect(formatCurrencyShort(12_500, 'RUB')).toBe('13K ₽');
+    expect(formatCurrencyShort(12_500, 'RUB')).toBe(`13K${N}₽`);
   });
   it('tenge after number', () => {
-    expect(formatCurrencyShort(2_400_000, 'KZT')).toBe('2.4M ₸');
+    expect(formatCurrencyShort(2_400_000, 'KZT')).toBe(`2.4M${N}₸`);
   });
   it('hryvnia after number', () => {
-    expect(formatCurrencyShort(50_000, 'UAH')).toBe('50K ₴');
+    expect(formatCurrencyShort(50_000, 'UAH')).toBe(`50K${N}₴`);
   });
   it('lari after number', () => {
-    expect(formatCurrencyShort(15_000, 'GEL')).toBe('15K ₾');
+    expect(formatCurrencyShort(15_000, 'GEL')).toBe(`15K${N}₾`);
   });
   it('lira after number', () => {
-    expect(formatCurrencyShort(15_000, 'TRY')).toBe('15K ₺');
+    expect(formatCurrencyShort(15_000, 'TRY')).toBe(`15K${N}₺`);
   });
 });
 

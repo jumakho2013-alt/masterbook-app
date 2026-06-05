@@ -56,17 +56,22 @@ function resolveCurrency(currency?: CurrencyCode): CurrencyCode {
   return useSettingsStore.getState().currency ?? DEFAULT_CURRENCY;
 }
 
+// Atelier (хэндофф, шаг 3): все пробелы в сумме — НЕРАЗРЫВНЫЕ ( ). Иначе
+// «14 800 ₽» переносится по строкам. \s в Intl-выводе ru-RU — это обычный или
+// узкий пробел; нормализуем в U+00A0, чтобы число и символ держались вместе.
+const NBSP = String.fromCharCode(0xA0); // U+00A0 неразрывный пробел
+
 export function formatCurrency(amount: number, currency?: CurrencyCode): string {
-  return getFormatter(resolveCurrency(currency)).format(amount);
+  return getFormatter(resolveCurrency(currency)).format(amount).replace(/\s/g, NBSP);
 }
 
 export function formatCurrencyShort(amount: number, currency?: CurrencyCode): string {
   const c = resolveCurrency(currency);
   const meta = getCurrencyMeta(c);
   // Позиция символа: в постсоветских + турецкой/грузинской — после числа
-  // через пробел, в долларе/евро — перед без пробела.
+  // через неразрывный пробел, в долларе/евро — перед без пробела.
   const isPostfix = c === 'RUB' || c === 'KZT' || c === 'UAH' || c === 'BYN' || c === 'GEL' || c === 'TRY';
-  const fmt = (n: string) => (isPostfix ? `${n} ${meta.symbol}` : `${meta.symbol}${n}`);
+  const fmt = (n: string) => (isPostfix ? `${n}${NBSP}${meta.symbol}` : `${meta.symbol}${n}`);
 
   if (amount >= 1_000_000) {
     return fmt(`${(amount / 1_000_000).toFixed(1)}M`);
@@ -74,5 +79,5 @@ export function formatCurrencyShort(amount: number, currency?: CurrencyCode): st
   if (amount >= 10_000) {
     return fmt(`${Math.round(amount / 1_000)}K`);
   }
-  return fmt(amount.toLocaleString(meta.locale));
+  return fmt(amount.toLocaleString(meta.locale).replace(/\s/g, NBSP));
 }
