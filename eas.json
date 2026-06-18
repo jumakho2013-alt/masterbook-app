@@ -38,10 +38,12 @@
       "channel": "production",
       "autoIncrement": true,
       "ios": {
+        "image": "latest",
         "resourceClass": "m-medium",
         "autoIncrement": "buildNumber"
       },
       "android": {
+        "image": "latest",
         "buildType": "app-bundle",
         "autoIncrement": "versionCode"
       },
