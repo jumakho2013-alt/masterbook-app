@@ -63,7 +63,8 @@
     },
     "production": {
       "ios": {
-        "language": "ru"
+        "language": "ru",
+        "ascAppId": "6781701643"
       },
       "android": {
         "serviceAccountKeyPath": "./google-service-account.json",
