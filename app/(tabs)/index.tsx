@@ -3,12 +3,11 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, Pressable, RefreshC
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { Plus, CalendarCheck, TrendingUp, Calendar, Bell } from 'lucide-react-native';
+import { Plus, CalendarCheck, TrendingUp, Calendar, Bell, ChevronsLeft, X } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
 import { EmptyState, GlassCard, CountUp, Button, useToast } from '@/src/components/ui';
 import { AtelierScheduleRow } from '@/src/components/AtelierScheduleRow';
 import { SleepingClientsCard } from '@/src/components/SleepingClientsCard';
-import { TrialBanner } from '@/src/components/TrialBanner';
 import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useClientStore } from '@/src/stores/useClientStore';
 import { useServiceStore } from '@/src/stores/useServiceStore';
@@ -57,6 +56,8 @@ function TodayScreen() {
   const clients = useClientStore((s) => s.clients);
   const services = useServiceStore((s) => s.services);
   const demoDataSeededAt = useSettingsStore((s) => s.demoDataSeededAt);
+  const swipeHintSeen = useSettingsStore((s) => s.swipeHintSeen);
+  const setSwipeHintSeen = useSettingsStore((s) => s.setSwipeHintSeen);
   const toast = useToast();
   const { pack } = useProfessionPack();
   const tr = useT();
@@ -301,10 +302,6 @@ function TodayScreen() {
               );
             })()}
 
-            {/* Подписка: баннер триала/истечения (null если подписан или
-                триал в начале). Жёсткий гейт — с реальным IAP. */}
-            <TrialBanner />
-
             {/* Спящие клиенты — nudge-блок. Возвращает null если все
                 клиенты активны, поэтому не съедает место без причины. */}
             <SleepingClientsCard />
@@ -315,15 +312,29 @@ function TodayScreen() {
               const todayAll = appointments.filter((a) => a.date === todayKey);
               if (todayAll.length === 0) return null;
               const done = todayAll.filter((a) => a.status === 'completed').length;
+              const hasScheduled = todayAll.some((a) => a.status === 'scheduled');
               return (
-                <View style={styles.dayListHeader}>
-                  <Text style={{ fontFamily: 'CormorantGaramond_600SemiBold', fontSize: 22, color: colors.text }}>
-                    {tr('today.scheduleTitle')}
-                  </Text>
-                  <Text style={[typo.caption, { color: colors.textSecondary }]}>
-                    {tr('today.doneOfCount', { done, total: todayAll.length })}
-                  </Text>
-                </View>
+                <>
+                  <View style={styles.dayListHeader}>
+                    <Text style={{ fontFamily: 'CormorantGaramond_600SemiBold', fontSize: 22, color: colors.text }}>
+                      {tr('today.scheduleTitle')}
+                    </Text>
+                    <Text style={[typo.caption, { color: colors.textSecondary }]}>
+                      {tr('today.doneOfCount', { done, total: todayAll.length })}
+                    </Text>
+                  </View>
+                  {hasScheduled && !swipeHintSeen && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, marginTop: 2, marginBottom: 6, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: colors.surfaceElevated, borderRadius: br.md }}>
+                      <ChevronsLeft size={16} color={colors.textTertiary} />
+                      <Text style={[typo.small, { color: colors.textSecondary, flex: 1, marginLeft: 8 }]}>
+                        {tr('today.swipeHint')}
+                      </Text>
+                      <Pressable onPress={() => setSwipeHintSeen()} hitSlop={8} accessibilityRole="button" accessibilityLabel={tr('common.ok')}>
+                        <X size={16} color={colors.textTertiary} />
+                      </Pressable>
+                    </View>
+                  )}
+                </>
               );
             })()}
           </>

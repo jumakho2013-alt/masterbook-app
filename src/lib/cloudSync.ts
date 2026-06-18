@@ -384,6 +384,39 @@ export async function flushPush(): Promise<{ ok: boolean; error?: string }> {
   }
 }
 
+/**
+ * Запись публичного профиля (город/район/о себе/slug/published) в Supabase
+ * ОТДЕЛЬНЫМ targeted-запросом — НЕ через pushAll. Иначе второе устройство со
+ * старым локальным `published` при обычном синке молча перезаписало бы
+ * серверное значение (cross-device unpublish). Зовётся из экрана «Опубликовать»
+ * при сохранении. Требует аккаунт (в local-only возвращает no-user).
+ */
+export async function pushPublicProfile(): Promise<{ ok: boolean; error?: string }> {
+  const userId = currentUserId();
+  if (!userId) return { ok: false, error: 'no-user' };
+  const s = useSettingsStore.getState();
+  try {
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        city: s.city || null,
+        district: s.district || null,
+        bio: s.bio || null,
+        slug: s.slug || null,
+        whatsapp: s.whatsapp || null,
+        public_phone: s.publicPhone || null,
+        published: s.published,
+      })
+      .eq('id', userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  } catch (e) {
+    const msg = classifyError(e);
+    captureException(e, { tag: 'cloud-sync-publish' });
+    return { ok: false, error: msg };
+  }
+}
+
 /** Запустить авто-синк: debounced push на мутациях + полный sync на foreground.
  *  Идемпотентно. Вызывать после успешного входа (не в local-only). */
 export function startAutoSync(): void {

@@ -414,11 +414,18 @@ export default function NewAppointmentScreen() {
         <Animated.View entering={FadeInRight.duration(300)} style={{ flex: 1 }}>
           <ScrollView contentContainerStyle={{ padding: 16, gap: 10 }}>
             {services.length === 0 && (
-              <EmptyState
-                icon={<Scissors size={48} color={colors.textTertiary} />}
-                title={tr('appt.service.emptyTitle')}
-                subtitle={tr('appt.service.emptySubtitle')}
-              />
+              <>
+                <EmptyState
+                  icon={<Scissors size={48} color={colors.textTertiary} />}
+                  title={tr('appt.service.emptyTitle')}
+                  subtitle={tr('appt.service.emptySubtitle')}
+                />
+                <Button
+                  title={tr('appt.service.addCta')}
+                  onPress={() => router.push('/services/manage')}
+                  style={{ marginTop: 12, alignSelf: 'center' }}
+                />
+              </>
             )}
             {services.map((s) => (
               <ServiceChip

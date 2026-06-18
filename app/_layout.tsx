@@ -21,7 +21,6 @@ import { RouterErrorBoundary } from '@/src/components/ErrorScreen';
 import { seedDevDataIfNeeded } from '@/src/lib/devSeed';
 import { AppBackground } from '@/src/components/AppBackground';
 import { initCrashReporter } from '@/src/lib/crashReporter';
-import { initIap } from '@/src/lib/iap';
 import { useNotificationDeepLink } from '@/src/hooks/useNotificationDeepLink';
 import { useCloudSyncLifecycle } from '@/src/hooks/useCloudSyncLifecycle';
 import { rescheduleMissingReminders } from '@/src/lib/reminderSync';
@@ -32,8 +31,6 @@ import 'react-native-reanimated';
 // Запускаем сразу — должно быть до первого React-рендера, иначе crash до
 // init не поймается. initCrashReporter() безопасен без DSN (no-op).
 initCrashReporter();
-// IAP-каркас: no-op без нативного модуля, но wiring на месте (минус №16).
-initIap();
 
 // expo-router распознаёт `ErrorBoundary` экспорт и подсовывает его в качестве
 // fallback при необработанной ошибке в любом роуте. Оборачиваем в тему —
@@ -101,12 +98,12 @@ function RootInner() {
         <Stack.Screen name="settings/currency" />
         <Stack.Screen name="settings/calendar-sync" />
         <Stack.Screen name="settings/reminders" />
-        <Stack.Screen name="settings/subscription" />
         <Stack.Screen name="settings/language" />
         <Stack.Screen name="finance/new" options={{ presentation: 'modal' }} />
         <Stack.Screen name="finance/report" />
         <Stack.Screen name="insights" />
         <Stack.Screen name="reminders-tomorrow" />
+        <Stack.Screen name="publish" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
       </Stack>
     </AppBackground>
   );

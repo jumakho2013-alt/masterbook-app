@@ -22,6 +22,17 @@ interface SettingsState {
   masterPhotoUri: string | null;
   /** Блокировка приложения биометрией (Face ID / Touch ID). */
   biometricLock: boolean;
+  /** Публичный профиль для сайта-каталога (Фаза 2). Пишется в Supabase
+   *  отдельным targeted-запросом при «Опубликовать» (pushPublicProfile),
+   *  НЕ через обычный синк — иначе второе устройство со старым локальным
+   *  published молча сняло бы публикацию. */
+  city: string;
+  district: string;
+  bio: string;
+  published: boolean;
+  slug: string | null;
+  whatsapp: string;
+  publicPhone: string;
   /** Валюта для отображения цен / дохода. Default RUB (СНГ-first).
    *  При смене все компоненты что зовут formatCurrency() перерисуются
    *  благодаря подписке через useSettingsStore. */
@@ -36,6 +47,9 @@ interface SettingsState {
   firstUseAt: string | null;
   /** Если пользователь явно закрыл «Старт недели» — больше не показывать. */
   checklistDismissedAt: string | null;
+  /** Юзер уже видел подсказку про свайп записей (показываем один раз).
+   *  Device-preference — переживает logout, как тема. */
+  swipeHintSeen: boolean;
   /** Синхронизация записей в системный календарь (iOS Calendar / Google).
    *  По умолчанию false — включается явно в settings. */
   calendarSyncEnabled: boolean;
@@ -66,10 +80,12 @@ interface SettingsState {
   setMasterName: (name: string) => void;
   setMasterPhotoUri: (uri: string | null) => void;
   setBiometricLock: (enabled: boolean) => void;
+  setPublicProfile: (patch: Partial<{ city: string; district: string; bio: string; published: boolean; slug: string | null; whatsapp: string; publicPhone: string }>) => void;
   setCurrency: (currency: CurrencyCode) => void;
   setDemoDataSeededAt: (iso: string | null) => void;
   setFirstUseAt: (iso: string | null) => void;
   dismissChecklist: () => void;
+  setSwipeHintSeen: () => void;
   setCalendarSyncEnabled: (enabled: boolean) => void;
   setLanguage: (lang: 'system' | 'ru' | 'en') => void;
   setReduceEffects: (enabled: boolean) => void;
@@ -100,6 +116,13 @@ const defaultSettingsForAccount = {
   masterName: '',
   masterPhotoUri: null as string | null,
   biometricLock: false,
+  city: '',
+  district: '',
+  bio: '',
+  published: false,
+  slug: null as string | null,
+  whatsapp: '',
+  publicPhone: '',
 };
 
 export const useSettingsStore = create<SettingsState>()(
@@ -110,6 +133,7 @@ export const useSettingsStore = create<SettingsState>()(
       demoDataSeededAt: null,
       firstUseAt: null,
       checklistDismissedAt: null,
+      swipeHintSeen: false,
       calendarSyncEnabled: false,
       language: 'system',
       reduceEffects: false,
@@ -129,10 +153,12 @@ export const useSettingsStore = create<SettingsState>()(
       setMasterName: (name) => set({ masterName: name }),
       setMasterPhotoUri: (uri) => set({ masterPhotoUri: uri }),
       setBiometricLock: (enabled) => set({ biometricLock: enabled }),
+      setPublicProfile: (patch) => set(patch),
       setCurrency: (currency) => set({ currency }),
       setDemoDataSeededAt: (iso) => set({ demoDataSeededAt: iso }),
       setFirstUseAt: (iso) => set({ firstUseAt: iso }),
       dismissChecklist: () => set({ checklistDismissedAt: new Date().toISOString() }),
+      setSwipeHintSeen: () => set({ swipeHintSeen: true }),
       setCalendarSyncEnabled: (enabled) => set({ calendarSyncEnabled: enabled }),
       setLanguage: (lang) => set({ language: lang }),
       setReduceEffects: (enabled) => set({ reduceEffects: enabled }),

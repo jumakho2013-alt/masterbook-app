@@ -108,7 +108,8 @@
     },
     "service": {
       "emptyTitle": "No services",
-      "emptySubtitle": "Add services in Profile → My services"
+      "emptySubtitle": "Add services in Profile → My services",
+      "addCta": "Create a service"
     },
     "time": {
       "takenSuffix": ", taken",

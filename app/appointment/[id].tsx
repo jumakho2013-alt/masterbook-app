@@ -22,7 +22,7 @@ import { useFinanceStore } from '@/src/stores/useFinanceStore';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { formatDate, formatTimeRange, toDateKey } from '@/src/utils/date';
 import { formatCurrency } from '@/src/utils/currency';
-import { addMinutes, generateTimeSlots } from '@/src/utils/time';
+import { addMinutes, generateTimeSlots, timeRangesOverlap } from '@/src/utils/time';
 import { openOutreach, type OutreachChannel } from '@/src/lib/sleepingClients';
 import { useProfessionPack } from '@/src/hooks/useProfessionPack';
 import { syncUpdateEvent, syncDeleteEvent } from '@/src/lib/calendarSync';
@@ -49,6 +49,7 @@ export default function AppointmentDetailScreen() {
   const clients = useClientStore((s) => s.clients);
   const services = useServiceStore((s) => s.services);
   const workHours = useSettingsStore((s) => s.workHours);
+  const bufferMinutes = useSettingsStore((s) => s.bufferMinutes);
 
   const { alertConfig, success, confirm, error: showError } = useAlert();
   const toast = useToast();
@@ -79,6 +80,26 @@ export default function AppointmentDetailScreen() {
   };
   const statusColor = statusColors[appointment.status] ?? colors.textSecondary;
   const statusLabel = tr(`appt.status.${appointment.status}`);
+
+  // Защита от двойной брони при переносе: слот занят, если пересекается (с
+  // буфером) с другой запланированной записью на ту же дату. Саму запись
+  // исключаем — «перенос на себя» допустим.
+  const rescheduleDateKey = toDateKey(rescheduleDate);
+  const apptsOnRescheduleDate = allAppointments.filter(
+    (a) => a.date === rescheduleDateKey && a.status === 'scheduled' && a.id !== appointment.id,
+  );
+  const isRescheduleSlotTaken = (t: string): boolean => {
+    const dur = service?.duration ?? 60;
+    const end = addMinutes(t, dur);
+    return apptsOnRescheduleDate.some((a) =>
+      timeRangesOverlap(
+        t,
+        end,
+        addMinutes(a.startTime, -bufferMinutes),
+        addMinutes(a.endTime, bufferMinutes),
+      ),
+    );
+  };
 
   // === HANDLERS ===
 
@@ -133,6 +154,10 @@ export default function AppointmentDetailScreen() {
 
   const handleReschedule = () => {
     if (!rescheduleTime) return;
+    if (isRescheduleSlotTaken(rescheduleTime)) {
+      showError(tr('appt.time.takenError'));
+      return;
+    }
     const duration = service?.duration ?? 60;
     const newEnd = addMinutes(rescheduleTime, duration);
     const updated = {
@@ -441,7 +466,7 @@ export default function AppointmentDetailScreen() {
                     const key = toDateKey(d);
                     const selected = toDateKey(rescheduleDate) === key;
                     return (
-                      <Pressable key={key} onPress={() => setRescheduleDate(d)}
+                      <Pressable key={key} onPress={() => { setRescheduleDate(d); setRescheduleTime(null); }}
                         style={[styles.dateChip, { backgroundColor: selected ? colors.primary : colors.surfaceElevated, borderRadius: br.sm, marginRight: 6 }]}>
                         <Text style={[typo.small, { color: selected ? colors.white : colors.textSecondary }]}>
                           {formatDate(key)}
@@ -454,10 +479,12 @@ export default function AppointmentDetailScreen() {
                 <View style={[styles.timeSlotsGrid, { marginTop: 12 }]}>
                   {timeSlots.map((t) => {
                     const selected = rescheduleTime === t;
+                    const taken = isRescheduleSlotTaken(t);
                     return (
-                      <Pressable key={t} onPress={() => setRescheduleTime(t)}
-                        style={[styles.timeSlot, { backgroundColor: selected ? colors.primary : colors.surfaceElevated, borderRadius: br.sm }]}>
-                        <Text style={[typo.caption, { color: selected ? colors.white : colors.text }]}>{t}</Text>
+                      <Pressable key={t} disabled={taken} onPress={() => setRescheduleTime(t)}
+                        accessibilityState={{ selected, disabled: taken }}
+                        style={[styles.timeSlot, { backgroundColor: selected ? colors.primary : colors.surfaceElevated, borderRadius: br.sm, opacity: taken ? 0.35 : 1 }]}>
+                        <Text style={[typo.caption, { color: selected ? colors.white : taken ? colors.textTertiary : colors.text }]}>{t}</Text>
                       </Pressable>
                     );
                   })}

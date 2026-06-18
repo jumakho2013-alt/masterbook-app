@@ -12,7 +12,7 @@ import {
   Palette,
   Info,
   Link,
-  Crown,
+  Globe,
   Users,
   CalendarCheck,
   TrendingUp,
@@ -25,7 +25,6 @@ import {
   BellRing,
   Camera,
 } from 'lucide-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '@/src/theme';
 import { GlassCard, Divider, CustomAlert, useToast } from '@/src/components/ui';
 import { MasterBookLogo } from '@/src/components/MasterBookLogo';
@@ -277,30 +276,20 @@ function ProfileScreen() {
           </View>
         </Animated.View>
 
-        {/* PRO — тёмная золотая карточка (Atelier) */}
-        <Pressable onPress={() => router.push('/settings/subscription')} style={styles.proWrap} accessibilityRole="button">
-          <View style={styles.proCard}>
-            <LinearGradient
-              colors={['rgba(219,186,124,0.34)', 'transparent']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 0.9, y: 0.9 }}
-              style={StyleSheet.absoluteFill}
-            />
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Crown size={18} color="#DBBA7C" strokeWidth={1.8} />
-              <Text style={[typo.label, { color: '#DBBA7C' }]}>{tr('settings.proTitle')}</Text>
-            </View>
-            <Text style={{ fontFamily: 'CormorantGaramond_600SemiBold', fontSize: 23, letterSpacing: -0.3, color: '#FFFFFF', marginTop: 8 }}>
-              {tr('profile.proCardTitle')}
-            </Text>
-            <Text style={[typo.caption, { color: 'rgba(255,255,255,0.6)', marginTop: 5 }]}>{tr('profile.proCardSub')}</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 16 }}>
-              <LinearGradient colors={['#E6C588', '#C79B57']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.proBtn}>
-                <Text style={{ fontFamily: 'Manrope_700Bold', fontSize: 13.5, color: '#2A2030' }}>{tr('profile.proCardTry')}</Text>
-              </LinearGradient>
-              <Text style={[typo.caption, { color: 'rgba(255,255,255,0.5)' }]}>{tr('profile.proCardTrial')}</Text>
-            </View>
+        {/* Публичная страница на сайте-каталоге (мост: приложение → сайт) */}
+        <Pressable
+          onPress={() => router.push('/publish')}
+          accessibilityRole="button"
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginHorizontal: 16, marginBottom: 22, paddingHorizontal: 16, paddingVertical: 14, borderRadius: 16, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border }}
+        >
+          <View style={{ width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primarySoft }}>
+            <Globe size={20} color={colors.primary} />
           </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[typo.bodyBold, { color: colors.text }]}>{tr('settings.publishCardTitle')}</Text>
+            <Text style={[typo.small, { color: colors.textTertiary, marginTop: 1 }]}>{tr('settings.publishCardSub')}</Text>
+          </View>
+          <ChevronRight size={16} color={colors.textTertiary} />
         </Pressable>
 
         {/* === Раздел: ОБЛАКО === */}
@@ -362,14 +351,14 @@ function ProfileScreen() {
           <GlassCard style={{ padding: 0 }}>
             <MenuItem
               icon={<Palette size={20} color={colors.primary} />}
-              label="Тема"
+              label={tr('profile.theme')}
               subtitle={themeLabel}
               onPress={toggleTheme}
             />
             <Divider style={{ marginVertical: 0, marginLeft: 52 }} />
             <MenuItem
               icon={<Languages size={20} color={colors.primary} />}
-              label="Язык"
+              label={tr('profile.language')}
               subtitle={languageLabel}
               onPress={() => router.push('/settings/language')}
             />
@@ -463,9 +452,6 @@ const styles = StyleSheet.create({
   },
   menuTile: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   identity: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 22 },
-  proWrap: { paddingHorizontal: 16, marginBottom: 22 },
-  proCard: { borderRadius: 20, padding: 20, overflow: 'hidden', backgroundColor: '#2A2230' },
-  proBtn: { paddingHorizontal: 18, paddingVertical: 9, borderRadius: 12 },
 });
 
 // --- Tab-level Error Boundary wrapper ---

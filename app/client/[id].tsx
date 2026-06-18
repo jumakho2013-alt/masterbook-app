@@ -58,7 +58,7 @@ export default function ClientDetailScreen() {
   const allAppointments = useAppointmentStore((s) => s.appointments);
   const services = useServiceStore((s) => s.services);
 
-  const { alertConfig, error: showError } = useAlert();
+  const { alertConfig, error: showError, confirm } = useAlert();
 
   const client = allClients.find((c) => c.id === id);
   const appointments = useMemo(
@@ -314,6 +314,23 @@ export default function ClientDetailScreen() {
                       <Text style={[typo.caption, { color: colors.danger }]}>{tr('clientDetail.statDebt')}</Text>
                       <Text style={[typo.numberMd, { color: colors.danger }]}>−{formatCurrency(client.debt!)}</Text>
                     </View>
+                    <Pressable
+                      onPress={() => confirm(
+                        tr('clientDetail.debtClearTitle'),
+                        tr('clientDetail.debtClearBody'),
+                        () => {
+                          updateClient(client.id, { debt: 0 });
+                          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                          toast.success(tr('clientDetail.debtCleared'));
+                        },
+                        tr('clientDetail.debtClearConfirm'),
+                      )}
+                      accessibilityRole="button"
+                      hitSlop={6}
+                      style={{ alignSelf: 'flex-end', paddingVertical: 8, paddingHorizontal: 4, marginTop: 6 }}
+                    >
+                      <Text style={[typo.caption, { color: colors.primary }]}>{tr('clientDetail.debtClearCta')}</Text>
+                    </Pressable>
                   </View>
                 )}
 

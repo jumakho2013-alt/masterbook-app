@@ -199,6 +199,7 @@ function FinancesScreen() {
             style={[styles.heroCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
           >
             <Text style={[typo.label, { color: colors.textTertiary }]}>{tr('finances.netProfit')}</Text>
+            <Text style={[typo.small, { color: colors.textTertiary, marginTop: 1 }]}>{tr('finances.incomeMinusExpense')}</Text>
             <CountUp
               value={summary.net}
               style={{ fontFamily: SERIF, fontSize: 56, letterSpacing: -1.5, lineHeight: 58, color: colors.text }}
