@@ -38,9 +38,7 @@ yarn-error.*
 *.tsbuildinfo
 
 # generated native folders
-# ios/ закоммичен намеренно: EAS-prebuild стабильно падал на Install pods,
-# хотя локально поды встают (117 шт). Коммит готовой нативки → EAS пропускает
-# свой prebuild и ставит поды по нашему Podfile.lock. android остаётся на CNG.
+/ios
 /android
 
 # EAS local artefacts
