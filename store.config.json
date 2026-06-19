@@ -1,6 +1,7 @@
 {
   "configVersion": 0,
   "apple": {
+    "categories": ["BUSINESS", "PRODUCTIVITY"],
     "info": {
       "ru": {
         "title": "MasterBook — CRM мастера",
