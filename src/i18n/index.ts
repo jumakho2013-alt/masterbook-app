@@ -45,10 +45,17 @@ i18n.enableFallback = true;
 export function resolveLocale(setting: AppLanguage): 'ru' | 'en' {
   if (setting === 'ru' || setting === 'en') return setting;
   // system: получаем первый supported из system locales.
-  const sys = getLocales();
-  for (const l of sys) {
-    const code = (l.languageCode ?? '').toLowerCase();
-    if (code === 'ru' || code === 'en') return code as 'ru' | 'en';
+  // getLocales() — нативный вызов expo-localization; в редких релизных
+  // конфигурациях может бросить. Падать на старте из-за выбора языка нельзя —
+  // при любой ошибке откатываемся на 'ru' (defaultLocale).
+  try {
+    const sys = getLocales();
+    for (const l of sys) {
+      const code = (l.languageCode ?? '').toLowerCase();
+      if (code === 'ru' || code === 'en') return code as 'ru' | 'en';
+    }
+  } catch (err) {
+    console.warn('[i18n] getLocales() failed, falling back to ru:', err);
   }
   return 'ru';
 }

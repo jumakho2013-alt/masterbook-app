@@ -4,16 +4,25 @@ import { Platform } from 'react-native';
 import { captureException } from '@/src/lib/crashReporter';
 import { t } from '@/src/i18n';
 
-// Настройка отображения уведомлений когда приложение открыто
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+// Настройка отображения уведомлений когда приложение открыто.
+// Выполняется при ИМПОРТЕ модуля (его тянет app/_layout.tsx → useAppointmentStore),
+// т.е. на старте, ДО монтирования error boundary. Если нативный модуль
+// expo-notifications вдруг не инициализируется в релизной сборке — нельзя
+// позволить этому уронить запуск приложения. Оборачиваем в try/catch.
+try {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+} catch (err) {
+  console.warn('[notifications] setNotificationHandler failed:', err);
+  captureException(err, { tag: 'notifications.setHandlerInit' });
+}
 
 /** Текущий статус permission'а на нотификации. Используется UI для решения
  *  показывать ли подсказку «включи в настройках». */

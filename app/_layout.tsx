@@ -43,7 +43,7 @@ export function ErrorBoundary({ error, retry }: { error: Error; retry: () => voi
   );
 }
 
-SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 function RootInner() {
   const { isDark, colors } = useTheme();
@@ -125,7 +125,7 @@ export default function RootLayout() {
       // Сначала засеиваем (no-op в production или если сторы непустые),
       // потом прячем сплэш — первый render уже с данными.
       seedDevDataIfNeeded();
-      SplashScreen.hideAsync();
+      SplashScreen.hideAsync().catch(() => {});
     }
   }, [fontsLoaded]);
 
