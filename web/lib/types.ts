@@ -19,6 +19,10 @@ export interface Master {
   premium_until: string | null;
   rating: number;
   reviews_count: number;
+  // Рабочее расписание — нужно форме онлайн-записи (work_days: 0=Вс..6=Сб).
+  work_days: number[] | null;
+  work_hours_start: string | null;
+  work_hours_end: string | null;
 }
 
 export interface Service {

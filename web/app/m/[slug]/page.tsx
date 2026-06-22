@@ -1,9 +1,29 @@
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import type { Master, Service, Review } from '@/lib/types';
 import { formatPrice, initials, whatsappLink, telLink } from '@/lib/format';
+import { BookingForm } from '@/components/BookingForm';
 
 export const revalidate = 60;
+
+export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+  const { data: m } = await supabase
+    .from('profiles')
+    .select('name, bio, city, district')
+    .eq('slug', params.slug)
+    .eq('published', true)
+    .maybeSingle();
+  if (!m) return { title: 'Мастер не найден — MasterBook' };
+  const place = [m.district, m.city].filter(Boolean).join(', ');
+  const title = `${m.name}${place ? ` · ${place}` : ''} — MasterBook`;
+  const description = (m.bio?.trim() || `Запишитесь к мастеру ${m.name} онлайн за минуту.`).slice(0, 160);
+  return {
+    title,
+    description,
+    openGraph: { title, description, type: 'profile' },
+  };
+}
 
 export default async function MasterPage({ params }: { params: { slug: string } }) {
   const { data: m } = await supabase
@@ -87,14 +107,22 @@ export default async function MasterPage({ params }: { params: { slug: string } 
         </section>
       )}
 
+      <section id="book">
+        <h2 className="serif" style={{ marginTop: 36 }}>Записаться онлайн</h2>
+        <BookingForm
+          slug={master.slug ?? ''}
+          services={services.map((s) => ({ id: s.id, name: s.name, price: s.price, duration: s.duration }))}
+          workHoursStart={master.work_hours_start}
+          workHoursEnd={master.work_hours_end}
+          workDays={master.work_days}
+          contact={cta}
+        />
+      </section>
+
       <div className="sticky-cta">
-        {cta ? (
-          <a href={cta.href} target="_blank" rel="noreferrer" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', padding: 16 }}>
-            {cta.label}
-          </a>
-        ) : (
-          <div className="empty" style={{ padding: 16 }}>Контакты появятся скоро</div>
-        )}
+        <a href="#book" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', padding: 16 }}>
+          Записаться онлайн
+        </a>
       </div>
     </div>
   );

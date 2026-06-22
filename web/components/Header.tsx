@@ -10,7 +10,7 @@ export function Header() {
         <nav className="nav">
           <Link href="/">Главная</Link>
           <Link href="/catalog">Каталог</Link>
-          <span className="muted">📍 Душанбе</span>
+          <Link href="/cabinet">Кабинет</Link>
         </nav>
         <Link href="/catalog" className="btn btn-primary">Найти мастера</Link>
       </div>

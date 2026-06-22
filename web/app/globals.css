@@ -18,6 +18,28 @@
   --sans: 'Manrope', system-ui, -apple-system, sans-serif;
 }
 
+/* Тёмная тема (Noir) — автоматически по системной настройке. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14110f;
+    --surface: #1c1916;
+    --elevated: #241f1b;
+    --text: #f0e9e0;
+    --muted: #a89f95;
+    --faint: #6f675e;
+    --plum: #c39ccb;
+    --plum-soft: #2a2230;
+    --gold: #cba36a;
+    --gold-soft: #2e2719;
+    --success: #5bbd8f;
+    --line: rgba(240, 233, 224, 0.12);
+  }
+  .hdr { background: rgba(20, 17, 15, 0.85); }
+  .btn-primary { color: #14110f; }
+  .btn-gold { color: #14110f; }
+  .chip:hover, .chip.active { color: #14110f; }
+}
+
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
 body {
@@ -88,3 +110,27 @@ img { display: block; max-width: 100%; }
 
 .footer { border-top: 1px solid var(--line); margin-top: 64px; padding: 28px 0; color: var(--faint); font-size: 14px; }
 .empty { text-align: center; padding: 60px 20px; color: var(--muted); }
+
+/* Booking form */
+.bookform { display: flex; flex-direction: column; gap: 14px; margin-top: 18px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; }
+.bf-field { display: flex; flex-direction: column; gap: 6px; }
+.bf-row { display: flex; gap: 12px; }
+.bf-row .bf-field { flex: 1; }
+.bf-label { font-size: 13px; font-weight: 600; color: var(--muted); }
+.bf-input { width: 100%; padding: 13px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); font-size: 15px; font-family: var(--sans); color: var(--text); }
+.bf-input:focus { outline: none; border-color: var(--plum); background: var(--surface); }
+textarea.bf-input { resize: vertical; min-height: 48px; }
+.bf-warn { font-size: 14px; color: var(--gold); background: var(--gold-soft); border: 1px solid var(--gold); border-radius: 12px; padding: 10px 14px; }
+.bf-error { font-size: 14px; color: #a23a4a; background: #f7e7e9; border: 1px solid #e3b8bf; border-radius: 12px; padding: 10px 14px; }
+.book-done { text-align: center; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 32px 20px; margin-top: 18px; }
+.book-done-mark { width: 56px; height: 56px; margin: 0 auto; border-radius: 50%; background: var(--plum-soft); color: var(--success); font-size: 28px; display: flex; align-items: center; justify-content: center; }
+
+/* Cabinet */
+.cab-section { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin-top: 18px; display: flex; flex-direction: column; gap: 12px; }
+.cab-h2 { font-size: 24px; margin: 0; }
+.cab-ok { font-size: 14px; color: var(--success); background: var(--plum-soft); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; }
+.cab-toggle { display: flex; align-items: center; gap: 10px; font-size: 15px; cursor: pointer; padding: 4px 0; }
+.cab-toggle input { width: 18px; height: 18px; accent-color: var(--plum); }
+.cab-appt { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.cab-badge { display: inline-block; margin-left: 8px; font-size: 11px; font-weight: 700; color: var(--plum); background: var(--plum-soft); padding: 2px 8px; border-radius: 999px; vertical-align: middle; }
+.cab-pay { padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
