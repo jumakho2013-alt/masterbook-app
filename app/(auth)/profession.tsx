@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { ChevronRight } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
@@ -23,6 +23,7 @@ export default function ProfessionScreen() {
   const { colors, typography: typo, isDark } = useTheme();
   const setProfession = useAuthStore((s) => s.setProfession);
   const t = useT();
+  const insets = useSafeAreaInsets();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const onPrimary = isDark ? '#2A2030' : '#FFFFFF';
 
@@ -76,7 +77,7 @@ export default function ProfessionScreen() {
       </ScrollView>
 
       {/* CTA */}
-      <View style={[styles.ctaBar, { backgroundColor: colors.surfaceGlass, borderTopColor: colors.border }]}>
+      <View style={[styles.ctaBar, { backgroundColor: colors.surfaceGlass, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 24) }]}>
         <Pressable
           onPress={proceed}
           disabled={!selectedId}

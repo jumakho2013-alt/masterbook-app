@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Keyboard, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { MasterBookLogo } from '@/src/components/MasterBookLogo';
 import * as WebBrowser from 'expo-web-browser';
@@ -30,6 +30,7 @@ export default function LoginScreen() {
   const dataConsentGivenAt = useAuthStore((s) => s.dataConsentGivenAt);
   const enableLocalOnly = useAuthStore((s) => s.enableLocalOnly);
   const t = useT();
+  const insets = useSafeAreaInsets();
 
   const { alertConfig, error: showError, info } = useAlert();
 
@@ -95,8 +96,8 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]} edges={['top']}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 24) }]} keyboardShouldPersistTaps="handled">
         <Animated.View entering={FadeInDown.duration(600)} style={styles.logo}>
           <MasterBookLogo size={80} />
 

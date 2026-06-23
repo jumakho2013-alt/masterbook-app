@@ -81,8 +81,8 @@ export const tutorPack: ProfessionPack = {
   },
 
   reminderTemplate: {
-    beforeAppointment: '{client}, напоминаю — {day} в {time} наше занятие 📚',
-    sleeping: '{client}, привет! Давно не занимались — расписание обновлено, есть свободные слоты.',
+    beforeAppointment: '{client}, привет! Напоминаю — {day} в {time} у нас занятие 📚 Если нужно перенести, напишите заранее.',
+    sleeping: '{client}, привет! Давно не занимались — в расписании появились свободные окна. Хотите вернуться? Напишите.',
   },
 
   firstWeekChecklist: [

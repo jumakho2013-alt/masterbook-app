@@ -67,8 +67,8 @@ export const manicurePack: ProfessionPack = {
   },
 
   reminderTemplate: {
-    beforeAppointment: '{client}, жду тебя {day} в {time} 💅',
-    sleeping: '{client}, привет! Прошло уже {days} дн. с последнего визита — может, пора обновить?',
+    beforeAppointment: '{client}, привет! Напоминаю — {day} в {time} жду вас на {service} 💅 Если планы меняются, просто напишите 🙌',
+    sleeping: '{client}, привет! Уже {days} дн. с последнего визита 🌸 Если захотите обновить — напишите, подберём удобное время.',
   },
 
   firstWeekChecklist: [

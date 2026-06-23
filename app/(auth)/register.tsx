@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Keyboard, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Check } from 'lucide-react-native';
 import { MasterBookLogo } from '@/src/components/MasterBookLogo';
@@ -25,6 +25,7 @@ export default function RegisterScreen() {
   const signUp = useAuthStore((s) => s.signUp);
   const setMasterName = useSettingsStore((s) => s.setMasterName);
   const t = useT();
+  const insets = useSafeAreaInsets();
 
   const { alertConfig, error: showError } = useAlert();
 
@@ -83,8 +84,8 @@ export default function RegisterScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]} edges={['top']}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 24) }]} keyboardShouldPersistTaps="handled">
         <Animated.View entering={FadeInDown.duration(600)} style={styles.logo}>
           <MasterBookLogo size={80} />
 

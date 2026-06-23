@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useTheme } from '@/src/theme';
 import { Button } from '@/src/components/ui';
@@ -12,9 +12,10 @@ export default function WelcomeScreen() {
   const router = useRouter();
   const { colors, typography: typo, spacing: sp } = useTheme();
   const t = useT();
+  const insets = useSafeAreaInsets();
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]} edges={['top']}>
       <View style={styles.content}>
         <Animated.View entering={FadeInDown.delay(200).duration(600)} style={styles.logoWrap}>
           <MasterBookLogo size={96} />
@@ -36,7 +37,7 @@ export default function WelcomeScreen() {
         </Animated.View>
       </View>
 
-      <Animated.View entering={FadeInDown.delay(600).duration(600)} style={styles.bottom}>
+      <Animated.View entering={FadeInDown.delay(600).duration(600)} style={[styles.bottom, { paddingBottom: Math.max(insets.bottom, 24) }]}>
         <Button
           title={t('welcome.start')}
           onPress={() => router.push('/(auth)/profession')}

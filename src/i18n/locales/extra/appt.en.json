@@ -3,7 +3,7 @@
     "detailTitle": "Appointment",
     "serviceFallback": "Service",
     "clientFallback": "Client",
-    "reviewMessage": "%{name}, thank you for coming! 🌸\n\nIf you enjoyed it, I'd love a quick review:\n%{link}",
+    "reviewMessage": "%{name}, thank you for your visit! 🌸\n\nIf you enjoyed it, please leave a quick review — it really helps:\n%{link}",
     "status": {
       "scheduled": "Scheduled",
       "completed": "Completed",

@@ -23,6 +23,7 @@ export default function ManageServicesScreen() {
   const tr = useT();
   const services = useServiceStore((s) => s.services);
   const addService = useServiceStore((s) => s.addService);
+  const updateService = useServiceStore((s) => s.updateService);
   const deleteService = useServiceStore((s) => s.deleteService);
   const currency = useSettingsStore((s) => s.currency);
   const symbol = SUPPORTED_CURRENCIES.find((c) => c.code === currency)?.symbol ?? '';
@@ -31,6 +32,7 @@ export default function ManageServicesScreen() {
   const toast = useToast();
 
   const [adding, setAdding] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [duration, setDuration] = useState(60);
@@ -55,9 +57,19 @@ export default function ManageServicesScreen() {
     setPrice('');
     setDuration(60);
     setAdding(false);
+    setEditingId(null);
   };
 
-  const handleAdd = () => {
+  // Тап по услуге → открыть форму с предзаполнением для редактирования.
+  const startEdit = (id: string, n: string, p: number, d: number) => {
+    setName(n);
+    setPrice(String(p));
+    setDuration(d); // если d нет в DURATION_OPTIONS — чип не подсветится, но значение сохранится
+    setEditingId(id);
+    setAdding(false);
+  };
+
+  const handleSave = () => {
     if (!name.trim()) {
       toast.error(tr('misc.svcNameRequired'));
       return;
@@ -67,9 +79,15 @@ export default function ManageServicesScreen() {
       toast.error(tr('misc.svcPriceRequired'));
       return;
     }
-    addService({ name: name.trim(), price: priceNum, duration, color: colors.primary });
+    if (editingId) {
+      // Не трогаем color — сохраняем существующий цвет услуги (merge в сторе).
+      updateService(editingId, { name: name.trim(), price: priceNum, duration });
+      toast.success(tr('misc.svcUpdated'));
+    } else {
+      addService({ name: name.trim(), price: priceNum, duration, color: colors.primary });
+      toast.success(tr('misc.svcAdded'));
+    }
     resetForm();
-    toast.success(tr('misc.svcAdded'));
   };
 
   const handleDelete = (id: string, serviceName: string) => {
@@ -93,7 +111,7 @@ export default function ManageServicesScreen() {
           <Text style={[typo.h3, { color: colors.text }]}>{tr('misc.svcTitle')}</Text>
           <IconButton
             icon={<Plus size={22} color={colors.primary} />}
-            onPress={() => setAdding(true)}
+            onPress={() => { resetForm(); setAdding(true); }}
             variant="ghost"
           />
         </View>
@@ -117,13 +135,19 @@ export default function ManageServicesScreen() {
           }
           renderItem={({ item }) => (
             <GlassCard style={styles.serviceCard}>
-              <View style={[styles.colorDot, { backgroundColor: item.color }]} />
-              <View style={{ flex: 1 }}>
-                <Text style={[typo.bodyBold, { color: colors.text }]} numberOfLines={1}>{item.name}</Text>
-                <Text style={[typo.caption, { color: colors.textSecondary }]}>
-                  {formatCurrency(item.price)} · {fmtDuration(item.duration)}
-                </Text>
-              </View>
+              <TouchableOpacity
+                style={styles.serviceTap}
+                activeOpacity={0.6}
+                onPress={() => startEdit(item.id, item.name, item.price, item.duration)}
+              >
+                <View style={[styles.colorDot, { backgroundColor: item.color }]} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[typo.bodyBold, { color: colors.text }]} numberOfLines={1}>{item.name}</Text>
+                  <Text style={[typo.caption, { color: colors.textSecondary }]}>
+                    {formatCurrency(item.price)} · {fmtDuration(item.duration)}
+                  </Text>
+                </View>
+              </TouchableOpacity>
               <TouchableOpacity onPress={() => handleDelete(item.id, item.name)} hitSlop={12}>
                 <Trash2 size={18} color={colors.danger} />
               </TouchableOpacity>
@@ -131,8 +155,11 @@ export default function ManageServicesScreen() {
           )}
         />
 
-        {adding && (
+        {(adding || editingId !== null) && (
           <View style={[styles.addForm, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
+            <Text style={[typo.bodyBold, { color: colors.text }]}>
+              {editingId ? tr('misc.svcEditTitle') : tr('misc.svcAddTitle')}
+            </Text>
             <Input
               label={tr('misc.svcName')}
               placeholder={tr('misc.svcNamePlaceholder')}
@@ -172,7 +199,7 @@ export default function ManageServicesScreen() {
             </ScrollView>
 
             <View style={styles.addRow}>
-              <Button title={tr('misc.svcAdd')} onPress={handleAdd} style={{ flex: 1 }} />
+              <Button title={editingId ? tr('misc.svcSave') : tr('misc.svcAdd')} onPress={handleSave} style={{ flex: 1 }} />
               <Button title={tr('common.cancel')} onPress={resetForm} variant="secondary" style={{ flex: 1 }} />
             </View>
           </View>
@@ -201,6 +228,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 16,
   },
+  serviceTap: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
   colorDot: { width: 10, height: 10, borderRadius: 5 },
   addForm: {
     padding: 16,

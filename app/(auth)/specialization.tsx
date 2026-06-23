@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { ChevronRight } from 'lucide-react-native';
 import * as LucideIcons from 'lucide-react-native';
@@ -19,6 +19,7 @@ export default function SpecializationScreen() {
   const { categoryId } = useLocalSearchParams<{ categoryId: string }>();
   const { colors, typography: typo, spacing: sp } = useTheme();
   const tr = useT();
+  const insets = useSafeAreaInsets();
   const setProfession = useAuthStore((s) => s.setProfession);
   const setFieldConfig = useSettingsStore((s) => s.setFieldConfig);
 
@@ -35,7 +36,7 @@ export default function SpecializationScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]} edges={['top']}>
       <Animated.View entering={FadeInDown.duration(400)} style={styles.header}>
         <Text style={[typo.h2, { color: colors.text }]}>
           {localizeCategoryName(category)}
@@ -48,7 +49,7 @@ export default function SpecializationScreen() {
       <FlatList
         data={category.specializations}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: Math.max(insets.bottom, 24) }}
         ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
         renderItem={({ item, index }) => {
           const Icon = (LucideIcons as unknown as Record<string, React.ComponentType<{ size: number; color: string }>>)[item.icon];

@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
-  ArrowLeft, Phone, MessageCircle, Check, X, MoreHorizontal,
+  ArrowLeft, Phone, MessageCircle, X, MoreHorizontal,
   ChevronDown, ChevronUp, Heart, MapPin, Camera, Calendar, Star,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
@@ -188,7 +188,7 @@ export default function ClientDetailScreen() {
       <FlatList
         data={editing ? [] : appointments}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingBottom: editing ? 40 : 130 }}
+        contentContainerStyle={{ paddingBottom: 130 }}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <>
@@ -203,10 +203,7 @@ export default function ClientDetailScreen() {
                     <MoreHorizontal size={22} color={colors.textSecondary} strokeWidth={2} />
                   </Pressable>
                 ) : (
-                  <View style={{ flexDirection: 'row', gap: 8 }}>
-                    <IconButton icon={<Check size={20} color={colors.success} />} onPress={saveEdit} variant="ghost" />
-                    <IconButton icon={<X size={20} color={colors.danger} />} onPress={() => setEditing(false)} variant="ghost" />
-                  </View>
+                  <IconButton icon={<X size={20} color={colors.danger} />} onPress={() => setEditing(false)} variant="ghost" />
                 )}
               </View>
 
@@ -440,6 +437,13 @@ export default function ClientDetailScreen() {
             <Calendar size={19} color={onPrimary} strokeWidth={1.7} />
             <Text style={{ fontFamily: 'Manrope_700Bold', fontSize: 15.5, color: onPrimary }}>{tr('clientDetail.ctaRebook')}</Text>
           </Pressable>
+        </View>
+      )}
+
+      {/* Bottom Save bar — режим редактирования (вместо верхней галочки) */}
+      {editing && (
+        <View style={[styles.ctaBar, { backgroundColor: colors.surfaceGlass, borderTopColor: colors.border }]}>
+          <Button title={tr('common.save')} onPress={saveEdit} size="lg" fullWidth />
         </View>
       )}
 

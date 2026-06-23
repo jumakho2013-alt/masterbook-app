@@ -78,8 +78,8 @@ export const photographerPack: ProfessionPack = {
   },
 
   reminderTemplate: {
-    beforeAppointment: '{client}, напоминаю — {day} в {time} наша съёмка 📸 Локация прежняя?',
-    sleeping: '{client}, привет! Если планируешь съёмку — у меня есть свободные даты в этом месяце.',
+    beforeAppointment: '{client}, привет! Напоминаю — съёмка {day} в {time} 📸 Локация прежняя? Если что-то меняется, дайте знать.',
+    sleeping: '{client}, привет! Если задумываетесь о новой съёмке — в этом месяце есть свободные даты. Напишите, обсудим ✨',
   },
 
   firstWeekChecklist: [

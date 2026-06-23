@@ -33,7 +33,7 @@
     "remindNoPhone": "Client has no phone number",
     "remindWhatsappFailed": "Couldn't open WhatsApp",
     "remindSendFailed": "Couldn't open the messaging app",
-    "reminderDefaultTemplate": "Hi {name}! A reminder: you have an appointment tomorrow at {time}. If plans change, let me know 🙏",
+    "reminderDefaultTemplate": "Hi {name}! Reminder: you have an appointment tomorrow at {time} 🌸 If anything changes, just text me and we'll find another time.",
     "remindText": "Hi %{name}! Just a reminder of your appointment tomorrow at %{time}%{svc}. If plans change, let me know 🙏",
     "remindSvc": " for “%{service}”",
     "servicesTitle": "Your services",
@@ -68,6 +68,10 @@
     "svcDeleteBody": "Delete “%{name}”?",
     "svcDeleted": "Service deleted",
     "svcAdd": "Add",
+    "svcSave": "Save",
+    "svcUpdated": "Service updated",
+    "svcEditTitle": "Edit service",
+    "svcAddTitle": "New service",
     "svcDurHour": "%{h} h",
     "svcDurHourMin": "%{h} h %{m} m"
   }

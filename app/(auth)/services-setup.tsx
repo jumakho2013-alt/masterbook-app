@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { X } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
@@ -26,6 +26,7 @@ export default function ServicesSetupScreen() {
   const { colors, typography: typo, spacing: sp } = useTheme();
   const setOnboarded = useAuthStore((s) => s.setOnboarded);
   const tr = useT();
+  const insets = useSafeAreaInsets();
 
   const [services, setServices] = useState<Service[]>([]);
   const [masterName, setMasterName] = useState('');
@@ -107,7 +108,7 @@ export default function ServicesSetupScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]} edges={['top']}>
       <Animated.View entering={FadeInDown.duration(400)} style={styles.header}>
         <Text style={[typo.h2, { color: colors.text }]}>
           {tr('misc.servicesTitle')}
@@ -153,7 +154,7 @@ export default function ServicesSetupScreen() {
         )}
       />
 
-      <View style={styles.bottom}>
+      <View style={[styles.bottom, { paddingBottom: Math.max(insets.bottom, 24) }]}>
         <Button title={tr('common.done')} onPress={finish} size="lg" loading={loading} disabled={loading} style={{ width: '100%' }} />
         <TouchableOpacity onPress={skip} style={styles.skipBtn}>
           <Text style={[typo.body, { color: colors.textSecondary }]}>{tr('misc.servicesAddLater')}</Text>
