@@ -50,7 +50,8 @@ export default function PublishScreen() {
   const canPublish = reqs.length === 0;
 
   const slug = slug0 ?? makeSlug(masterName);
-  const url = `${SITE_DOMAIN}/${slug}`;
+  // Сайт отдаёт профиль по /m/<slug> (web/app/m/[slug]) — ссылка должна совпадать.
+  const url = `${SITE_DOMAIN}/m/${slug}`;
 
   const onToggle = (v: boolean) => {
     if (v && !canPublish) {
