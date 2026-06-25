@@ -141,6 +141,9 @@ Deno.serve(async (req: Request) => {
     .is('deleted_at', null)
     .neq('status', 'cancelled');
   if (dErr) return json({ error: 'lookup_failed' }, 500);
+  // Анти-абуз: не даём боту флудить календарь мастера за один день
+  // (стейтлесс-кап на основе уже загруженного списка дня).
+  if ((dayAppts?.length ?? 0) >= 40) return json({ error: 'day_full' }, 429);
   for (const a of dayAppts ?? []) {
     const aS = toMin(a.start_time);
     const aE = toMin(a.end_time);

@@ -24,12 +24,15 @@ export default function RegisterScreen() {
   const { colors, typography: typo, spacing: sp } = useTheme();
   const signUp = useAuthStore((s) => s.signUp);
   const setMasterName = useSettingsStore((s) => s.setMasterName);
+  // Предзаполняем имя из настроек — для локального мастера, который апгрейдится
+  // в аккаунт, чтобы не вводить имя заново.
+  const masterName = useSettingsStore((s) => s.masterName);
   const t = useT();
   const insets = useSafeAreaInsets();
 
   const { alertConfig, error: showError } = useAlert();
 
-  const [name, setName] = useState('');
+  const [name, setName] = useState(masterName);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);

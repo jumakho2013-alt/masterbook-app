@@ -89,16 +89,20 @@ export const useAuthStore = create<AuthState>()(
         });
         if (error) return { error: error.message };
 
-        // Supabase может не дать сессию если email confirmation включён
+        // localOnlyMode: false — КРИТИЧНО для «апгрейда» локального мастера в
+        // аккаунт: как только user есть и localOnly=false, useCloudSyncLifecycle
+        // делает syncNow (pull+push) и ВСЕ локальные клиенты/записи/услуги уезжают
+        // в облако. Без сброса флага синк бы не стартовал — данные «зависли» бы.
+        // Supabase может не дать сессию если email confirmation включён.
         if (data.session) {
-          set({ user: data.user, session: data.session });
+          set({ user: data.user, session: data.session, localOnlyMode: false });
         } else if (data.user) {
           // Email confirmation required — сразу логиним
           const signInResult = await supabase.auth.signInWithPassword({ email, password });
           if (signInResult.data.session) {
-            set({ user: signInResult.data.user, session: signInResult.data.session });
+            set({ user: signInResult.data.user, session: signInResult.data.session, localOnlyMode: false });
           } else {
-            set({ user: data.user, session: null });
+            set({ user: data.user, session: null, localOnlyMode: false });
           }
         }
         return {};
@@ -110,7 +114,7 @@ export const useAuthStore = create<AuthState>()(
           password,
         });
         if (error) return { error: error.message };
-        set({ user: data.user, session: data.session });
+        set({ user: data.user, session: data.session, localOnlyMode: false });
         return {};
       },
 

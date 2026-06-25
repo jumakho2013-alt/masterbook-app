@@ -100,6 +100,15 @@ export default function PublishScreen() {
           <Text style={[typo.body, { color: colors.textSecondary, textAlign: 'center', marginTop: 16, lineHeight: 22 }]}>
             {tr('settings.publishNeedAccount')}
           </Text>
+          {/* Бесшовный апгрейд: регистрация сбрасывает localOnly → синк сам
+              переносит все локальные данные в облако (см. useAuthStore.signUp). */}
+          <Button
+            title={tr('auth.register')}
+            onPress={() => router.push('/(auth)/register')}
+            size="lg"
+            fullWidth
+            style={{ marginTop: 24 }}
+          />
         </View>
       ) : (
         <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 48 }} showsVerticalScrollIndicator={false}>
