@@ -4,7 +4,7 @@ const NBSP = ' ';
 
 export function formatPrice(n: number): string {
   const s = Math.round(n).toLocaleString('ru-RU').replace(/\s/g, NBSP);
-  return `${s}${NBSP}сомони`;
+  return `${s}${NBSP}сом.`;
 }
 
 export function initials(name: string): string {
@@ -26,3 +26,15 @@ export function whatsappLink(phone: string, text?: string): string {
 export function telLink(phone: string): string {
   return `tel:${phone.replace(/[^\d+]/g, '')}`;
 }
+
+/** Русское склонение по числу: pluralRu(n, 'мастер', 'мастера', 'мастеров'). */
+export function pluralRu(n: number, one: string, few: string, many: string): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return one;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few;
+  return many;
+}
+
+export const mastersWord = (n: number) => pluralRu(n, 'мастер', 'мастера', 'мастеров');
+export const reviewsWord = (n: number) => pluralRu(n, 'отзыв', 'отзыва', 'отзывов');
