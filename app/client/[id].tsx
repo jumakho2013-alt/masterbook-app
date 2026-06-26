@@ -8,7 +8,7 @@ import {
   ArrowLeft, Phone, MessageCircle, X, MoreHorizontal,
   ChevronDown, ChevronUp, Heart, MapPin, Camera, Calendar, Star,
 } from 'lucide-react-native';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@/src/lib/haptics';
 import * as Clipboard from 'expo-clipboard';
 import * as ImagePicker from 'expo-image-picker';
 import { persistImageToAppDir } from '@/src/lib/photoStorage';

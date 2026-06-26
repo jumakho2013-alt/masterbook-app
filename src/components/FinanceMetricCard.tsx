@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { ArrowUpRight, ChevronRight } from 'lucide-react-native';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@/src/lib/haptics';
 import { useTheme } from '@/src/theme';
 import { CountUp, StatusPill, type StatusTone } from '@/src/components/ui';
 import { MiniSparkline } from '@/src/components/MiniSparkline';

@@ -1,10 +1,10 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView, Pressable } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView, Pressable, TextInput } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInRight } from 'react-native-reanimated';
 import { X, ArrowLeft, Scissors, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react-native';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@/src/lib/haptics';
 import { useTheme } from '@/src/theme';
 import { Button, IconButton, SearchBar, GlassCard, CustomAlert, EmptyState } from '@/src/components/ui';
 import { ClientRow } from '@/src/components/ClientRow';
@@ -81,10 +81,21 @@ export default function NewAppointmentScreen() {
   const [customTimeMode, setCustomTimeMode] = useState(false);
   const [customHour, setCustomHour] = useState<number | null>(null);
   const [customMinute, setCustomMinute] = useState<number>(0);
+  // Инлайн-добавление прямо в потоке записи (фидбэк: «нет нужного клиента/услуги —
+  // добавить, не выходя из записи»). Создаём в сторе → сразу выбираем → след. шаг.
+  const [addingClient, setAddingClient] = useState(false);
+  const [newClientName, setNewClientName] = useState('');
+  const [newClientPhone, setNewClientPhone] = useState('');
+  const [addingService, setAddingService] = useState(false);
+  const [newSvcName, setNewSvcName] = useState('');
+  const [newSvcPrice, setNewSvcPrice] = useState('');
+  const [newSvcDuration, setNewSvcDuration] = useState('60');
 
   const searchClients = useClientStore((s) => s.searchClients);
   const allClients = useClientStore((s) => s.clients);
   const services = useServiceStore((s) => s.services);
+  const addClient = useClientStore((s) => s.addClient);
+  const addService = useServiceStore((s) => s.addService);
   const addAppointment = useAppointmentStore((s) => s.addAppointment);
   const updateAppointment = useAppointmentStore((s) => s.updateAppointment);
   const allAppointments = useAppointmentStore((s) => s.appointments);
@@ -190,6 +201,33 @@ export default function NewAppointmentScreen() {
     const i = STEPS.indexOf(step);
     if (i > 0) setStep(STEPS[i - 1]);
     else router.back();
+  };
+
+  // Создать клиента прямо в потоке записи и сразу выбрать его.
+  const submitNewClient = () => {
+    const name = newClientName.trim();
+    if (name.length < 2) { showError(tr('appt.client.nameRequired')); return; }
+    const client = addClient({ name, phone: newClientPhone.trim(), notes: '', tags: ['new'] });
+    if (!client) { showError(tr('appt.validation.invalidData')); return; }
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setSelectedClient(client);
+    setAddingClient(false);
+    setNewClientName(''); setNewClientPhone('');
+    setStep('service');
+  };
+
+  // Создать услугу прямо в потоке записи и сразу выбрать её.
+  const submitNewService = () => {
+    const name = newSvcName.trim();
+    if (name.length < 2) { showError(tr('appt.service.nameRequired')); return; }
+    const price = Math.max(0, parseInt(newSvcPrice.replace(/\D/g, ''), 10) || 0);
+    const duration = Math.max(5, parseInt(newSvcDuration.replace(/\D/g, ''), 10) || 60);
+    const service = addService({ name, price, duration, color: colors.primary });
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setSelectedService(service);
+    setAddingService(false);
+    setNewSvcName(''); setNewSvcPrice(''); setNewSvcDuration('60');
+    setStep('time');
   };
 
   const pad2 = (n: number) => String(n).padStart(2, '0');
@@ -340,6 +378,44 @@ export default function NewAppointmentScreen() {
             <SearchBar value={search} onChangeText={setSearch} placeholder={tr('appt.client.searchPlaceholder')} />
           </View>
 
+          {/* Быстрое добавление клиента, не выходя из записи */}
+          <View style={{ paddingHorizontal: 16, marginBottom: 12 }}>
+            {!addingClient ? (
+              <Pressable
+                onPress={() => { Haptics.selectionAsync(); setNewClientName(search.trim()); setAddingClient(true); }}
+                accessibilityRole="button"
+                style={[styles.addInline, { borderColor: colors.primary, backgroundColor: colors.primarySoft, borderRadius: br.md }]}
+              >
+                <Text style={[typo.bodyBold, { color: colors.primary }]}>＋ {tr('appt.client.addNew')}</Text>
+              </Pressable>
+            ) : (
+              <GlassCard style={{ gap: 8 }}>
+                <TextInput
+                  value={newClientName}
+                  onChangeText={setNewClientName}
+                  placeholder={tr('appt.client.namePh')}
+                  placeholderTextColor={colors.textTertiary}
+                  autoFocus
+                  style={[styles.inlineInput, typo.body, { color: colors.text, backgroundColor: colors.surface, borderColor: colors.border, borderRadius: br.sm }]}
+                />
+                <TextInput
+                  value={newClientPhone}
+                  onChangeText={setNewClientPhone}
+                  placeholder={tr('appt.client.phonePh')}
+                  placeholderTextColor={colors.textTertiary}
+                  keyboardType="phone-pad"
+                  style={[styles.inlineInput, typo.body, { color: colors.text, backgroundColor: colors.surface, borderColor: colors.border, borderRadius: br.sm }]}
+                />
+                <View style={styles.inlineActions}>
+                  <Pressable onPress={() => setAddingClient(false)} hitSlop={8} accessibilityRole="button">
+                    <Text style={[typo.body, { color: colors.textSecondary }]}>{tr('common.cancel')}</Text>
+                  </Pressable>
+                  <Button title={tr('appt.client.addBtn')} onPress={submitNewClient} style={{ flex: 1 }} />
+                </View>
+              </GlassCard>
+            )}
+          </View>
+
           {/* Recent clients — горизонтальная полоска. Скрывается при поиске
               (фильтрованный список — главный фокус). */}
           {recentClients.length > 0 && (
@@ -413,6 +489,51 @@ export default function NewAppointmentScreen() {
       {step === 'service' && (
         <Animated.View entering={FadeInRight.duration(300)} style={{ flex: 1 }}>
           <ScrollView contentContainerStyle={{ padding: 16, gap: 10 }}>
+            {/* Быстрое добавление услуги, не выходя из записи */}
+            {!addingService ? (
+              <Pressable
+                onPress={() => { Haptics.selectionAsync(); setAddingService(true); }}
+                accessibilityRole="button"
+                style={[styles.addInline, { borderColor: colors.primary, backgroundColor: colors.primarySoft, borderRadius: br.md }]}
+              >
+                <Text style={[typo.bodyBold, { color: colors.primary }]}>＋ {tr('appt.service.addNew')}</Text>
+              </Pressable>
+            ) : (
+              <GlassCard style={{ gap: 8 }}>
+                <TextInput
+                  value={newSvcName}
+                  onChangeText={setNewSvcName}
+                  placeholder={tr('appt.service.namePh')}
+                  placeholderTextColor={colors.textTertiary}
+                  autoFocus
+                  style={[styles.inlineInput, typo.body, { color: colors.text, backgroundColor: colors.surface, borderColor: colors.border, borderRadius: br.sm }]}
+                />
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <TextInput
+                    value={newSvcPrice}
+                    onChangeText={setNewSvcPrice}
+                    placeholder={tr('appt.service.pricePh')}
+                    placeholderTextColor={colors.textTertiary}
+                    keyboardType="number-pad"
+                    style={[styles.inlineInput, typo.body, { flex: 1, color: colors.text, backgroundColor: colors.surface, borderColor: colors.border, borderRadius: br.sm }]}
+                  />
+                  <TextInput
+                    value={newSvcDuration}
+                    onChangeText={setNewSvcDuration}
+                    placeholder={tr('appt.service.durationPh')}
+                    placeholderTextColor={colors.textTertiary}
+                    keyboardType="number-pad"
+                    style={[styles.inlineInput, typo.body, { flex: 1, color: colors.text, backgroundColor: colors.surface, borderColor: colors.border, borderRadius: br.sm }]}
+                  />
+                </View>
+                <View style={styles.inlineActions}>
+                  <Pressable onPress={() => setAddingService(false)} hitSlop={8} accessibilityRole="button">
+                    <Text style={[typo.body, { color: colors.textSecondary }]}>{tr('common.cancel')}</Text>
+                  </Pressable>
+                  <Button title={tr('appt.client.addBtn')} onPress={submitNewService} style={{ flex: 1 }} />
+                </View>
+              </GlassCard>
+            )}
             {services.length === 0 && (
               <>
                 <EmptyState
@@ -869,6 +990,9 @@ function Row({ label, value }: { label: string; value: string }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  addInline: { borderWidth: 1, borderStyle: 'dashed', paddingVertical: 13, alignItems: 'center' },
+  inlineInput: { borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: 12, paddingVertical: 10 },
+  inlineActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 16, marginTop: 2 },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',

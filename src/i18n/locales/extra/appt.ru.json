@@ -104,12 +104,22 @@
       "emptySearchTitle": "Никого не нашли",
       "emptyTitle": "Нет клиентов",
       "emptySearchSubtitle": "Попробуйте другой запрос",
-      "emptySubtitle": "Сначала добавьте клиента в разделе «Клиенты»"
+      "emptySubtitle": "Сначала добавьте клиента в разделе «Клиенты»",
+      "addNew": "Новый клиент",
+      "namePh": "Имя клиента",
+      "phonePh": "Телефон (необязательно)",
+      "nameRequired": "Введите имя клиента",
+      "addBtn": "Добавить"
     },
     "service": {
       "emptyTitle": "Нет услуг",
       "emptySubtitle": "Добавьте услуги в Профиль → Мои услуги",
-      "addCta": "Создать услугу"
+      "addCta": "Создать услугу",
+      "addNew": "Новая услуга",
+      "namePh": "Название услуги",
+      "pricePh": "Цена",
+      "durationPh": "Мин",
+      "nameRequired": "Введите название услуги"
     },
     "time": {
       "takenSuffix": ", занято",

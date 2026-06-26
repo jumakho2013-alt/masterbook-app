@@ -10,7 +10,7 @@ import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-na
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '@/src/theme';
 import { useReduceMotion } from '@/src/hooks/useReduceMotion';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@/src/lib/haptics';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 

@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import { View, Text, StyleSheet, Pressable, Linking, Alert } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { Phone, MessageCircle, Trash2 } from 'lucide-react-native';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@/src/lib/haptics';
 import { useTheme } from '@/src/theme';
 import { ClientRow } from '@/src/components/ClientRow';
 import { useClientStore } from '@/src/stores/useClientStore';

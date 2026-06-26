@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Switch, TouchableOpacity, ActivityI
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Fingerprint, Download, FileText, Eraser, Trash2, ShieldAlert } from 'lucide-react-native';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@/src/lib/haptics';
 import { useTheme } from '@/src/theme';
 import { GlassCard, Divider, IconButton, CustomAlert, Button, useToast } from '@/src/components/ui';
 import { useAlert } from '@/src/hooks/useAlert';

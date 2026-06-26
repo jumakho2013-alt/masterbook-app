@@ -11,7 +11,7 @@ import {
   UserCircle,
 } from 'lucide-react-native';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@/src/lib/haptics';
 import { useT } from '@/src/hooks/useT';
 
 const TAB_ICONS = [CalendarCheck, Calendar, Users, Wallet, UserCircle];

@@ -13,7 +13,7 @@ import {
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, BellRing, MessageCircle, BatteryWarning } from 'lucide-react-native';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@/src/lib/haptics';
 import { useTheme } from '@/src/theme';
 import { GlassCard, IconButton, CustomAlert, useToast } from '@/src/components/ui';
 import { useAlert } from '@/src/hooks/useAlert';

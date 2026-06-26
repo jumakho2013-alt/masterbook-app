@@ -104,12 +104,22 @@
       "emptySearchTitle": "No one found",
       "emptyTitle": "No clients",
       "emptySearchSubtitle": "Try a different search",
-      "emptySubtitle": "First add a client in the “Clients” section"
+      "emptySubtitle": "First add a client in the “Clients” section",
+      "addNew": "New client",
+      "namePh": "Client name",
+      "phonePh": "Phone (optional)",
+      "nameRequired": "Enter client name",
+      "addBtn": "Add"
     },
     "service": {
       "emptyTitle": "No services",
       "emptySubtitle": "Add services in Profile → My services",
-      "addCta": "Create a service"
+      "addCta": "Create a service",
+      "addNew": "New service",
+      "namePh": "Service name",
+      "pricePh": "Price",
+      "durationPh": "Min",
+      "nameRequired": "Enter service name"
     },
     "time": {
       "takenSuffix": ", taken",

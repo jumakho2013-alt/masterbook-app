@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Pressable } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Pressable, Switch } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@/src/lib/haptics';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -24,6 +24,7 @@ import {
   Languages,
   BellRing,
   Camera,
+  Vibrate,
 } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
 import { GlassCard, Divider, CustomAlert, useToast } from '@/src/components/ui';
@@ -83,6 +84,40 @@ function MenuItem({ icon, label, onPress, subtitle }: MenuItemProps) {
   );
 }
 
+/** Строка-переключатель в стиле MenuItem (вместо навигации — Switch). */
+function MenuToggle({
+  icon,
+  label,
+  subtitle,
+  value,
+  onValueChange,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  subtitle?: string;
+  value: boolean;
+  onValueChange: (v: boolean) => void;
+}) {
+  const { colors, typography: typo } = useTheme();
+  return (
+    <View style={styles.menuItem}>
+      <View style={[styles.menuTile, { backgroundColor: colors.primarySoft }]}>{icon}</View>
+      <View style={{ flex: 1 }}>
+        <Text style={[typo.bodyBold, { color: colors.text }]}>{label}</Text>
+        {subtitle && (
+          <Text style={[typo.small, { color: colors.textTertiary, marginTop: 1 }]}>{subtitle}</Text>
+        )}
+      </View>
+      <Switch
+        value={value}
+        onValueChange={onValueChange}
+        trackColor={{ true: colors.primary, false: colors.border }}
+        thumbColor={colors.white}
+      />
+    </View>
+  );
+}
+
 function ProfileScreen() {
   const router = useRouter();
   const { colors, typography: typo, spacing: sp, borderRadius: br } = useTheme();
@@ -93,6 +128,8 @@ function ProfileScreen() {
   const resolvedPhoto = useResolvedPhoto(masterPhotoUri);
   const specializationId = useAuthStore((s) => s.specializationId);
   const theme = useSettingsStore((s) => s.theme);
+  const hapticsEnabled = useSettingsStore((s) => s.hapticsEnabled);
+  const setHapticsEnabled = useSettingsStore((s) => s.setHapticsEnabled);
   const setTheme = useSettingsStore((s) => s.setTheme);
   const autoClientReminders = useSettingsStore((s) => s.autoClientReminders);
   const currency = useSettingsStore((s) => s.currency);
@@ -361,6 +398,14 @@ function ProfileScreen() {
               label={tr('profile.language')}
               subtitle={languageLabel}
               onPress={() => router.push('/settings/language')}
+            />
+            <Divider style={{ marginVertical: 0, marginLeft: 52 }} />
+            <MenuToggle
+              icon={<Vibrate size={20} color={colors.primary} />}
+              label={tr('profile.vibration')}
+              subtitle={hapticsEnabled ? tr('profile.vibrationOn') : tr('profile.vibrationOff')}
+              value={hapticsEnabled}
+              onValueChange={(v) => { setHapticsEnabled(v); if (v) Haptics.selectionAsync(); }}
             />
           </GlassCard>
         </View>

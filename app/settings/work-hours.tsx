@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Pressable, Switch } from 'react-nat
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Clock, Coffee, Timer } from 'lucide-react-native';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@/src/lib/haptics';
 import { useTheme } from '@/src/theme';
 import { IconButton, GlassCard, Button, useToast } from '@/src/components/ui';
 import { useT } from '@/src/hooks/useT';

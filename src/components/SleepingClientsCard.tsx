@@ -2,7 +2,7 @@ import React, { useMemo, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, Pressable, Modal, ScrollView } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Clipboard from 'expo-clipboard';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@/src/lib/haptics';
 import { Moon, ChevronRight, X, MessageCircle, Send, Phone, Copy, Check } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
 import { GlassCard, Avatar, useToast } from '@/src/components/ui';

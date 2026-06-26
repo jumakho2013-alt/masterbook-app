@@ -7,7 +7,7 @@ import {
   ArrowLeft, Clock, User, Scissors, CalendarPlus,
   MoveRight, StickyNote, Check, X, CameraIcon, MessageCircle, Wallet,
 } from 'lucide-react-native';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@/src/lib/haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { persistImageToAppDir } from '@/src/lib/photoStorage';
 import { uploadPhoto } from '@/src/lib/photoCloud';

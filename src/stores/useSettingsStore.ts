@@ -59,6 +59,10 @@ interface SettingsState {
    *  Для слабых/бюджетных Android, где blur роняет FPS при скролле.
    *  Device-preference (как тема) — не сбрасывается при выходе из аккаунта. */
   reduceEffects: boolean;
+  /** Вибрация (тактильная отдача). Выключатель для тех, кому мешает —
+   *  device-preference (как тема), не сбрасывается при выходе из аккаунта.
+   *  По умолчанию включена. Гасит ВСЮ вибрацию через обёртку src/lib/haptics. */
+  hapticsEnabled: boolean;
   /** Авто-напоминания клиентам: вечером ежедневно приложение напоминает
    *  мастеру разослать напоминания завтрашним клиентам (тап → экран рассылки
    *  с готовыми WhatsApp-черновиками). Авто-отправка SMS требует платного
@@ -89,6 +93,7 @@ interface SettingsState {
   setCalendarSyncEnabled: (enabled: boolean) => void;
   setLanguage: (lang: 'system' | 'ru' | 'en') => void;
   setReduceEffects: (enabled: boolean) => void;
+  setHapticsEnabled: (enabled: boolean) => void;
   setAutoClientReminders: (enabled: boolean) => void;
   setReminderTemplate: (template: string | null) => void;
   setReminderChannel: (channel: 'whatsapp' | 'sms') => void;
@@ -137,6 +142,7 @@ export const useSettingsStore = create<SettingsState>()(
       calendarSyncEnabled: false,
       language: 'system',
       reduceEffects: false,
+      hapticsEnabled: true,
       autoClientReminders: false,
       reminderTemplate: null,
       reminderChannel: 'whatsapp',
@@ -162,6 +168,7 @@ export const useSettingsStore = create<SettingsState>()(
       setCalendarSyncEnabled: (enabled) => set({ calendarSyncEnabled: enabled }),
       setLanguage: (lang) => set({ language: lang }),
       setReduceEffects: (enabled) => set({ reduceEffects: enabled }),
+      setHapticsEnabled: (enabled) => set({ hapticsEnabled: enabled }),
       setAutoClientReminders: (enabled) => set({ autoClientReminders: enabled }),
       setReminderTemplate: (template) => set({ reminderTemplate: template }),
       setReminderChannel: (channel) => set({ reminderChannel: channel }),

@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TextInput, Switch, Pressable } from
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Clipboard from 'expo-clipboard';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@/src/lib/haptics';
 import { ArrowLeft, Globe, Copy, AlertCircle } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
 import { Button, IconButton, CustomAlert, useToast } from '@/src/components/ui';

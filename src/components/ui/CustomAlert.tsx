@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Modal, Pressable } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { useTheme } from '@/src/theme';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@/src/lib/haptics';
 import {
   CheckCircle, AlertTriangle, XCircle, Info, HelpCircle,
 } from 'lucide-react-native';

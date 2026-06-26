@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { useRouter } from 'expo-router';
 import { CalendarClock, X } from 'lucide-react-native';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@/src/lib/haptics';
 import { useTheme } from '@/src/theme';
 import { AppointmentCard } from '@/src/components/AppointmentCard';
 import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
