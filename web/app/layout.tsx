@@ -2,9 +2,24 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Header } from '@/components/Header';
 
+const SITE_URL = 'https://masterbook-app.vercel.app';
+const TITLE = 'MasterBook — мастера в твоём городе';
+const DESC = 'Найди мастера маникюра, барбера, бровиста и запишись за минуту — без регистрации.';
+
 export const metadata: Metadata = {
-  title: 'MasterBook — мастера в твоём городе',
-  description: 'Найди мастера маникюра, барбера, бровиста и запишись за минуту — без регистрации.',
+  metadataBase: new URL(SITE_URL),
+  title: TITLE,
+  description: DESC,
+  applicationName: 'MasterBook',
+  openGraph: {
+    type: 'website',
+    siteName: 'MasterBook',
+    locale: 'ru_RU',
+    url: SITE_URL,
+    title: TITLE,
+    description: DESC,
+  },
+  twitter: { card: 'summary', title: TITLE, description: DESC },
 };
 
 // Применяем сохранённую тему до первой отрисовки, чтобы не было вспышки

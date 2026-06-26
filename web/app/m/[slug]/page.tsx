@@ -31,7 +31,14 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   const place = [m.district, m.city].filter(Boolean).join(', ');
   const title = `${m.name}${place ? ` · ${place}` : ''} — MasterBook`;
   const description = (m.bio?.trim() || `Запишитесь к мастеру ${m.name} онлайн за минуту.`).slice(0, 160);
-  return { title, description, openGraph: { title, description, type: 'profile' } };
+  const url = `/m/${params.slug}`;
+  return {
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: { title, description, type: 'profile', siteName: 'MasterBook', locale: 'ru_RU', url },
+    twitter: { card: 'summary', title, description },
+  };
 }
 
 const WhatsAppIcon = () => (
