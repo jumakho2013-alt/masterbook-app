@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { ThemeToggle } from './ThemeToggle';
+import { LocationPicker } from './LocationPicker';
 import { DIRECTIONS, MEGA_GROUPS, catalogHref } from '@/lib/categories';
 
 const GridIcon = ({ s = 16, stroke = 'var(--plum)' }: { s?: number; stroke?: string }) => (
@@ -17,14 +18,6 @@ const SearchIcon = ({ s = 17 }: { s?: number }) => (
     <circle cx="11" cy="11" r="7" /><path d="M20 20l-3.2-3.2" />
   </svg>
 );
-const PinIcon = () => (
-  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="var(--plum)" strokeWidth={1.7}>
-    <path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z" /><circle cx="12" cy="10" r="2.4" />
-  </svg>
-);
-
-const CITY = 'Душанбе';
-
 export function Header() {
   const router = useRouter();
   const [mega, setMega] = useState(false);
@@ -109,6 +102,7 @@ export function Header() {
           </form>
 
           <div className="hdr-actions">
+            <LocationPicker />
             <ThemeToggle />
             <Link href="/cabinet" className="signin">Войти</Link>
           </div>
@@ -149,7 +143,7 @@ export function Header() {
           <Link href="/" className="brand">
             <span className="brand-name" style={{ fontSize: 22 }}>MasterBook</span>
           </Link>
-          <Link href={catalogHref(undefined, CITY)} className="city-pill"><PinIcon /> {CITY}</Link>
+          <LocationPicker />
         </div>
         <div className="msearch">
           <Link href="/catalog" className="msearch-box"><SearchIcon s={16} /> Поиск услуги или мастера…</Link>

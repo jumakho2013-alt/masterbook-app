@@ -5,10 +5,9 @@ import { initials, mastersWord, reviewsWord } from '@/lib/format';
 import { HOME_CATEGORIES, catalogHref } from '@/lib/categories';
 import { CatIcon } from '@/components/CatIcon';
 import { MasterCard, isActivePremium } from '@/components/MasterCard';
+import { HeroCity } from '@/components/HeroCity';
 
 export const revalidate = 60;
-
-const CITY = 'Душанбе';
 
 // День недели в Душанбе (UTC+5), 0=Вс..6=Сб — как work_days в приложении.
 function dushanbeDow(): number {
@@ -69,7 +68,7 @@ export default async function HomePage() {
         <div className="hero-grid">
           <div className="hero-main">
             <div className="hero-eyebrow">МАСТЕРА РЯДОМ С ТОБОЙ</div>
-            <h1>Найди своего мастера в городе {CITY}</h1>
+            <h1>Найди своего мастера в городе <HeroCity /></h1>
             <p className="hero-sub">Маникюр, барбер, брови, косметология, массаж и не только. Заявка за минуту — мастер подтвердит запись.</p>
             <div className="hero-cta">
               <Link href="/catalog" className="btn btn-primary btn-lg">Смотреть мастеров</Link>

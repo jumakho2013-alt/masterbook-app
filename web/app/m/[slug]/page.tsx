@@ -9,8 +9,6 @@ import { BookingForm } from '@/components/BookingForm';
 
 export const revalidate = 60;
 
-const CITY = 'Душанбе';
-
 function dushanbeDow(): number {
   return new Date(Date.now() + 5 * 3600 * 1000).getUTCDay();
 }

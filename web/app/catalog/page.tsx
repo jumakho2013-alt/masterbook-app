@@ -4,11 +4,11 @@ import { MasterCard } from '@/components/MasterCard';
 import type { Master } from '@/lib/types';
 import { HOME_CATEGORIES } from '@/lib/categories';
 import { mastersWord } from '@/lib/format';
+import { groupCitiesByCountry } from '@/lib/geo';
 
 export const revalidate = 60;
 
 const PAGE_SIZE = 24;
-const CITY = 'Душанбе';
 const SORTS = [
   { key: 'premium', label: 'Сначала премиум' },
   { key: 'rating', label: 'По рейтингу' },
@@ -76,11 +76,12 @@ export default async function CatalogPage({
 
   const { data: cityData } = await supabase.rpc('published_cities');
   const cities = ((cityData as string[] | null) ?? []).filter(Boolean);
+  const cityGroups = groupCitiesByCountry(cities);
   const today = dushanbeDow();
 
   return (
     <div className="cat-page">
-      <h1 className="cat-title">Мастера в городе {city || CITY}</h1>
+      <h1 className="cat-title">Мастера{city ? ` в городе ${city}` : ''}</h1>
       <div className="cat-count2">
         {page > 1 ? `Страница ${page}` : <><b>{total}</b> {mastersWord(total)} · {SORTS.find((s) => s.key === sort)?.label.toLowerCase()}</>}
       </div>
@@ -93,12 +94,19 @@ export default async function CatalogPage({
         ))}
       </div>
 
-      {/* города */}
+      {/* города — сгруппированы по стране (мастер из другой страны не смешивается) */}
       {cities.length > 1 && (
-        <div className="chips">
-          <Link href={hrefWith({ q, sort }, { city: undefined })} className={`chip${!city ? ' active' : ''}`}>📍 Все города</Link>
-          {cities.map((c) => (
-            <Link key={c} href={hrefWith({ q, sort }, { city: c })} className={`chip${city === c ? ' active' : ''}`}>{c}</Link>
+        <div style={{ marginBottom: 4 }}>
+          <div className="chips">
+            <Link href={hrefWith({ q, sort }, { city: undefined })} className={`chip${!city ? ' active' : ''}`}>📍 Все города</Link>
+          </div>
+          {cityGroups.map((g) => (
+            <div key={g.country} className="chips" style={{ marginTop: 8, alignItems: 'center' }}>
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.6, color: 'var(--text3)', marginRight: 2 }}>{g.country}</span>
+              {g.cities.map((c) => (
+                <Link key={c} href={hrefWith({ q, sort }, { city: c })} className={`chip${city === c ? ' active' : ''}`}>{c}</Link>
+              ))}
+            </div>
           ))}
         </div>
       )}

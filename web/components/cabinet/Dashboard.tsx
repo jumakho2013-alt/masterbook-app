@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { getBrowserSupabase } from '@/lib/supabase-browser';
 import { formatPrice } from '@/lib/format';
+import { COUNTRIES, countryByName, countryOfCity, DEFAULT_COUNTRY } from '@/lib/geo';
 
 type Profile = {
   id: string;
@@ -86,6 +87,7 @@ export function Dashboard({ session }: { session: Session }) {
   const [saving, setSaving] = useState(false);
   const [topupAmount, setTopupAmount] = useState('');
   const [topupMethod, setTopupMethod] = useState('Перевод');
+  const [countrySel, setCountrySel] = useState(DEFAULT_COUNTRY);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -105,6 +107,7 @@ export function Dashboard({ session }: { session: Session }) {
     const prof = (p as Profile) ?? null;
     setProfile(prof);
     if (prof) setForm(prof);
+    if (prof?.city) setCountrySel(countryOfCity(prof.city) || DEFAULT_COUNTRY);
     setAppts((a ?? []) as Appt[]);
     setBalance(Number(b?.balance ?? 0));
     setPayments((pay ?? []) as Payment[]);
@@ -241,13 +244,21 @@ export function Dashboard({ session }: { session: Session }) {
           </select>
         </label>
         <div className="bf-row">
-          <label className="bf-field"><span className="bf-label">Город</span>
-            <input className="bf-input" value={form.city ?? ''} onChange={(e) => setField('city', e.target.value)} maxLength={60} />
+          <label className="bf-field"><span className="bf-label">Страна</span>
+            <select className="bf-input" value={countrySel} onChange={(e) => setCountrySel(e.target.value)}>
+              {COUNTRIES.map((c) => <option key={c.code} value={c.name}>{c.name}</option>)}
+            </select>
           </label>
-          <label className="bf-field"><span className="bf-label">Район</span>
-            <input className="bf-input" value={form.district ?? ''} onChange={(e) => setField('district', e.target.value)} maxLength={60} />
+          <label className="bf-field"><span className="bf-label">Город</span>
+            <input className="bf-input" list="mb-cities" value={form.city ?? ''} onChange={(e) => setField('city', e.target.value)} maxLength={60} placeholder="Выберите или впишите" />
+            <datalist id="mb-cities">
+              {(countryByName(countrySel)?.cities ?? []).map((c) => <option key={c} value={c} />)}
+            </datalist>
           </label>
         </div>
+        <label className="bf-field"><span className="bf-label">Район <span style={{ color: 'var(--text3)', fontWeight: 400 }}>(необязательно)</span></span>
+          <input className="bf-input" value={form.district ?? ''} onChange={(e) => setField('district', e.target.value)} maxLength={60} />
+        </label>
         <label className="bf-field"><span className="bf-label">О себе</span>
           <textarea className="bf-input" rows={3} value={form.bio ?? ''} onChange={(e) => setField('bio', e.target.value)} maxLength={600} />
         </label>
