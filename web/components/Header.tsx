@@ -102,6 +102,7 @@ export function Header() {
           </form>
 
           <div className="hdr-actions">
+            <Link href="/dlya-masterov" className="hdr-formasters">Для мастеров</Link>
             <LocationPicker />
             <ThemeToggle />
             <Link href="/cabinet" className="signin">Войти</Link>

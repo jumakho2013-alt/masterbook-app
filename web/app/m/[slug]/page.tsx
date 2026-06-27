@@ -78,6 +78,24 @@ export default async function MasterPage({ params }: { params: { slug: string } 
   const freeToday = master.work_days?.includes(dushanbeDow());
   const photos = master.portfolio_photos ?? [];
 
+  // Structured data (schema.org) — Google показывает звёзды/инфо в выдаче,
+  // выше CTR. Только реальные поля; цены не указываем (валюта зависит от страны).
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'LocalBusiness',
+    name: master.name,
+    url: `https://masterbook-app.vercel.app/m/${master.slug}`,
+    ...(master.city
+      ? { address: { '@type': 'PostalAddress', addressLocality: master.city, ...(master.district ? { streetAddress: master.district } : {}) } }
+      : {}),
+    ...(master.reviews_count > 0
+      ? { aggregateRating: { '@type': 'AggregateRating', ratingValue: Number(master.rating ?? 0).toFixed(1), reviewCount: master.reviews_count } }
+      : {}),
+    ...(services.length
+      ? { makesOffer: services.map((s) => ({ '@type': 'Offer', itemOffered: { '@type': 'Service', name: s.name } })) }
+      : {}),
+  };
+
   const cta = master.whatsapp
     ? { href: whatsappLink(master.whatsapp, 'Здравствуйте! Хочу записаться (нашёл вас на MasterBook).'), label: 'Написать в WhatsApp' }
     : master.public_phone
@@ -86,6 +104,7 @@ export default async function MasterPage({ params }: { params: { slug: string } 
 
   return (
     <div className="prof-wrap">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       {/* cover */}
       <div className="prof-cover" style={{ height: 210 }}>
         <span className="ink" style={{ fontSize: 100 }}>{initials(master.name)}</span>

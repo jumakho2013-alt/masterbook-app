@@ -124,6 +124,8 @@ button { font-family: inherit; }
 .search-menu-item { display: block; width: 100%; text-align: left; background: none; border: none; font-family: inherit; cursor: pointer; font-size: 13.5px; font-weight: 600; border-radius: 9px; padding: 9px 12px; color: var(--text); }
 .search-menu-item:hover, .search-menu-item.active { background: var(--plum-soft); color: var(--plum); }
 .hdr-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.hdr-formasters { flex: none; font-size: 13px; font-weight: 600; color: var(--text2); white-space: nowrap; transition: color 0.15s; }
+.hdr-formasters:hover { color: var(--plum); }
 .signin { flex: none; font-size: 13px; font-weight: 700; color: var(--plum); background: var(--plum-soft); border: none; border-radius: 11px; padding: 10px 20px; cursor: pointer; }
 
 /* mega menu */
@@ -202,6 +204,8 @@ button { font-family: inherit; }
    ============================================================ */
 .mcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(270px, 100%), 1fr)); gap: 18px; }
 .mcard { background: var(--card); border: 1px solid var(--line); border-radius: 20px; overflow: hidden; box-shadow: var(--shadow); display: flex; flex-direction: column; transition: transform 0.16s ease, box-shadow 0.16s ease; }
+/* Премиум-мастер выделен золотым кольцом — продаёт ценность продвижения. */
+.mcard-premium { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold), var(--shadow); }
 .mcard:hover { transform: translateY(-4px); box-shadow: 0 18px 44px rgba(36, 30, 41, 0.12); }
 .mcard-cover { cursor: pointer; position: relative; height: 150px; background: var(--plum-soft); display: flex; align-items: center; justify-content: center; }
 .mcard-cover.tone-gold { background: var(--gold-soft); }
@@ -309,6 +313,8 @@ button { font-family: inherit; }
    ============================================================ */
 .footer { border-top: 1px solid var(--line); margin-top: 56px; padding: 28px 40px; color: var(--text3); font-size: 14px; background: var(--card); }
 .footer-inner { max-width: 1240px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.footer-link { color: var(--text2); transition: color 0.15s; }
+.footer-link:hover { color: var(--text); }
 
 /* ============================================================
    BOOKING FORM (kept + refined)

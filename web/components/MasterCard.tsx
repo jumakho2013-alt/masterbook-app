@@ -29,7 +29,7 @@ export function MasterCard({
   const works = m.portfolio_photos?.length ?? 0;
 
   return (
-    <div className="mcard">
+    <div className={`mcard${isActivePremium(m) ? ' mcard-premium' : ''}`}>
       <Link href={href} className={`mcard-cover ${TONES[toneIndex % TONES.length]}`} aria-label={`Открыть профиль: ${m.name}`}>
         <span className="ink">{initials(m.name)}</span>
         {isActivePremium(m) && <span className="mcard-vip">VIP</span>}
