@@ -413,6 +413,7 @@ export async function pushPublicProfile(): Promise<{ ok: boolean; error?: string
         work_hours_start: s.workHours.start,
         work_hours_end: s.workHours.end,
         currency: s.currency,
+        portfolio_photos: s.portfolioPhotos,
         published: s.published,
       })
       .eq('id', userId);

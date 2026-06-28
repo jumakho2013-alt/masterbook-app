@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, Switch, Pressable } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TextInput, Switch, Pressable, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Image } from 'expo-image';
 import * as Clipboard from 'expo-clipboard';
+import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from '@/src/lib/haptics';
-import { ArrowLeft, Globe, Copy, AlertCircle } from 'lucide-react-native';
+import { ArrowLeft, Globe, Copy, AlertCircle, ImagePlus, X } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
 import { Button, IconButton, CustomAlert, useToast } from '@/src/components/ui';
 import { useAlert } from '@/src/hooks/useAlert';
@@ -15,6 +17,9 @@ import { useAuthStore } from '@/src/stores/useAuthStore';
 import { makeSlug } from '@/src/utils/slug';
 import { COUNTRIES, countryByName, countryOfCity, DEFAULT_COUNTRY } from '@/src/data/geo';
 import { pushPublicProfile } from '@/src/lib/cloudSync';
+import { uploadPortfolioPhoto, deletePortfolioPhoto } from '@/src/lib/portfolioCloud';
+
+const MAX_PHOTOS = 12;
 
 // Рабочий домен сайта-каталога. Имя поменяем перед публичным запуском —
 // это единственное место, где оно зашито для предпросмотра ссылки.
@@ -45,7 +50,59 @@ export default function PublishScreen() {
   const [phone, setPhone] = useState(useSettingsStore.getState().publicPhone);
   const [bio, setBio] = useState(useSettingsStore.getState().bio);
   const [published, setPublished] = useState(useSettingsStore.getState().published);
+  const [photos, setPhotos] = useState<string[]>(useSettingsStore.getState().portfolioPhotos);
+  const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Коммит фото — на «Сохранить». Удаляем из бакета (а не сразу при тапе X),
+  // иначе уход без сохранения оставил бы в БД ссылку на уже удалённый файл →
+  // битая картинка на сайте. На успешном сейве чистим: всё, что было в БД или
+  // залито в эту сессию, но не попало в финальный список.
+  const initialPhotos = useRef(useSettingsStore.getState().portfolioPhotos);
+  const uploadedThisSession = useRef<Set<string>>(new Set());
+
+  const addPhotos = async () => {
+    if (photos.length >= MAX_PHOTOS) {
+      toast.error(tr('settings.publishPhotoLimit'));
+      return;
+    }
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      showError(tr('settings.publishPhotoPermTitle'), tr('settings.publishPhotoPermBody'));
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsMultipleSelection: true,
+      selectionLimit: MAX_PHOTOS - photos.length,
+      quality: 1, // финальное сжатие делает manipulateAsync в portfolioCloud
+    });
+    if (result.canceled || !result.assets?.length) return;
+
+    setUploading(true);
+    const uploaded: string[] = [];
+    for (const asset of result.assets) {
+      const u = await uploadPortfolioPhoto(asset.uri);
+      if (u) {
+        uploaded.push(u);
+        uploadedThisSession.current.add(u);
+      }
+    }
+    setUploading(false);
+
+    if (uploaded.length) {
+      setPhotos((prev) => [...prev, ...uploaded].slice(0, MAX_PHOTOS));
+      Haptics.selectionAsync();
+    }
+    if (uploaded.length < result.assets.length) {
+      toast.error(tr('settings.publishPhotoError'));
+    }
+  };
+
+  const removePhoto = (urlDel: string) => {
+    Haptics.selectionAsync();
+    setPhotos((prev) => prev.filter((p) => p !== urlDel));
+  };
 
   const reqs = [
     !masterName.trim() && tr('settings.publishReqName'),
@@ -74,13 +131,20 @@ export default function PublishScreen() {
     }
     setSaving(true);
     const nextSlug = published ? (slug0 ?? makeSlug(masterName)) : slug0;
-    setPublicProfile({ city: city.trim(), district: district.trim(), bio: bio.trim(), whatsapp: whatsapp.trim(), publicPhone: phone.trim(), published, slug: nextSlug });
+    setPublicProfile({ city: city.trim(), district: district.trim(), bio: bio.trim(), whatsapp: whatsapp.trim(), publicPhone: phone.trim(), portfolioPhotos: photos, published, slug: nextSlug });
     const res = await pushPublicProfile();
     setSaving(false);
     if (!res.ok) {
       showError(tr('settings.publishSaveError'));
       return;
     }
+    // Сейв удался → подчищаем бакет: всё, что было раньше или залито в сессию,
+    // но не осталось в финальном списке (удалённые + добавленные-и-убранные).
+    const keep = new Set(photos);
+    const stale = [...new Set([...initialPhotos.current, ...uploadedThisSession.current])].filter((u) => !keep.has(u));
+    stale.forEach((u) => void deletePortfolioPhoto(u));
+    initialPhotos.current = photos;
+    uploadedThisSession.current = new Set();
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     toast.success(tr('settings.publishSaved'));
     router.back();
@@ -209,6 +273,37 @@ export default function PublishScreen() {
             style={[styles.input, typo.body, { color: colors.text, backgroundColor: colors.surface, borderColor: colors.border, borderRadius: br.md, minHeight: 96, textAlignVertical: 'top' }]}
           />
 
+          {/* Фото-портфолио — публичный бакет, на сайте показывается галереей */}
+          <Text style={[typo.label, { color: colors.textTertiary, marginTop: sp.md, marginBottom: 4 }]}>{tr('settings.publishPhotos')}</Text>
+          <Text style={[typo.small, { color: colors.textTertiary, marginBottom: 10 }]}>{tr('settings.publishPhotosHint')}</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingBottom: 2 }}>
+            {photos.map((p) => (
+              <View key={p} style={styles.photoWrap}>
+                <Image source={{ uri: p }} style={[styles.photo, { borderRadius: br.md }]} contentFit="cover" transition={150} />
+                <Pressable
+                  onPress={() => removePhoto(p)}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={tr('common.delete')}
+                  style={[styles.photoRemove, { backgroundColor: colors.text }]}
+                >
+                  <X size={13} color={colors.white} />
+                </Pressable>
+              </View>
+            ))}
+            {photos.length < MAX_PHOTOS && (
+              <Pressable
+                onPress={addPhotos}
+                disabled={uploading}
+                accessibilityRole="button"
+                accessibilityLabel={tr('settings.publishPhotos')}
+                style={[styles.photoAdd, { borderColor: colors.border, borderRadius: br.md, backgroundColor: colors.surface }]}
+              >
+                {uploading ? <ActivityIndicator color={colors.primary} /> : <ImagePlus size={24} color={colors.textTertiary} />}
+              </Pressable>
+            )}
+          </ScrollView>
+
           {/* Требования перед публикацией */}
           {!canPublish && (
             <View style={[styles.reqs, { backgroundColor: colors.warningSoft, borderRadius: br.md }]}>
@@ -272,6 +367,10 @@ const styles = StyleSheet.create({
   needAccount: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40, marginTop: -40 },
   input: { borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: 14, paddingVertical: 12 },
   geoChip: { borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: 14, paddingVertical: 8 },
+  photoWrap: { width: 92, height: 92 },
+  photo: { width: 92, height: 92 },
+  photoRemove: { position: 'absolute', top: 4, right: 4, width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  photoAdd: { width: 92, height: 92, borderWidth: 1, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
   reqs: { padding: 14, marginTop: 16 },
   toggleRow: { flexDirection: 'row', alignItems: 'center', borderWidth: StyleSheet.hairlineWidth, padding: 16, marginTop: 20 },
   urlBox: { padding: 16, marginTop: 12 },

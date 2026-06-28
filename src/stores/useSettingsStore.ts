@@ -33,6 +33,9 @@ interface SettingsState {
   slug: string | null;
   whatsapp: string;
   publicPhone: string;
+  /** Публичные URL фото-работ (бакет 'portfolio', public). Показываются в
+   *  галерее на странице мастера; пушатся в profiles.portfolio_photos. */
+  portfolioPhotos: string[];
   /** Валюта для отображения цен / дохода. Default RUB (СНГ-first).
    *  При смене все компоненты что зовут formatCurrency() перерисуются
    *  благодаря подписке через useSettingsStore. */
@@ -84,7 +87,7 @@ interface SettingsState {
   setMasterName: (name: string) => void;
   setMasterPhotoUri: (uri: string | null) => void;
   setBiometricLock: (enabled: boolean) => void;
-  setPublicProfile: (patch: Partial<{ city: string; district: string; bio: string; published: boolean; slug: string | null; whatsapp: string; publicPhone: string }>) => void;
+  setPublicProfile: (patch: Partial<{ city: string; district: string; bio: string; published: boolean; slug: string | null; whatsapp: string; publicPhone: string; portfolioPhotos: string[] }>) => void;
   setCurrency: (currency: CurrencyCode) => void;
   setDemoDataSeededAt: (iso: string | null) => void;
   setFirstUseAt: (iso: string | null) => void;
@@ -128,6 +131,7 @@ const defaultSettingsForAccount = {
   slug: null as string | null,
   whatsapp: '',
   publicPhone: '',
+  portfolioPhotos: [] as string[],
 };
 
 export const useSettingsStore = create<SettingsState>()(
