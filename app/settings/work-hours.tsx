@@ -62,6 +62,14 @@ export default function WorkHoursScreen() {
       toast.error(tr('settings.workHoursEndAfterStart'));
       return;
     }
+    if (brk.enabled) {
+      const bs = parseInt(brk.start.split(':')[0]) * 60 + parseInt(brk.start.split(':')[1]);
+      const be = parseInt(brk.end.split(':')[0]) * 60 + parseInt(brk.end.split(':')[1]);
+      if (be <= bs) {
+        toast.error(tr('settings.breakEndAfterStart'));
+        return;
+      }
+    }
     setWorkHours(start, end);
     setWorkDays(days);
     setBreakTime(brk);

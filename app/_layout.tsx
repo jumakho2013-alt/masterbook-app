@@ -25,6 +25,8 @@ import { useNotificationDeepLink } from '@/src/hooks/useNotificationDeepLink';
 import { useCloudSyncLifecycle } from '@/src/hooks/useCloudSyncLifecycle';
 import { rescheduleMissingReminders } from '@/src/lib/reminderSync';
 import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
+import { useAuthStore } from '@/src/stores/useAuthStore';
+import { supabase } from '@/src/lib/supabase';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
@@ -65,6 +67,24 @@ function RootInner() {
       void rescheduleMissingReminders();
     });
     return unsub;
+  }, []);
+
+  // Глобальный слушатель auth — живёт на ЛЮБОМ экране (always-mounted RootInner).
+  // Раньше листенер был только в index.tsx и размонтировался при входе в (tabs),
+  // поэтому отозванный/протухший токен (смена пароля, сессия снята на др.
+  // устройстве, провал refresh) не сбрасывал session → юзер сидел с мёртвой
+  // сессией, данные не бэкапились. Теперь SIGNED_OUT/провал refresh → session=null
+  // → guard в (tabs)/_layout редиректит на логин.
+  useEffect(() => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        // Отозванный/протухший токен и провал refresh эмитят SIGNED_OUT.
+        useAuthStore.getState().setSession(null);
+      } else if (event === 'TOKEN_REFRESHED') {
+        useAuthStore.getState().setSession(session);
+      }
+    });
+    return () => listener.subscription.unsubscribe();
   }, []);
 
   return (

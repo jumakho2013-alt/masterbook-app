@@ -38,6 +38,7 @@
     "workHoursBufferNone": "Нет",
     "workHoursBufferMinutes": "%{n} мин",
     "workHoursEndAfterStart": "Конец рабочего дня должен быть позже начала",
+    "breakEndAfterStart": "Конец перерыва должен быть позже начала",
     "workHoursSaved": "Рабочее время сохранено",
     "workHoursDayMon": "Пн",
     "workHoursDayTue": "Вт",

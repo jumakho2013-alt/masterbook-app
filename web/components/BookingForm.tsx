@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { formatPrice } from '@/lib/format';
 
 type SvcOpt = { id: string; name: string; price: number; duration: number };
@@ -35,7 +35,7 @@ function todayLocal(): string {
 }
 
 /** Слоты начала с шагом 30 мин в пределах рабочих часов. */
-function buildSlots(start: string | null, end: string | null): string[] {
+function buildSlots(start: string | null, end: string | null, durationMin = 30): string[] {
   const toMin = (t: string | null, def: number) => {
     const m = t && /^(\d{2}):(\d{2})$/.exec(t);
     return m ? Number(m[1]) * 60 + Number(m[2]) : def;
@@ -43,10 +43,11 @@ function buildSlots(start: string | null, end: string | null): string[] {
   const s = toMin(start, 9 * 60);
   const e = toMin(end, 20 * 60);
   const out: string[] = [];
-  for (let t = s; t < e; t += 30) {
+  // Слот валиден, только если услуга успевает до конца дня (start + duration <= end).
+  for (let t = s; t + durationMin <= e; t += 30) {
     out.push(`${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`);
   }
-  return out.length ? out : ['09:00'];
+  return out;
 }
 
 export function BookingForm({
@@ -64,10 +65,23 @@ export function BookingForm({
   workDays: number[] | null;
   contact: Contact;
 }) {
-  const slots = useMemo(() => buildSlots(workHoursStart, workHoursEnd), [workHoursStart, workHoursEnd]);
   const min = useMemo(() => todayLocal(), []);
+  // Верхняя граница даты — как в edge-функции book (today + 366 дн.), чтобы не
+  // ловить date_far уже после отправки.
+  const max = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 365);
+    return d.toISOString().slice(0, 10);
+  }, []);
 
   const [serviceId, setServiceId] = useState(services[0]?.id ?? '');
+  const selectedService = services.find((s) => s.id === serviceId);
+  // Слоты учитывают длительность выбранной услуги — не предлагаем время, на
+  // которое услуга не успевает до конца рабочего дня.
+  const slots = useMemo(
+    () => buildSlots(workHoursStart, workHoursEnd, selectedService?.duration ?? 30),
+    [workHoursStart, workHoursEnd, selectedService?.duration],
+  );
   const [date, setDate] = useState('');
   const [time, setTime] = useState(slots[0] ?? '');
   const [name, setName] = useState('');
@@ -84,6 +98,12 @@ export function BookingForm({
     if (!y || !m || !d) return false;
     return !workDays.includes(new Date(y, m - 1, d).getDay());
   }, [date, workDays]);
+
+  // Смена услуги/часов изменила набор слотов и текущее время выпало — подставляем
+  // первый доступный (или пусто, если услуга вообще не влезает в день).
+  useEffect(() => {
+    if (time && !slots.includes(time)) setTime(slots[0] ?? '');
+  }, [slots]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (slug === '') {
     return <div className="empty" style={{ padding: 20 }}>Онлайн-запись у этого мастера пока недоступна.</div>;
@@ -173,7 +193,7 @@ export function BookingForm({
       <div className="bf-row">
         <label className="bf-field">
           <span className="bf-label">Дата</span>
-          <input className="bf-input" type="date" min={min} value={date} onChange={(e) => setDate(e.target.value)} required />
+          <input className="bf-input" type="date" min={min} max={max} value={date} onChange={(e) => setDate(e.target.value)} required />
         </label>
         <label className="bf-field">
           <span className="bf-label">Время</span>

@@ -70,6 +70,11 @@ export function AdminPanel({ session }: { session: Session }) {
   }, [load]);
 
   async function act(id: string, action: 'confirm' | 'reject') {
+    // Подтверждение необратимо зачисляет деньги на баланс — спрашиваем явно.
+    const ask = action === 'confirm'
+      ? 'Подтвердить оплату? Сумма будет зачислена на баланс мастера — отменить нельзя.'
+      : 'Отклонить эту заявку на пополнение?';
+    if (!window.confirm(ask)) return;
     setBusyId(id);
     setError('');
     try {

@@ -38,6 +38,7 @@
     "workHoursBufferNone": "None",
     "workHoursBufferMinutes": "%{n} min",
     "workHoursEndAfterStart": "End of the working day must be later than the start",
+    "breakEndAfterStart": "Break end must be later than its start",
     "workHoursSaved": "Working hours saved",
     "workHoursDayMon": "Mon",
     "workHoursDayTue": "Tue",
