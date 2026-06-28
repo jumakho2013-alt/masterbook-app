@@ -163,7 +163,7 @@ export default async function HomePage() {
       {/* ===== ЛУЧШИЕ МАСТЕРА ===== */}
       <section className="section">
         <div className="sec-head">
-          <h2 className="serif">Лучшие мастера города</h2>
+          <h2 className="serif">Лучшие мастера</h2>
           <Link href="/catalog" className="linkish">Смотреть все →</Link>
         </div>
         {masters.length > 0 ? (
