@@ -64,6 +64,8 @@
     "svcNameRequired": "Enter a service name",
     "svcPriceRequired": "Set price and duration",
     "svcAdded": "Service added",
+    "finDeleteTitle": "Delete entry?",
+    "finDeleteBody": "This financial entry will be permanently deleted.",
     "svcDeleteTitle": "Delete service?",
     "svcDeleteBody": "Delete “%{name}”?",
     "svcDeleted": "Service deleted",

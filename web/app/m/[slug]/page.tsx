@@ -175,7 +175,7 @@ export default async function MasterPage({ params }: { params: { slug: string } 
                         <div className="svc-dur">{s.duration} мин</div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 'none' }}>
-                        <span className="svc-price">{formatPrice(s.price)}</span>
+                        <span className="svc-price">{formatPrice(s.price, master.currency)}</span>
                         <a href="#book" className="svc-choose">Выбрать</a>
                       </div>
                     </div>
@@ -238,7 +238,7 @@ export default async function MasterPage({ params }: { params: { slug: string } 
           <aside className="prof-aside u-desktop">
             <div style={{ fontSize: 12, color: 'var(--text3)' }}>{minPrice != null ? 'Запись от' : 'Онлайн-запись'}</div>
             {minPrice != null && (
-              <div className="aside-price">{Math.round(minPrice)} <span style={{ fontSize: 18, color: 'var(--text2)' }}>сом.</span></div>
+              <div className="aside-price">{formatPrice(minPrice, master.currency)}</div>
             )}
             <div style={{ fontSize: 12.5, color: 'var(--text2)', margin: '6px 0 20px' }}>Оплата у мастера · заявку подтверждает мастер</div>
             <a href="#book" className="btn btn-primary btn-block btn-lg" style={{ height: 54 }}>Записаться онлайн</a>
@@ -261,7 +261,7 @@ export default async function MasterPage({ params }: { params: { slug: string } 
         <div style={{ flex: 'none' }}>
           <div style={{ fontSize: 10, color: 'var(--text3)' }}>{minPrice != null ? 'от' : ''}</div>
           <div className="serif" style={{ fontSize: 22, fontWeight: 600, lineHeight: 1 }}>
-            {minPrice != null ? <>{Math.round(minPrice)} <span style={{ fontSize: 12, color: 'var(--text2)' }}>сом.</span></> : 'Запись'}
+            {minPrice != null ? formatPrice(minPrice, master.currency) : 'Запись'}
           </div>
         </div>
         <a href="#book" className="btn btn-primary" style={{ flex: 1, height: 50 }}>Записаться</a>

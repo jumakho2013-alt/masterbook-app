@@ -142,6 +142,30 @@ export default function AppointmentDetailScreen() {
   const handleRebook = (weeks: number) => {
     const newDate = new Date(appointment.date);
     newDate.setDate(newDate.getDate() + weeks * 7);
+    const newDateKey = toDateKey(newDate);
+    // Защита от двойной брони: на целевую дату не должно быть пересечения с
+    // другой запланированной записью (с буфером). Раньше rebook создавал
+    // наложение молча — конфликт всплывал только в день приёма.
+    const conflict = allAppointments.some(
+      (a) =>
+        a.date === newDateKey &&
+        a.status === 'scheduled' &&
+        a.id !== appointment.id &&
+        timeRangesOverlap(
+          appointment.startTime,
+          appointment.endTime,
+          addMinutes(a.startTime, -bufferMinutes),
+          addMinutes(a.endTime, bufferMinutes),
+        ),
+    );
+    if (conflict) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      showError(
+        tr('appt.rebook.conflictTitle'),
+        tr('appt.rebook.conflictBody', { date: formatDate(newDateKey), time: appointment.startTime }),
+      );
+      return;
+    }
     addAppointment({
       clientId: appointment.clientId,
       serviceId: appointment.serviceId,

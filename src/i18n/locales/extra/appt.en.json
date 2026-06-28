@@ -50,7 +50,9 @@
       "week2": "2 wk",
       "week3": "3 wk",
       "week4": "4 wk",
-      "bookedFor": "Booked for %{date}, %{time}"
+      "bookedFor": "Booked for %{date}, %{time}",
+      "conflictTitle": "That time is taken",
+      "conflictBody": "%{date} at %{time} already has a booking. Reschedule or pick another time."
     },
     "photos": {
       "title": "Work photos",

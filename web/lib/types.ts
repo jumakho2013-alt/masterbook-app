@@ -23,6 +23,8 @@ export interface Master {
   work_days: number[] | null;
   work_hours_start: string | null;
   work_hours_end: string | null;
+  // Валюта мастера (TJS/RUB/KZT/…) — цены показываем в ней, а не всегда «сом.».
+  currency: string | null;
 }
 
 export interface Service {

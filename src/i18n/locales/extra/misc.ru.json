@@ -64,6 +64,8 @@
     "svcNameRequired": "Введите название услуги",
     "svcPriceRequired": "Укажите цену и длительность",
     "svcAdded": "Услуга добавлена",
+    "finDeleteTitle": "Удалить операцию?",
+    "finDeleteBody": "Эта финансовая операция будет удалена безвозвратно.",
     "svcDeleteTitle": "Удалить услугу?",
     "svcDeleteBody": "Удалить «%{name}»?",
     "svcDeleted": "Услуга удалена",

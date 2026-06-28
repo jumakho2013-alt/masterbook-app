@@ -240,6 +240,7 @@ async function pushAll(userId: string): Promise<void> {
       name: settings.masterName ?? '',
       profession_category: auth.professionCategory,
       specialization_id: auth.specializationId,
+      currency: settings.currency, // валюта мастера → корректные цены на сайте
     },
     { onConflict: 'id' },
   );
@@ -411,6 +412,7 @@ export async function pushPublicProfile(): Promise<{ ok: boolean; error?: string
         work_days: s.workDays,
         work_hours_start: s.workHours.start,
         work_hours_end: s.workHours.end,
+        currency: s.currency,
         published: s.published,
       })
       .eq('id', userId);

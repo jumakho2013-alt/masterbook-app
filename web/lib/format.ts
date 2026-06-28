@@ -2,9 +2,24 @@
 // отрывалось от валюты при переносе.
 const NBSP = ' ';
 
-export function formatPrice(n: number): string {
+// Валюты мастеров (СНГ + базовые западные) — символ и позиция. Должно совпадать
+// с приложением (src/utils/currency.ts). Дефолт — сомони (рынок запуска).
+const CURRENCIES: Record<string, { symbol: string; prefix?: boolean }> = {
+  TJS: { symbol: 'сом.' },
+  RUB: { symbol: '₽' },
+  KZT: { symbol: '₸' },
+  UAH: { symbol: '₴' },
+  BYN: { symbol: 'Br' },
+  GEL: { symbol: '₾' },
+  TRY: { symbol: '₺' },
+  USD: { symbol: '$', prefix: true },
+  EUR: { symbol: '€', prefix: true },
+};
+
+export function formatPrice(n: number, currency?: string | null): string {
   const s = Math.round(n).toLocaleString('ru-RU').replace(/\s/g, NBSP);
-  return `${s}${NBSP}сом.`;
+  const cur = CURRENCIES[(currency ?? 'TJS').toUpperCase()] ?? CURRENCIES.TJS;
+  return cur.prefix ? `${cur.symbol}${s}` : `${s}${NBSP}${cur.symbol}`;
 }
 
 export function initials(name: string): string {

@@ -50,7 +50,9 @@
       "week2": "2 нед",
       "week3": "3 нед",
       "week4": "4 нед",
-      "bookedFor": "Записано на %{date}, %{time}"
+      "bookedFor": "Записано на %{date}, %{time}",
+      "conflictTitle": "Это время занято",
+      "conflictBody": "На %{date} в %{time} уже есть запись. Перенесите или выберите другое время."
     },
     "photos": {
       "title": "Фото работы",

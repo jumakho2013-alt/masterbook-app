@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { Master } from '@/lib/types';
-import { initials } from '@/lib/format';
+import { initials, formatPrice } from '@/lib/format';
 
 const TONES = ['', 'tone-gold', 'tone-neutral'];
 
@@ -53,7 +53,7 @@ export function MasterCard({
           </div>
         )}
         <div className="mcard-foot">
-          <div className="mcard-price">{price != null ? <>от <b>{Math.round(price)}</b> сом.</> : 'Цена по услуге'}</div>
+          <div className="mcard-price">{price != null ? <>от <b>{formatPrice(price, m.currency)}</b></> : 'Цена по услуге'}</div>
           {m.reviews_count > 0 && (
             <div className="mcard-rate">
               <span className="star">★</span>

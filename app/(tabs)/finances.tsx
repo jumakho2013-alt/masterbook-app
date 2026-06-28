@@ -5,7 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { TrendingUp, TrendingDown, Wallet, ArrowUp, ArrowDown, Trophy, Clock, Scissors, Plus } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
-import { GlassCard, Divider, Avatar, CountUp } from '@/src/components/ui';
+import { GlassCard, Divider, Avatar, CountUp, CustomAlert } from '@/src/components/ui';
+import { useAlert } from '@/src/hooks/useAlert';
 import { FinanceChart } from '@/src/components/FinanceChart';
 import { FinanceMetricCard } from '@/src/components/FinanceMetricCard';
 import { useFinanceStore } from '@/src/stores/useFinanceStore';
@@ -71,6 +72,8 @@ function FinancesScreen() {
   const [period, setPeriod] = useState<Period>('month');
   const [refreshing, setRefreshing] = useState(false);
   const allEntries = useFinanceStore((s) => s.entries);
+  const deleteEntry = useFinanceStore((s) => s.deleteEntry);
+  const { alertConfig, confirm } = useAlert();
   const allAppointments = useAppointmentStore((s) => s.appointments);
   const clients = useClientStore((s) => s.clients);
   const services = useServiceStore((s) => s.services);
@@ -365,7 +368,13 @@ function FinancesScreen() {
           </View>
         )}
         renderItem={({ item }) => (
-          <View style={[styles.txRow, { paddingHorizontal: 16 }]}>
+          <Pressable
+            onLongPress={() =>
+              confirm(tr('misc.finDeleteTitle'), tr('misc.finDeleteBody'), () => deleteEntry(item.id), tr('common.delete'), true)
+            }
+            delayLongPress={300}
+            style={[styles.txRow, { paddingHorizontal: 16 }]}
+          >
             <View style={styles.txInfo}>
               <Text style={[typo.body, { color: colors.text }]} numberOfLines={1}>
                 {item.description}
@@ -379,7 +388,7 @@ function FinancesScreen() {
             >
               {item.type === 'income' ? '+' : '−'}{formatCurrency(item.amount)}
             </Text>
-          </View>
+          </Pressable>
         )}
       />
 
@@ -396,6 +405,7 @@ function FinancesScreen() {
           <Plus size={28} color={isDark ? '#2A2030' : colors.white} />
         </View>
       </TouchableOpacity>
+      <CustomAlert {...alertConfig} />
     </SafeAreaView>
   );
 }
