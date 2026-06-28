@@ -27,6 +27,7 @@ export default function PublishScreen() {
   const { alertConfig, error: showError } = useAlert();
 
   const masterName = useSettingsStore((s) => s.masterName);
+  const setMasterName = useSettingsStore((s) => s.setMasterName);
   const setPublicProfile = useSettingsStore((s) => s.setPublicProfile);
   const slug0 = useSettingsStore((s) => s.slug);
   const servicesCount = useServiceStore((s) => s.services.length);
@@ -116,6 +117,17 @@ export default function PublishScreen() {
           <Text style={[typo.body, { color: colors.textSecondary, lineHeight: 22, marginBottom: sp.lg }]}>
             {tr('settings.publishIntro')}
           </Text>
+
+          {/* Имя / название (редактируемое — раньше менялось только в онбординге) */}
+          <Text style={[typo.label, { color: colors.textTertiary, marginBottom: 6 }]}>{tr('settings.publishName')}</Text>
+          <TextInput
+            value={masterName}
+            onChangeText={setMasterName}
+            placeholder={tr('settings.publishNamePlaceholder')}
+            placeholderTextColor={colors.textTertiary}
+            maxLength={80}
+            style={[styles.input, typo.body, { color: colors.text, backgroundColor: colors.surface, borderColor: colors.border, borderRadius: br.md, marginBottom: sp.md }]}
+          />
 
           {/* Город */}
           <Text style={[typo.label, { color: colors.textTertiary, marginBottom: 6 }]}>{tr('settings.publishCity')}</Text>

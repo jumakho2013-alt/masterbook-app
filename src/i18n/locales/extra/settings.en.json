@@ -117,6 +117,8 @@
     "publishTitle": "My page",
     "publishIntro": "Publish your profile to the catalog — clients find you and book online. Nothing is shown until you turn it on.",
     "publishNeedAccount": "Publishing needs an account. Sign in first (in guest mode there's no cloud profile to publish) so your page syncs to the catalog.",
+    "publishName": "Name / business",
+    "publishNamePlaceholder": "Your name or salon name",
     "publishCity": "City",
     "publishCityPlaceholder": "Dushanbe",
     "publishDistrict": "District (optional)",
