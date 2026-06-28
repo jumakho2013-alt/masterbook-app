@@ -143,11 +143,18 @@ function TodayScreen() {
     const upcoming = appointments.filter(
       (a) => a.date >= todayKey && a.date <= endKey && a.status === 'scheduled',
     );
-    const todayIncome = upcoming.filter((a) => a.date === todayKey).reduce((s, a) => s + a.price, 0);
+    // «Доход сегодня» = все сегодняшние записи кроме отменённых (запланированные
+    // + уже проведённые). РАНЬШЕ считались только 'scheduled', поэтому число
+    // падало к нулю по мере того как мастер отмечал клиентов «проведено» —
+    // выглядело как «доход не записывается». Теперь стабильно и растёт по дню.
+    const todayActive = appointments.filter(
+      (a) => a.date === todayKey && (a.status === 'scheduled' || a.status === 'completed'),
+    );
+    const todayIncome = todayActive.reduce((s, a) => s + a.price, 0);
     const weekIncome = upcoming.reduce((s, a) => s + a.price, 0);
     const weekCount = upcoming.length;
 
-    return { todayIncome, weekIncome, weekCount, todayCount: upcoming.filter((a) => a.date === todayKey).length };
+    return { todayIncome, weekIncome, weekCount, todayCount: todayActive.length };
   }, [appointments, todayKey]);
 
   const getClient = (id: string) => clients.find((c) => c.id === id);

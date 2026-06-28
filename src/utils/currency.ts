@@ -11,6 +11,7 @@ export const SUPPORTED_CURRENCIES: ReadonlyArray<{
   symbol: string;
   name: string;
 }> = [
+  { code: 'TJS', locale: 'ru-RU', symbol: 'сом.', name: 'Таджикский сомони' },
   { code: 'RUB', locale: 'ru-RU', symbol: '₽', name: 'Российский рубль' },
   { code: 'KZT', locale: 'kk-KZ', symbol: '₸', name: 'Тенге' },
   { code: 'UAH', locale: 'uk-UA', symbol: '₴', name: 'Гривна' },
@@ -62,7 +63,14 @@ function resolveCurrency(currency?: CurrencyCode): CurrencyCode {
 const NBSP = String.fromCharCode(0xA0); // U+00A0 неразрывный пробел
 
 export function formatCurrency(amount: number, currency?: CurrencyCode): string {
-  return getFormatter(resolveCurrency(currency)).format(amount).replace(/\s/g, NBSP);
+  const c = resolveCurrency(currency);
+  // Сомони: Intl на Hermes не даёт аккуратный символ (TJS/смн), поэтому
+  // форматируем вручную как «1 200 сом.» — единообразно с сайтом.
+  if (c === 'TJS') {
+    const n = Math.round(amount).toLocaleString('ru-RU').replace(/\s/g, NBSP);
+    return `${n}${NBSP}сом.`;
+  }
+  return getFormatter(c).format(amount).replace(/\s/g, NBSP);
 }
 
 export function formatCurrencyShort(amount: number, currency?: CurrencyCode): string {
@@ -70,7 +78,7 @@ export function formatCurrencyShort(amount: number, currency?: CurrencyCode): st
   const meta = getCurrencyMeta(c);
   // Позиция символа: в постсоветских + турецкой/грузинской — после числа
   // через неразрывный пробел, в долларе/евро — перед без пробела.
-  const isPostfix = c === 'RUB' || c === 'KZT' || c === 'UAH' || c === 'BYN' || c === 'GEL' || c === 'TRY';
+  const isPostfix = c === 'TJS' || c === 'RUB' || c === 'KZT' || c === 'UAH' || c === 'BYN' || c === 'GEL' || c === 'TRY';
   const fmt = (n: string) => (isPostfix ? `${n}${NBSP}${meta.symbol}` : `${meta.symbol}${n}`);
 
   if (amount >= 1_000_000) {

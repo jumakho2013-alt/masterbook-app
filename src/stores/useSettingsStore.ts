@@ -134,7 +134,7 @@ export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
       theme: 'system',
-      currency: 'RUB' as CurrencyCode,
+      currency: 'TJS' as CurrencyCode,
       demoDataSeededAt: null,
       firstUseAt: null,
       checklistDismissedAt: null,
