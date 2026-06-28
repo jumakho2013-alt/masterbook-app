@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Pressable, Switch } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import Constants from 'expo-constants';
 import * as Haptics from '@/src/lib/haptics';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -25,6 +26,7 @@ import {
   BellRing,
   Camera,
   Vibrate,
+  Sparkles,
 } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
 import { GlassCard, Divider, CustomAlert, useToast } from '@/src/components/ui';
@@ -130,6 +132,8 @@ function ProfileScreen() {
   const theme = useSettingsStore((s) => s.theme);
   const hapticsEnabled = useSettingsStore((s) => s.hapticsEnabled);
   const setHapticsEnabled = useSettingsStore((s) => s.setHapticsEnabled);
+  const reduceEffects = useSettingsStore((s) => s.reduceEffects);
+  const setReduceEffects = useSettingsStore((s) => s.setReduceEffects);
   const setTheme = useSettingsStore((s) => s.setTheme);
   const autoClientReminders = useSettingsStore((s) => s.autoClientReminders);
   const currency = useSettingsStore((s) => s.currency);
@@ -407,6 +411,14 @@ function ProfileScreen() {
               value={hapticsEnabled}
               onValueChange={(v) => { setHapticsEnabled(v); if (v) Haptics.selectionAsync(); }}
             />
+            <Divider style={{ marginVertical: 0, marginLeft: 52 }} />
+            <MenuToggle
+              icon={<Sparkles size={20} color={colors.primary} />}
+              label={tr('profile.reduceEffects')}
+              subtitle={reduceEffects ? tr('profile.reduceEffectsOn') : tr('profile.reduceEffectsOff')}
+              value={reduceEffects}
+              onValueChange={(v) => { setReduceEffects(v); Haptics.selectionAsync(); }}
+            />
           </GlassCard>
         </View>
 
@@ -430,7 +442,7 @@ function ProfileScreen() {
             <MenuItem
               icon={<Info size={20} color={colors.textSecondary} />}
               label={tr('profile.about')}
-              subtitle="v1.0.0"
+              subtitle={`v${Constants.expoConfig?.version ?? '1.0.0'}`}
               onPress={() => info('MasterBook', tr('profile.aboutBody'))}
             />
             <Divider style={{ marginVertical: 0, marginLeft: 52 }} />

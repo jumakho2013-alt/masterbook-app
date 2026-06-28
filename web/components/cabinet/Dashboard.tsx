@@ -85,6 +85,7 @@ export function Dashboard({ session }: { session: Session }) {
   const [error, setError] = useState('');
   const [msg, setMsg] = useState('');
   const [saving, setSaving] = useState(false);
+  const [buying, setBuying] = useState(false);
   const [topupAmount, setTopupAmount] = useState('');
   const [topupMethod, setTopupMethod] = useState('Перевод');
   const [countrySel, setCountrySel] = useState(DEFAULT_COUNTRY);
@@ -157,14 +158,19 @@ export function Dashboard({ session }: { session: Session }) {
   }
 
   async function buyPremium(pkg: (typeof PACKAGES)[number]) {
-    setError(''); setMsg('');
-    const { error: e } = await sb.rpc('redeem_promotion', { p_package: pkg.key, p_amount: pkg.amount, p_days: pkg.days });
-    if (e) {
-      setError(/insufficient/i.test(e.message) ? 'Недостаточно средств — сначала пополните баланс' : 'Не удалось активировать премиум');
-      return;
+    if (buying) return; // защита от двойного нажатия → двойное списание
+    setError(''); setMsg(''); setBuying(true);
+    try {
+      const { error: e } = await sb.rpc('redeem_promotion', { p_package: pkg.key, p_amount: pkg.amount, p_days: pkg.days });
+      if (e) {
+        setError(/insufficient/i.test(e.message) ? 'Недостаточно средств — сначала пополните баланс' : 'Не удалось активировать премиум');
+        return;
+      }
+      setMsg(`Премиум активирован на ${pkg.label} ✓`);
+      load();
+    } finally {
+      setBuying(false);
     }
-    setMsg(`Премиум активирован на ${pkg.label} ✓`);
-    load();
   }
 
   async function topup() {
@@ -319,7 +325,7 @@ export function Dashboard({ session }: { session: Session }) {
         <div className="bf-label" style={{ marginTop: 10 }}>Подключить премиум (списывается с баланса)</div>
         <div className="row" style={{ flexWrap: 'wrap', gap: 10 }}>
           {PACKAGES.map((pkg) => (
-            <button key={pkg.key} className="btn btn-gold" onClick={() => buyPremium(pkg)} disabled={balance < pkg.amount}>
+            <button key={pkg.key} className="btn btn-gold" onClick={() => buyPremium(pkg)} disabled={balance < pkg.amount || buying}>
               {pkg.label} · {formatPrice(pkg.amount)}
             </button>
           ))}
