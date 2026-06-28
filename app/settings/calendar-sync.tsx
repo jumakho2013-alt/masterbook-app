@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, CalendarSync as CalendarSyncIcon } from 'lucide-react-native';
 import * as Haptics from '@/src/lib/haptics';
 import { useTheme } from '@/src/theme';
-import { GlassCard, IconButton, useToast } from '@/src/components/ui';
+import { GlassCard, IconButton, useToast, CustomAlert } from '@/src/components/ui';
 import { useAlert } from '@/src/hooks/useAlert';
 import { useT } from '@/src/hooks/useT';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
@@ -113,8 +113,7 @@ export default function CalendarSyncSettingsScreen() {
         </Text>
       </ScrollView>
 
-      {/* CustomAlert не показывается без alertConfig.visible — это OK */}
-      {alertConfig.visible && null}
+      <CustomAlert {...alertConfig} />
     </SafeAreaView>
   );
 }

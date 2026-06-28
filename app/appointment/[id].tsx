@@ -61,7 +61,14 @@ export default function AppointmentDetailScreen() {
   // Local state
   // ?reschedule=1 (свайп «Перенести» на Today) — открываем сразу режим переноса.
   const [showReschedule, setShowReschedule] = useState(reschedule === '1');
-  const [rescheduleDate, setRescheduleDate] = useState<Date>(new Date());
+  // Дефолт переноса — ЗАВТРА (первый видимый чип). Раньше было сегодня, но чипы
+  // начинаются с завтра → сегодня не подсвечивалось, и быстрый тап «время +
+  // Перенести» молча уносил запись на сегодня (возможно в уже прошедший час).
+  const [rescheduleDate, setRescheduleDate] = useState<Date>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d;
+  });
   const [rescheduleTime, setRescheduleTime] = useState<string | null>(null);
   const [editingNotes, setEditingNotes] = useState(false);
   const [notes, setNotes] = useState(appointment?.notes ?? '');

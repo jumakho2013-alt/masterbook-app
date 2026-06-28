@@ -33,12 +33,10 @@ export default function CurrencyScreen() {
     router.back();
   };
 
-  // Показываем только 3 основные валюты (запрос пользователя). Полный список
-  // SUPPORTED_CURRENCIES остаётся для formatCurrency — чтобы старые данные с
-  // другим кодом всё равно корректно форматировались.
-  const pickerCurrencies = SUPPORTED_CURRENCIES.filter((c) =>
-    (['RUB', 'USD', 'EUR'] as CurrencyCode[]).includes(c.code),
-  );
+  // Показываем все поддерживаемые валюты (СНГ + базовые западные). Раньше список
+  // был зашит на RUB/USD/EUR — из-за чего дефолтный сомони (TJS) был не виден и
+  // его нельзя было выбрать. Порядок — как в SUPPORTED_CURRENCIES (TJS первым).
+  const pickerCurrencies = SUPPORTED_CURRENCIES;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]} edges={['top']}>

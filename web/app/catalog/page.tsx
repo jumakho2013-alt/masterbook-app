@@ -45,7 +45,7 @@ export default async function CatalogPage({
 
   let query = supabase.from('profiles').select('*', { count: 'exact' }).eq('published', true);
   if (q) {
-    const safe = q.replace(/[(),]/g, ' ');
+    const safe = q.replace(/[(),]/g, ' ').replace(/[%_]/g, '\\$&');
     query = query.or(`name.ilike.%${safe}%,profession_category.ilike.%${safe}%`);
   }
   if (city) query = query.eq('city', city);

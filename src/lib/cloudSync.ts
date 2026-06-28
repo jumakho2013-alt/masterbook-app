@@ -405,6 +405,12 @@ export async function pushPublicProfile(): Promise<{ ok: boolean; error?: string
         slug: s.slug || null,
         whatsapp: s.whatsapp || null,
         public_phone: s.publicPhone || null,
+        // Реальное расписание мастера → на сайт. Без этого профиль на сайте
+        // всегда показывал дефолт 09:00–20:00 Пн–Сб, и онлайн-запись принимала
+        // заявки вне его часов (см. supabase/functions/book проверяет эти поля).
+        work_days: s.workDays,
+        work_hours_start: s.workHours.start,
+        work_hours_end: s.workHours.end,
         published: s.published,
       })
       .eq('id', userId);

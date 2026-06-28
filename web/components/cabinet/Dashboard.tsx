@@ -42,7 +42,7 @@ type Payment = {
 
 const CATEGORIES = [
   'Маникюр', 'Барбер', 'Парикмахер', 'Брови', 'Ресницы', 'Косметология',
-  'Массаж', 'Тату', 'Репетитор', 'Клининг', 'Ремонт', 'Другое',
+  'Массаж', 'Тату', 'Репетитор', 'Уборка', 'Ремонт', 'Другое',
 ];
 
 // ⚠️ Ориентировочные пакеты премиума. Реальные цены/валюты по странам — за тобой
@@ -221,7 +221,7 @@ export function Dashboard({ session }: { session: Session }) {
       <section className="cab-section">
         <div className="spread">
           <h2 className="serif cab-h2">Страница на сайте</h2>
-          {isPremium && <span className="vip" style={{ position: 'static' }}>★ VIP</span>}
+          {isPremium && <span className="vip-static">★ VIP</span>}
         </div>
         <p className="muted" style={{ marginTop: 0 }}>
           {profile.published

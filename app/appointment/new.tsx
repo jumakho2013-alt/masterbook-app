@@ -170,7 +170,7 @@ export default function NewAppointmentScreen() {
   const nowMin = nowMinutesOfDay();
 
   const isSlotTaken = (time: string): boolean => {
-    const duration = selectedService?.duration ?? 30;
+    const duration = customDurationMinutes ?? selectedService?.duration ?? 30;
     const slotEnd = addMinutes(time, duration);
     return existingAppts.some((a) =>
       // Буфер расширяет занятые интервалы в обе стороны — между записями
@@ -225,6 +225,7 @@ export default function NewAppointmentScreen() {
     const service = addService({ name, price, duration, color: colors.primary });
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setSelectedService(service);
+    setCustomDurationMinutes(null);
     setAddingService(false);
     setNewSvcName(''); setNewSvcPrice(''); setNewSvcDuration('60');
     setStep('time');
@@ -555,6 +556,7 @@ export default function NewAppointmentScreen() {
                 selected={selectedService?.id === s.id}
                 onPress={() => {
                   setSelectedService(s);
+                  setCustomDurationMinutes(null); // сброс override длительности от прошлой услуги
                   next();
                 }}
               />

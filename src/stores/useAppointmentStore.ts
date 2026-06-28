@@ -7,6 +7,17 @@ import { toDateKey, nowIso } from '@/src/utils/date';
 import { cancelNotification } from '@/src/lib/notifications';
 import { mergeRemote, type RemoteChange, type Tombstone } from '@/src/lib/syncMerge';
 import { notifyLocalMutation } from '@/src/lib/cloudSyncSignal';
+import { useFinanceStore } from '@/src/stores/useFinanceStore';
+
+// Снимает авто-доход, привязанный к записи (appointmentId). Зовётся когда запись
+// уходит из статуса 'completed' или удаляется — иначе доход остаётся навсегда
+// (завышает прибыль). Привязка по appointmentId, ручной доход не трогается.
+function removeAppointmentIncome(appointmentId: string) {
+  const fin = useFinanceStore.getState();
+  fin.entries
+    .filter((e) => e.appointmentId === appointmentId)
+    .forEach((e) => fin.deleteEntry(e.id));
+}
 
 interface AppointmentState {
   appointments: Appointment[];
@@ -68,6 +79,11 @@ export const useAppointmentStore = create<AppointmentState>()(
         if (prev && status !== 'scheduled') {
           cancelReminderSafely(prev.reminderNotificationId);
         }
+        // Запись ушла из 'completed' (ошибочно завершили → вернули/отменили) —
+        // снимаем авто-доход, иначе он остаётся в финансах навсегда.
+        if (prev && prev.status === 'completed' && status !== 'completed') {
+          removeAppointmentIncome(id);
+        }
         set((s) => ({
           appointments: s.appointments.map((a) =>
             a.id === id
@@ -94,6 +110,7 @@ export const useAppointmentStore = create<AppointmentState>()(
       deleteAppointment: (id) => {
         const prev = get().appointments.find((a) => a.id === id);
         cancelReminderSafely(prev?.reminderNotificationId);
+        removeAppointmentIncome(id); // удаляем привязанный авто-доход (без orphan-записей)
         set((s) => ({
           appointments: s.appointments.filter((a) => a.id !== id),
           tombstones: [
