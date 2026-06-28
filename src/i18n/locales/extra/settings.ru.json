@@ -120,6 +120,7 @@
     "publishNeedAccount": "Для публикации нужен аккаунт. Сначала войди (в гостевом режиме облачного профиля нет), чтобы страница попала в каталог.",
     "publishName": "Имя / название",
     "publishNamePlaceholder": "Как вас зовут или название салона",
+    "publishCountry": "Страна",
     "publishCity": "Город",
     "publishCityPlaceholder": "Душанбе",
     "publishDistrict": "Район (необязательно)",

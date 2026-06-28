@@ -13,6 +13,7 @@ import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { useServiceStore } from '@/src/stores/useServiceStore';
 import { useAuthStore } from '@/src/stores/useAuthStore';
 import { makeSlug } from '@/src/utils/slug';
+import { COUNTRIES, countryByName, countryOfCity, DEFAULT_COUNTRY } from '@/src/data/geo';
 import { pushPublicProfile } from '@/src/lib/cloudSync';
 
 // Рабочий домен сайта-каталога. Имя поменяем перед публичным запуском —
@@ -36,6 +37,9 @@ export default function PublishScreen() {
   const needAccount = !userId || localOnly;
 
   const [city, setCity] = useState(useSettingsStore.getState().city);
+  const [countrySel, setCountrySel] = useState(
+    countryOfCity(useSettingsStore.getState().city) || DEFAULT_COUNTRY,
+  );
   const [district, setDistrict] = useState(useSettingsStore.getState().district);
   const [whatsapp, setWhatsapp] = useState(useSettingsStore.getState().whatsapp);
   const [phone, setPhone] = useState(useSettingsStore.getState().publicPhone);
@@ -129,14 +133,39 @@ export default function PublishScreen() {
             style={[styles.input, typo.body, { color: colors.text, backgroundColor: colors.surface, borderColor: colors.border, borderRadius: br.md, marginBottom: sp.md }]}
           />
 
-          {/* Город */}
-          <Text style={[typo.label, { color: colors.textTertiary, marginBottom: 6 }]}>{tr('settings.publishCity')}</Text>
+          {/* Страна — сужает список городов */}
+          <Text style={[typo.label, { color: colors.textTertiary, marginBottom: 6 }]}>{tr('settings.publishCountry')}</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 2 }}>
+            {COUNTRIES.map((c) => {
+              const active = c.name === countrySel;
+              return (
+                <Pressable key={c.code} onPress={() => { Haptics.selectionAsync(); setCountrySel(c.name); }}
+                  style={[styles.geoChip, { backgroundColor: active ? colors.primary : colors.surface, borderColor: active ? colors.primary : colors.border, borderRadius: br.md }]}>
+                  <Text style={[typo.caption, { color: active ? colors.white : colors.text }]}>{c.name}</Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+
+          {/* Город — тап по чипу = каноничное имя (важно для фильтра каталога) */}
+          <Text style={[typo.label, { color: colors.textTertiary, marginTop: sp.md, marginBottom: 6 }]}>{tr('settings.publishCity')}</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 2 }}>
+            {(countryByName(countrySel)?.cities ?? []).map((ct) => {
+              const active = ct === city;
+              return (
+                <Pressable key={ct} onPress={() => { Haptics.selectionAsync(); setCity(ct); }}
+                  style={[styles.geoChip, { backgroundColor: active ? colors.primary : colors.surface, borderColor: active ? colors.primary : colors.border, borderRadius: br.md }]}>
+                  <Text style={[typo.caption, { color: active ? colors.white : colors.text }]}>{ct}</Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
           <TextInput
             value={city}
             onChangeText={setCity}
             placeholder={tr('settings.publishCityPlaceholder')}
             placeholderTextColor={colors.textTertiary}
-            style={[styles.input, typo.body, { color: colors.text, backgroundColor: colors.surface, borderColor: colors.border, borderRadius: br.md }]}
+            style={[styles.input, typo.body, { color: colors.text, backgroundColor: colors.surface, borderColor: colors.border, borderRadius: br.md, marginTop: 8 }]}
           />
 
           {/* Район */}
@@ -242,6 +271,7 @@ const styles = StyleSheet.create({
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingVertical: 4 },
   needAccount: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40, marginTop: -40 },
   input: { borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: 14, paddingVertical: 12 },
+  geoChip: { borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: 14, paddingVertical: 8 },
   reqs: { padding: 14, marginTop: 16 },
   toggleRow: { flexDirection: 'row', alignItems: 'center', borderWidth: StyleSheet.hairlineWidth, padding: 16, marginTop: 20 },
   urlBox: { padding: 16, marginTop: 12 },
