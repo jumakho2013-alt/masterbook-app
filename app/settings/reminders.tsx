@@ -26,7 +26,7 @@ import {
   cancelDailyClientReminderPrompt,
 } from '@/src/lib/notifications';
 
-const CHANNELS = ['whatsapp', 'sms'] as const;
+const CHANNELS = ['whatsapp', 'telegram', 'sms'] as const;
 
 /**
  * Авто-напоминания клиентам — экран-объяснение (фидбэк: раньше это был «немой»
@@ -249,7 +249,11 @@ export default function RemindersSettingsScreen() {
                 ]}
               >
                 <Text style={[typo.bodyBold, { color: active ? colors.white : colors.text }]}>
-                  {ch === 'whatsapp' ? tr('settings.channelWhatsapp') : tr('settings.channelSms')}
+                  {ch === 'whatsapp'
+                    ? tr('settings.channelWhatsapp')
+                    : ch === 'telegram'
+                    ? tr('settings.channelTelegram')
+                    : tr('settings.channelSms')}
                 </Text>
               </TouchableOpacity>
             );

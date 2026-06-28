@@ -71,8 +71,8 @@ interface SettingsState {
   /** Шаблон текста напоминания клиенту (мастер задаёт сам). null = дефолт из
    *  i18n. Плейсхолдеры: {имя}/{name}, {время}/{time}, {услуга}/{service}. */
   reminderTemplate: string | null;
-  /** Канал по умолчанию для напоминаний: whatsapp | sms. */
-  reminderChannel: 'whatsapp' | 'sms';
+  /** Канал по умолчанию для напоминаний: whatsapp | telegram | sms. */
+  reminderChannel: 'whatsapp' | 'telegram' | 'sms';
 
   setTheme: (theme: ThemeSetting) => void;
   setWorkHours: (start: string, end: string) => void;
@@ -96,7 +96,7 @@ interface SettingsState {
   setHapticsEnabled: (enabled: boolean) => void;
   setAutoClientReminders: (enabled: boolean) => void;
   setReminderTemplate: (template: string | null) => void;
-  setReminderChannel: (channel: 'whatsapp' | 'sms') => void;
+  setReminderChannel: (channel: 'whatsapp' | 'telegram' | 'sms') => void;
   /** Полный сброс к дефолтам (используется при signOut / deleteAccount).
    *  Сохраняет тему (UI preference) — это про устройство, не про аккаунт.
    *  Валюту тоже сохраняем — она привязана к региону, не к юзеру. */
