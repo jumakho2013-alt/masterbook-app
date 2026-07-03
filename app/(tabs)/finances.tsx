@@ -9,6 +9,7 @@ import { GlassCard, Divider, Avatar, CountUp, CustomAlert } from '@/src/componen
 import { useAlert } from '@/src/hooks/useAlert';
 import { FinanceChart } from '@/src/components/FinanceChart';
 import { FinanceMetricCard } from '@/src/components/FinanceMetricCard';
+import { syncNow } from '@/src/lib/cloudSync';
 import { useFinanceStore } from '@/src/stores/useFinanceStore';
 import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useClientStore } from '@/src/stores/useClientStore';
@@ -161,9 +162,10 @@ function FinancesScreen() {
     return { avgCheck, hours, topClients, popularService, totalAppts: periodAppts.length };
   }, [allAppointments, range, clients, services]);
 
-  const onRefresh = useCallback(() => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 600);
+    // Реальный синк с облаком вместо декоративной задержки 600мс (гость — быстрый no-op).
+    try { await syncNow(); } finally { setRefreshing(false); }
   }, []);
 
   // Весь «верхний» layout (табы периода, summary, chart, top-clients,
@@ -341,6 +343,11 @@ function FinancesScreen() {
         stickySectionHeadersEnabled
         contentContainerStyle={{ paddingBottom: bottomOffset + 88 }}
         showsVerticalScrollIndicator={false}
+        // Виртуализация: при сотнях операций не рендерим весь список разом.
+        initialNumToRender={15}
+        maxToRenderPerBatch={20}
+        windowSize={11}
+        removeClippedSubviews
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />
         }

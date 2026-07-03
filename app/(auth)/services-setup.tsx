@@ -8,6 +8,7 @@ import { useTheme } from '@/src/theme';
 import { Button, GlassCard } from '@/src/components/ui';
 import { serviceTemplates } from '@/src/data/service-templates';
 import { useServiceStore } from '@/src/stores/useServiceStore';
+import { captureException } from '@/src/lib/crashReporter';
 import { useAuthStore } from '@/src/stores/useAuthStore';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { supabase } from '@/src/lib/supabase';
@@ -81,7 +82,9 @@ export default function ServicesSetupScreen() {
           });
         }
       } catch (err) {
-        console.warn('Profile sync failed, will retry later');
+        // Синк профиля best-effort — не блокирует онбординг (повторится синком).
+        // В прод-консоль не шумим: crashReporter (no-op без DSN, иначе Sentry).
+        captureException(err, { tag: 'services-setup.profileSync' });
       }
 
       setOnboarded(true);

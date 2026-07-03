@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView, Pressable, TextInput } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -62,6 +62,9 @@ export default function NewAppointmentScreen() {
     ? useClientStore.getState().clients.find((c) => c.id === preClientId) ?? null
     : null;
 
+  // Гард от двойного тапа «Записать»: addAppointment синхронный, а router.back()
+  // размонтирует не мгновенно — второй тап успел бы создать дубль записи.
+  const submittedRef = useRef(false);
   const [step, setStep] = useState<Step>(preClient ? 'service' : 'client');
   const [search, setSearch] = useState('');
   const [selectedClient, setSelectedClient] = useState<Client | null>(preClient);
@@ -307,6 +310,9 @@ export default function NewAppointmentScreen() {
       showError(parsed.error.errors[0]?.message ?? tr('appt.validation.invalidData'));
       return;
     }
+
+    if (submittedRef.current) return; // защита от двойного тапа
+    submittedRef.current = true;
 
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const appt = addAppointment({

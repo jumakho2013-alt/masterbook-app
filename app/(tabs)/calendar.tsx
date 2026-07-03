@@ -7,6 +7,7 @@ import { useTheme } from '@/src/theme';
 import { EmptyState } from '@/src/components/ui';
 import { DayView } from '@/src/components/CalendarDayView';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, LayoutGrid, CalendarDays, Clock } from 'lucide-react-native';
+import { syncNow } from '@/src/lib/cloudSync';
 import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useClientStore } from '@/src/stores/useClientStore';
 import { useServiceStore } from '@/src/stores/useServiceStore';
@@ -98,9 +99,10 @@ function CalendarScreen() {
     setMonthCursor(next);
   };
 
-  const onRefresh = useCallback(() => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 600);
+    // Реальный синк с облаком вместо декоративной задержки 600мс (гость — быстрый no-op).
+    try { await syncNow(); } finally { setRefreshing(false); }
   }, []);
 
   const isToday = (d: Date) => toDateKey(d) === todayKey;

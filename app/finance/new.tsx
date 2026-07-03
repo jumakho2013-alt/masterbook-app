@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Keyboard, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -20,6 +20,7 @@ export default function NewFinanceEntryScreen() {
   const router = useRouter();
   const { colors, typography: typo, spacing: sp, borderRadius: br } = useTheme();
   const addEntry = useFinanceStore((s) => s.addEntry);
+  const submittedRef = useRef(false); // гард от двойного тапа → дубль операции
   const tr = useT();
 
   const { alertConfig, error: showError } = useAlert();
@@ -36,6 +37,8 @@ export default function NewFinanceEntryScreen() {
       return;
     }
     const desc = description.trim() || (type === 'expense' ? tr('finances.expense') : tr('finances.income'));
+    if (submittedRef.current) return;
+    submittedRef.current = true;
     addEntry({
       type,
       amount: num,

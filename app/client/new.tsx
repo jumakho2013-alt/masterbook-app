@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Keyboard } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -23,6 +23,7 @@ export default function NewClientScreen() {
   const [address, setAddress] = useState('');
   const [notes, setNotes] = useState('');
   const [errors, setErrors] = useState<{ name?: string; phone?: string }>({});
+  const submittedRef = useRef(false); // гард от двойного тапа → дубль клиента
 
   const onSubmit = () => {
     Keyboard.dismiss();
@@ -44,6 +45,8 @@ export default function NewClientScreen() {
       return;
     }
 
+    if (submittedRef.current) return;
+    submittedRef.current = true;
     addClient({
       name: parsed.data.name,
       phone: parsed.data.phone,

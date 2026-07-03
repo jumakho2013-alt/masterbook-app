@@ -7,6 +7,7 @@ import { Plus, Users, Moon, UserPlus } from 'lucide-react-native';
 import { useTheme } from '@/src/theme';
 import { SearchBar, EmptyState, GlassCard, Badge } from '@/src/components/ui';
 import { SwipeableClientRow } from '@/src/components/SwipeableClientRow';
+import { syncNow } from '@/src/lib/cloudSync';
 import { useClientStore } from '@/src/stores/useClientStore';
 import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useServiceStore } from '@/src/stores/useServiceStore';
@@ -91,9 +92,10 @@ function ClientsScreen() {
     });
   }, [allClients, allAppointments, services, search, filter]);
 
-  const onRefresh = useCallback(() => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 600);
+    // Реальный синк с облаком вместо декоративной задержки 600мс (гость — быстрый no-op).
+    try { await syncNow(); } finally { setRefreshing(false); }
   }, []);
 
   return (
@@ -146,6 +148,11 @@ function ClientsScreen() {
         contentContainerStyle={{ paddingBottom: fabOffset + 72, paddingHorizontal: 8 }}
         showsVerticalScrollIndicator={false}
         stickySectionHeadersEnabled={false}
+        // Виртуализация: при большой базе не рендерим все строки разом.
+        initialNumToRender={20}
+        maxToRenderPerBatch={30}
+        windowSize={11}
+        removeClippedSubviews
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />
         }

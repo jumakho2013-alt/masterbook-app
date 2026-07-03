@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, Switch, Pressable, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -60,6 +60,10 @@ export default function PublishScreen() {
   // залито в эту сессию, но не попало в финальный список.
   const initialPhotos = useRef(useSettingsStore.getState().portfolioPhotos);
   const uploadedThisSession = useRef<Set<string>>(new Set());
+  // Экран — модалка: можно уйти во время аплоада/сейва. Не трогаем state после
+  // размонтирования (setPublicProfile уже записал фото в стор ДО await).
+  const mountedRef = useRef(true);
+  useEffect(() => () => { mountedRef.current = false; }, []);
 
   const addPhotos = async () => {
     if (photos.length >= MAX_PHOTOS) {
@@ -88,6 +92,7 @@ export default function PublishScreen() {
         uploadedThisSession.current.add(u);
       }
     }
+    if (!mountedRef.current) return; // ушли с экрана во время загрузки
     setUploading(false);
 
     if (uploaded.length) {
@@ -133,6 +138,7 @@ export default function PublishScreen() {
     const nextSlug = published ? (slug0 ?? makeSlug(masterName)) : slug0;
     setPublicProfile({ city: city.trim(), district: district.trim(), bio: bio.trim(), whatsapp: whatsapp.trim(), publicPhone: phone.trim(), portfolioPhotos: photos, published, slug: nextSlug });
     const res = await pushPublicProfile();
+    if (!mountedRef.current) return; // ушли с экрана — стор уже сохранён
     setSaving(false);
     if (!res.ok) {
       showError(tr('settings.publishSaveError'));
