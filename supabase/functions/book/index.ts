@@ -132,24 +132,18 @@ Deno.serve(async (req: Request) => {
   if (whEnd != null && endMin > whEnd) return json({ error: 'after_hours' }, 409);
   const endTime = fromMin(endMin);
 
-  // --- проверка пересечения слотов (активные записи в этот день) ---
-  const { data: dayAppts, error: dErr } = await admin
+  // --- анти-абуз: не даём боту флудить календарь мастера за один день ---
+  const { count: dayCount, error: dErr } = await admin
     .from('appointments')
-    .select('start_time, end_time')
+    .select('id', { count: 'exact', head: true })
     .eq('user_id', master.id)
     .eq('date', date)
     .is('deleted_at', null)
     .neq('status', 'cancelled');
   if (dErr) return json({ error: 'lookup_failed' }, 500);
-  // Анти-абуз: не даём боту флудить календарь мастера за один день
-  // (стейтлесс-кап на основе уже загруженного списка дня).
-  if ((dayAppts?.length ?? 0) >= 40) return json({ error: 'day_full' }, 429);
-  for (const a of dayAppts ?? []) {
-    const aS = toMin(a.start_time);
-    const aE = toMin(a.end_time);
-    if (aS == null || aE == null) continue;
-    if (startMin < aE && aS < endMin) return json({ error: 'slot_taken' }, 409);
-  }
+  if ((dayCount ?? 0) >= 40) return json({ error: 'day_full' }, 429);
+  // Пересечение слотов проверяется атомарно в book_appointment (под advisory-
+  // локом), чтобы не было гонки между проверкой и вставкой.
 
   const nowIso = now.toISOString();
 
@@ -185,21 +179,21 @@ Deno.serve(async (req: Request) => {
   const notes =
     `🌐 Онлайн-запись с сайта\nКлиент: ${name}\nТелефон: ${phoneRaw}\nУслуга: ${serviceName}` +
     (comment ? `\nКомментарий: ${comment}` : '');
-  const { error: aErr } = await admin.from('appointments').insert({
-    id: apptId,
-    user_id: master.id,
-    client_id: clientId,
-    service_id: svcId,
-    date,
-    start_time: startTime,
-    end_time: endTime,
-    status: 'scheduled',
-    price,
-    notes,
-    created_at: nowIso,
-    updated_at: nowIso,
+  // Атомарно: повторная проверка пересечения + вставка под advisory-локом.
+  const { data: bookRes, error: aErr } = await admin.rpc('book_appointment', {
+    p_id: apptId,
+    p_user_id: master.id,
+    p_client_id: clientId,
+    p_service_id: svcId,
+    p_date: date,
+    p_start_time: startTime,
+    p_end_time: endTime,
+    p_price: price,
+    p_notes: notes,
+    p_now: nowIso,
   });
   if (aErr) return json({ error: 'booking_failed' }, 500);
+  if (bookRes === 'slot_taken') return json({ error: 'slot_taken' }, 409);
 
   return json({ ok: true, date, start_time: startTime, end_time: endTime, service: serviceName });
 });

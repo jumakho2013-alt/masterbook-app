@@ -6,21 +6,34 @@
 // на service-role, после проверки админа.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 
-const CORS: Record<string, string> = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+// Админка вызывается только из нашего кабинета — сужаем CORS до известных
+// origins (защита от cross-origin abuse). Дополнительно к проверке JWT+ADMIN_EMAILS.
+const ALLOWED_ORIGINS = new Set([
+  'https://masterbook-app.vercel.app',
+  'https://masterbook.tj',
+  'https://www.masterbook.tj',
+]);
+const DEFAULT_ORIGIN = 'https://masterbook-app.vercel.app';
 
-function json(body: unknown, status = 200): Response {
+function corsFor(req: Request): Record<string, string> {
+  const origin = req.headers.get('Origin') ?? '';
+  return {
+    'Access-Control-Allow-Origin': ALLOWED_ORIGINS.has(origin) ? origin : DEFAULT_ORIGIN,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    Vary: 'Origin',
+  };
+}
+
+function json(body: unknown, status = 200, req?: Request): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...CORS, 'Content-Type': 'application/json' },
+    headers: { ...(req ? corsFor(req) : { 'Access-Control-Allow-Origin': DEFAULT_ORIGIN }), 'Content-Type': 'application/json' },
   });
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsFor(req) });
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
 
   const authHeader = req.headers.get('Authorization') ?? '';
