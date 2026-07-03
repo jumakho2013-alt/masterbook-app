@@ -181,7 +181,8 @@ export function Dashboard({ session }: { session: Session }) {
     const { error: e } = await sb.from('payments').insert({
       master_id: uid,
       amount: amt,
-      currency: 'TJS',
+      // Валюта пополнения = валюта мастера (оплата локальным переводом в его стране).
+      currency: profile?.currency ?? 'TJS',
       method: topupMethod,
       status: 'pending',
       idempotency_key: crypto.randomUUID(),
@@ -317,7 +318,7 @@ export function Dashboard({ session }: { session: Session }) {
       <section className="cab-section">
         <h2 className="serif cab-h2">Баланс и продвижение</h2>
         <p style={{ margin: '0 0 4px' }}>
-          Баланс: <strong>{formatPrice(balance)}</strong>
+          Баланс: <strong>{formatPrice(balance, profile.currency)}</strong>
           {isPremium && profile.premium_until && (
             <span className="muted"> · премиум до {new Date(profile.premium_until).toLocaleDateString('ru-RU')}</span>
           )}
@@ -327,7 +328,7 @@ export function Dashboard({ session }: { session: Session }) {
         <div className="row" style={{ flexWrap: 'wrap', gap: 10 }}>
           {PACKAGES.map((pkg) => (
             <button key={pkg.key} className="btn btn-gold" onClick={() => buyPremium(pkg)} disabled={balance < pkg.amount || buying}>
-              {pkg.label} · {formatPrice(pkg.amount)}
+              {pkg.label} · {formatPrice(pkg.amount, profile.currency)}
             </button>
           ))}
         </div>
