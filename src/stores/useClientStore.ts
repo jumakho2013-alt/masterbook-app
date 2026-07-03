@@ -84,7 +84,7 @@ export const useClientStore = create<ClientState>()(
       canAddClient: () => true,
 
       mergeRemote: (remote) => {
-        const { records, appliedDeletes } = mergeRemote(get().clients, remote);
+        const { records, appliedDeletes } = mergeRemote(get().clients, remote, get().tombstones);
         // Стабильный порядок: новые сверху (по createdAt убыв.).
         records.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
         set({ clients: records });

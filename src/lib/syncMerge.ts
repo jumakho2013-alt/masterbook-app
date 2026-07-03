@@ -52,17 +52,27 @@ export interface MergeResult<T extends Syncable> {
  *  - remote deleted, deletedAt ≥ local.updatedAt → удаляем локально
  *  - remote live,    updatedAt  ≥ local.updatedAt (или локально нет) → апсертим
  *  - local новее    → оставляем локальное (будет ре-запушено наверх)
+ *
+ * tombstones — локальные удаления, ещё НЕ дошедшие до сервера. Без них живая
+ * серверная строка воскрешала бы только что удалённую запись: syncNow делает
+ * pull ДО push, поэтому на пуле сервер ещё не знает об удалении, локально записи
+ * уже нет (localTs=0) → апсерт срабатывал всегда. Теперь: если tombstone новее
+ * серверной правки — удаление побеждает (запись не воскрешается), tombstone
+ * остаётся и дошлётся на push.
  */
 export function mergeRemote<T extends Syncable>(
   local: T[],
   remote: RemoteChange<T>[],
+  tombstones: Tombstone[] = [],
 ): MergeResult<T> {
   const byId = new Map<string, T>(local.map((r) => [r.id, r]));
+  const tombTsById = new Map<string, number>(tombstones.map((t) => [t.id, ts(t.deletedAt)]));
   const appliedDeletes: string[] = [];
 
   for (const ch of remote) {
     const cur = byId.get(ch.id);
     const localTs = ts(cur?.updatedAt);
+    const tombTs = tombTsById.get(ch.id) ?? 0;
 
     if (ch.deletedAt) {
       if (!cur) continue; // уже нет локально
@@ -72,6 +82,8 @@ export function mergeRemote<T extends Syncable>(
       }
       // иначе локальная правка новее удаления → оставляем (re-push как живую)
     } else if (ch.record) {
+      // Локальное удаление новее серверной правки → не воскрешаем.
+      if (tombTs >= ts(ch.updatedAt)) continue;
       if (ts(ch.updatedAt) >= localTs) {
         byId.set(ch.id, ch.record);
       }

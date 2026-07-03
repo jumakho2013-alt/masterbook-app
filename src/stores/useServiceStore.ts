@@ -71,7 +71,7 @@ export const useServiceStore = create<ServiceState>()(
       },
 
       mergeRemote: (remote) => {
-        const { records, appliedDeletes } = mergeRemote(get().services, remote);
+        const { records, appliedDeletes } = mergeRemote(get().services, remote, get().tombstones);
         set({ services: records });
         return appliedDeletes;
       },

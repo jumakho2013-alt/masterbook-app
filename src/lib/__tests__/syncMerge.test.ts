@@ -76,4 +76,20 @@ describe('mergeRemote (last-write-wins)', () => {
     expect(records.find((r) => r.id === 'b')?.name).toBe('also-keep');
     expect(records.find((r) => r.id === 'a')?.name).toBe('updated');
   });
+
+  // Регрессия: syncNow делает pull ДО push, поэтому только что удалённая (но ещё
+  // не запушенная) запись приходила с сервера живой и воскресала. Tombstone это
+  // предотвращает.
+  it('does NOT resurrect a locally-deleted record while its tombstone is pending', () => {
+    const local: Row[] = []; // запись уже удалена локально
+    const tombstones = [{ id: 'a', deletedAt: T2 }];
+    const { records } = mergeRemote(local, [live('a', 'server-still-has-it', T1)], tombstones);
+    expect(records).toHaveLength(0); // не воскресла
+  });
+
+  it('remote edit NEWER than the tombstone wins → record comes back (server edited after our delete)', () => {
+    const tombstones = [{ id: 'a', deletedAt: T1 }];
+    const { records } = mergeRemote<Row>([], [live('a', 'edited-after-delete', T2)], tombstones);
+    expect(records).toEqual([{ id: 'a', name: 'edited-after-delete', updatedAt: T2 }]);
+  });
 });

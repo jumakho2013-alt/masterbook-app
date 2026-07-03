@@ -146,7 +146,7 @@ export const useAppointmentStore = create<AppointmentState>()(
         // бы запланированным, но без id его уже не отменить (orphan). Поэтому
         // переносим эти поля из предыдущей локальной копии.
         const prevById = new Map(get().appointments.map((a) => [a.id, a]));
-        const { records, appliedDeletes } = mergeRemote(get().appointments, remote);
+        const { records, appliedDeletes } = mergeRemote(get().appointments, remote, get().tombstones);
         const merged = records.map((r) => {
           const prev = prevById.get(r.id);
           if (!prev) return r;

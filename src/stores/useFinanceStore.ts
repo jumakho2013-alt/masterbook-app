@@ -62,7 +62,7 @@ export const useFinanceStore = create<FinanceState>()(
       },
 
       mergeRemote: (remote) => {
-        const { records, appliedDeletes } = mergeRemote(get().entries, remote);
+        const { records, appliedDeletes } = mergeRemote(get().entries, remote, get().tombstones);
         set({ entries: records });
         return appliedDeletes;
       },
