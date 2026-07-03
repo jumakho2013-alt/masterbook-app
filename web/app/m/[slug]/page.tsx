@@ -158,7 +158,13 @@ export default async function MasterPage({ params }: { params: { slug: string } 
                 <div className="prof-eyebrow">МОИ РАБОТЫ</div>
                 <div className="gallery-grid">
                   {photos.map((src, i) => (
-                    <div key={i} className="gallery-cell"><img src={src} alt={`Работа ${i + 1}`} loading="lazy" /></div>
+                    <div key={i} className="gallery-cell">
+                      <img
+                        src={src}
+                        alt={`${master.name || 'Мастер'}${master.profession_category ? ', ' + master.profession_category : ''} — работа ${i + 1}`}
+                        loading="lazy"
+                      />
+                    </div>
                   ))}
                 </div>
               </div>
@@ -226,6 +232,7 @@ export default async function MasterPage({ params }: { params: { slug: string } 
               <BookingForm
                 slug={master.slug ?? ''}
                 services={services.map((s) => ({ id: s.id, name: s.name, price: s.price, duration: s.duration }))}
+                currency={master.currency}
                 workHoursStart={master.work_hours_start}
                 workHoursEnd={master.work_hours_end}
                 workDays={master.work_days}

@@ -8,6 +8,30 @@ import { groupCitiesByCountry } from '@/lib/geo';
 
 export const revalidate = 60;
 
+/** Динамический SEO-заголовок под фильтры: «Мастера маникюра в Душанбе» и т.п.
+ *  Без этого все /catalog?* делили один общий title. */
+export function generateMetadata({
+  searchParams,
+}: {
+  searchParams: { q?: string; city?: string };
+}) {
+  const q = searchParams.q?.trim();
+  const city = searchParams.city?.trim();
+  const parts = ['Мастера'];
+  if (q) parts.push(q);
+  if (city) parts.push(`в городе ${city}`);
+  const title = `${parts.join(' ')} — MasterBook`;
+  const description = city
+    ? `Найдите мастера${q ? ' «' + q + '»' : ''} в городе ${city}: рейтинг, цены, онлайн-запись.`
+    : `Каталог мастеров${q ? ' «' + q + '»' : ''}: рейтинг, цены и запись онлайн.`;
+  return {
+    title,
+    description,
+    alternates: { canonical: '/catalog' },
+    openGraph: { title, description },
+  };
+}
+
 const PAGE_SIZE = 24;
 const SORTS = [
   { key: 'premium', label: 'Сначала премиум' },

@@ -19,6 +19,7 @@ type Profile = {
   published: boolean;
   premium: boolean;
   premium_until: string | null;
+  currency: string | null;
 };
 
 type Appt = {
@@ -95,7 +96,7 @@ export function Dashboard({ session }: { session: Session }) {
     const today = todayLocal();
     const [{ data: p }, { data: a }, { data: b }, { data: pay }] = await Promise.all([
       sb.from('profiles')
-        .select('id,name,profession_category,city,district,bio,slug,whatsapp,public_phone,published,premium,premium_until')
+        .select('id,name,profession_category,city,district,bio,slug,whatsapp,public_phone,published,premium,premium_until,currency')
         .eq('id', uid).maybeSingle(),
       sb.from('appointments')
         .select('id,date,start_time,end_time,status,price,notes')
@@ -304,7 +305,7 @@ export function Dashboard({ session }: { session: Session }) {
                   {online && <span className="cab-badge">🌐 сайт</span>}
                   {a.notes && <div className="faint" style={{ fontSize: 13, whiteSpace: 'pre-wrap', marginTop: 2 }}>{a.notes}</div>}
                 </div>
-                {a.price > 0 && <span className="svc-price" style={{ fontSize: 18 }}>{formatPrice(a.price)}</span>}
+                {a.price > 0 && <span className="svc-price" style={{ fontSize: 18 }}>{formatPrice(a.price, profile.currency)}</span>}
               </div>
             );
           })

@@ -53,6 +53,7 @@ function buildSlots(start: string | null, end: string | null, durationMin = 30):
 export function BookingForm({
   slug,
   services,
+  currency,
   workHoursStart,
   workHoursEnd,
   workDays,
@@ -60,6 +61,7 @@ export function BookingForm({
 }: {
   slug: string;
   services: SvcOpt[];
+  currency: string | null;
   workHoursStart: string | null;
   workHoursEnd: string | null;
   workDays: number[] | null;
@@ -183,7 +185,7 @@ export function BookingForm({
           <select className="bf-input" value={serviceId} onChange={(e) => setServiceId(e.target.value)}>
             {services.map((s) => (
               <option key={s.id} value={s.id}>
-                {s.name} · {formatPrice(s.price)} · {s.duration} мин
+                {s.name} · {formatPrice(s.price, currency)} · {s.duration} мин
               </option>
             ))}
           </select>
