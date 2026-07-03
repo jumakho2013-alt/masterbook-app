@@ -42,3 +42,39 @@ jobs:
       # invalid schema. Cheap smoke test that saves a full build turnaround.
       - name: Validate eas.json
         run: node -e "JSON.parse(require('fs').readFileSync('eas.json','utf8'))"
+
+      # Версия приложения — единый источник правды. Раньше app.json и package.json
+      # разъезжались (1.0.1 vs 1.0.0) и путали релиз.
+      - name: Version consistency (app.json == package.json)
+        run: |
+          APP=$(node -p "require('./app.json').expo.version")
+          PKG=$(node -p "require('./package.json').version")
+          echo "app.json=$APP package.json=$PKG"
+          test "$APP" = "$PKG"
+
+  # Web (Next.js) собирается отдельным джобом — раньше ошибки сборки сайта
+  # всплывали только на деплое в Vercel. Секреты не нужны: билд рендерит с
+  # плейсхолдер-env, supabase-js на сетевой ошибке возвращает {data:null},
+  # страницы отдают пустые данные (`?? []`).
+  web:
+    name: Web build (Next.js)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install deps
+        run: npm ci
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
