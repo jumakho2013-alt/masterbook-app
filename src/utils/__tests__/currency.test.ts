@@ -36,6 +36,20 @@ describe('formatCurrencyShort (USD explicit)', () => {
   });
 });
 
+describe('formatCurrency (TJS — сомони, дефолт приложения)', () => {
+  it('renders «сом.» postfix with NBSP (ручной формат, не Intl)', () => {
+    expect(formatCurrency(150, 'TJS')).toBe(`150${N}сом.`);
+    expect(formatCurrency(1200, 'TJS')).toBe(`1${N}200${N}сом.`);
+    expect(formatCurrency(0, 'TJS')).toBe(`0${N}сом.`);
+  });
+  it('rounds fractional somoni', () => {
+    expect(formatCurrency(99.6, 'TJS')).toBe(`100${N}сом.`);
+  });
+  it('never contains a breakable space (Atelier contract)', () => {
+    expect(formatCurrency(14_800, 'TJS')).not.toMatch(/\x20/);
+  });
+});
+
 describe('formatCurrency (RUB — default for CIS)', () => {
   it('renders rouble symbol as postfix per ru-RU locale', () => {
     // Intl.NumberFormat 'ru-RU' использует U+00A0 (NBSP) между числом
@@ -63,6 +77,10 @@ describe('formatCurrencyShort — postfix symbols for postsoviet/turkish/georgia
   });
   it('lira after number', () => {
     expect(formatCurrencyShort(15_000, 'TRY')).toBe(`15K${N}₺`);
+  });
+  it('somoni after number', () => {
+    expect(formatCurrencyShort(12_500, 'TJS')).toBe(`13K${N}сом.`);
+    expect(formatCurrencyShort(500, 'TJS')).toBe(`500${N}сом.`);
   });
 });
 
