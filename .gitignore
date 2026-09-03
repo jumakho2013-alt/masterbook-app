@@ -58,3 +58,6 @@ google-service-account.json
 AuthKey_*.p8
 *.p12
 *.mobileprovision
+
+# Supabase CLI runtime artefacts
+supabase/.temp/
