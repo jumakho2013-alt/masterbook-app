@@ -37,9 +37,12 @@ export async function uploadPortfolioPhoto(localUri: string): Promise<string | n
       });
       uri = out.uri;
     } catch (err) {
-      // Конвертация не вышла — заливаем оригинал как JPEG (лучше, чем потерять
-      // фото). HEIC-кейс редок и логируется.
+      // Раньше при сбое заливали оригинал под именем .jpg. На iOS оригинал —
+      // HEIC, браузер его не рендерит: в галерее на сайте появлялась битая
+      // картинка вместо честной ошибки. Лучше вернуть null — UI покажет
+      // «не удалось загрузить» и мастер повторит.
       captureException(err, { tag: 'portfolioCloud.manipulate' });
+      return null;
     }
 
     const path = `${userId}/${uniqueName()}`;

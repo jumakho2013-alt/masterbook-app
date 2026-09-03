@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet, SectionList, TouchableOpacity, RefreshControl, Pressable } from 'react-native';
+import { View, Text, StyleSheet, SectionList, TouchableOpacity, RefreshControl, Pressable , Platform} from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -152,7 +152,8 @@ function ClientsScreen() {
         initialNumToRender={20}
         maxToRenderPerBatch={30}
         windowSize={11}
-        removeClippedSubviews
+        // Только Android: на iOS даёт пропадающий контент в VirtualizedList.
+        removeClippedSubviews={Platform.OS === 'android'}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />
         }

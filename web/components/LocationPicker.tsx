@@ -55,7 +55,7 @@ export function LocationPicker({ variant = 'pill' }: { variant?: 'pill' | 'inlin
     setCity(nextCity);
     setCountry(draftCountry);
     setOpen(false);
-    router.push(catalogHref(undefined, nextCity));
+    router.push(catalogHref({ city: nextCity }));
   }
 
   const draft = COUNTRIES.find((c) => c.name === draftCountry) ?? COUNTRIES[0];

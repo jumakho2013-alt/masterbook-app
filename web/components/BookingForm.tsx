@@ -15,7 +15,9 @@ const ERRORS: Record<string, string> = {
   date_past: 'Эта дата уже прошла',
   date_far: 'Слишком далёкая дата',
   time_invalid: 'Выберите время',
+  time_past: 'Это время уже прошло — выберите позже',
   day_off: 'В этот день мастер не работает',
+  break_time: 'Это время попадает на перерыв мастера — выберите другое',
   before_hours: 'Это время раньше рабочих часов мастера',
   after_hours: 'Услуга не успевает до конца рабочего дня — выберите время раньше',
   slot_taken: 'Это время уже занято — выберите другое',
@@ -81,9 +83,13 @@ export function BookingForm({
   // Слоты учитывают длительность выбранной услуги — не предлагаем время, на
   // которое услуга не успевает до конца рабочего дня.
   const slots = useMemo(
-    () => buildSlots(workHoursStart, workHoursEnd, selectedService?.duration ?? 30),
+    // 60 — тот же фолбэк, что и на сервере (book/index.ts). `||`, а не `??`:
+    // услуга с duration=0 иначе давала слоты до самого закрытия.
+    () => buildSlots(workHoursStart, workHoursEnd, selectedService?.duration || 60),
     [workHoursStart, workHoursEnd, selectedService?.duration],
   );
+  // Сегодня показываем только будущие слоты — сервер такие брони отклоняет
+  // (time_past), незачем давать выбрать заведомо мёртвое время.
   const [date, setDate] = useState('');
   const [time, setTime] = useState(slots[0] ?? '');
   const [name, setName] = useState('');
@@ -92,6 +98,16 @@ export function BookingForm({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [done, setDone] = useState<{ date: string; time: string; service: string } | null>(null);
+
+  const visibleSlots = useMemo(() => {
+    if (date !== min) return slots;
+    const d = new Date();
+    const nowMin = d.getHours() * 60 + d.getMinutes();
+    return slots.filter((t) => {
+      const [h, m] = t.split(':').map(Number);
+      return h * 60 + m >= nowMin;
+    });
+  }, [slots, date, min]);
 
   // День-выходной: предупреждаем заранее (work_days: 0=Вс..6=Сб).
   const dayOff = useMemo(() => {
@@ -104,8 +120,8 @@ export function BookingForm({
   // Смена услуги/часов изменила набор слотов и текущее время выпало — подставляем
   // первый доступный (или пусто, если услуга вообще не влезает в день).
   useEffect(() => {
-    if (time && !slots.includes(time)) setTime(slots[0] ?? '');
-  }, [slots]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (time && !visibleSlots.includes(time)) setTime(visibleSlots[0] ?? '');
+  }, [visibleSlots]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (slug === '') {
     return <div className="empty" style={{ padding: 20 }}>Онлайн-запись у этого мастера пока недоступна.</div>;
@@ -200,7 +216,7 @@ export function BookingForm({
         <label className="bf-field">
           <span className="bf-label">Время</span>
           <select className="bf-input" value={time} onChange={(e) => setTime(e.target.value)}>
-            {slots.map((t) => (
+            {visibleSlots.map((t) => (
               <option key={t} value={t}>{t}</option>
             ))}
           </select>

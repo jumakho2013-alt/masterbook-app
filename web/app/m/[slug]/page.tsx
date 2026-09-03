@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import type { Master, Service, Review } from '@/lib/types';
 import { formatPrice, initials, whatsappLink, telLink, reviewsWord } from '@/lib/format';
 import { isActivePremium } from '@/components/MasterCard';
+import { professionLabel } from '@/lib/taxonomy';
 import { BookingForm } from '@/components/BookingForm';
 
 export const revalidate = 60;
@@ -96,6 +97,15 @@ export default async function MasterPage({ params }: { params: { slug: string } 
       : {}),
   };
 
+  // JSON.stringify НЕ экранирует '<' и '/', а в jsonLd попадают поля, которые
+  // мастер задаёт сам (name, city, district, названия услуг). Без этого строка
+  // вида `</script><script>…` разрывает тег и даёт stored XSS на публичной
+  // странице — с кражей сессии кабинета из localStorage.
+  const jsonLdSafe = JSON.stringify(jsonLd).replace(
+    /[<>&\u2028\u2029]/g,
+    (c) => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0'),
+  );
+
   const cta = master.whatsapp
     ? { href: whatsappLink(master.whatsapp, 'Здравствуйте! Хочу записаться (нашёл вас на MasterBook).'), label: 'Написать в WhatsApp' }
     : master.public_phone
@@ -104,7 +114,7 @@ export default async function MasterPage({ params }: { params: { slug: string } 
 
   return (
     <div className="prof-wrap">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdSafe }} />
       {/* cover */}
       <div className="prof-cover" style={{ height: 210 }}>
         <span className="ink" style={{ fontSize: 100 }}>{initials(master.name)}</span>
@@ -118,7 +128,7 @@ export default async function MasterPage({ params }: { params: { slug: string } 
           <div className="prof-ava">{initials(master.name)}</div>
           <div style={{ paddingBottom: 4, minWidth: 0 }}>
             <h1 className="prof-name">{master.name}</h1>
-            <div className="prof-meta">{master.profession_category || 'Мастер'}</div>
+            <div className="prof-meta">{professionLabel(master.specialization_id, master.profession_category)}</div>
             <div className="prof-metarow">
               {master.reviews_count > 0 && (
                 <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -161,7 +171,7 @@ export default async function MasterPage({ params }: { params: { slug: string } 
                     <div key={i} className="gallery-cell">
                       <img
                         src={src}
-                        alt={`${master.name || 'Мастер'}${master.profession_category ? ', ' + master.profession_category : ''} — работа ${i + 1}`}
+                        alt={`${master.name || 'Мастер'}${', ' + professionLabel(master.specialization_id, master.profession_category)} — работа ${i + 1}`}
                         loading="lazy"
                       />
                     </div>

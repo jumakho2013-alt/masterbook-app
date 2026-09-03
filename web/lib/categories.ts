@@ -4,16 +4,20 @@
 
 export type Category = { key: string; name: string; tone?: 'plum' | 'gold' | 'neutral' };
 
-/** 8 карточек категорий на главной (как в дизайне). */
+/** 8 карточек категорий на главной (как в дизайне).
+ *  ВАЖНО: `key` — это реальный `specialization_id` из приложения
+ *  (src/data/professions.ts), по нему и фильтруется каталог. Раньше ключи были
+ *  выдуманные ('manicure', 'barber'), а фильтр искал русское слово в
+ *  `profession_category` — не совпадало никогда. */
 export const HOME_CATEGORIES: Category[] = [
-  { key: 'manicure', name: 'Маникюр' },
-  { key: 'barber', name: 'Барбер' },
+  { key: 'nails', name: 'Маникюр' },
+  { key: 'hair', name: 'Парикмахер' },
   { key: 'brows', name: 'Брови' },
   { key: 'lashes', name: 'Ресницы' },
-  { key: 'cosmetology', name: 'Косметология' },
-  { key: 'massage', name: 'Массаж' },
+  { key: 'cosmetology', name: 'Косметолог' },
+  { key: 'massage', name: 'Массажист' },
   { key: 'tutor', name: 'Репетитор' },
-  { key: 'cleaning', name: 'Уборка' },
+  { key: 'cleaning', name: 'Клининг' },
 ];
 
 /** Направления для выпадающего списка рядом с поиском. */
@@ -37,11 +41,13 @@ export const MEGA_GROUPS: { group: string; items: string[] }[] = [
   { group: 'Дом и обучение', items: ['Уборка', 'Репетитор', 'Няня', 'Мастер на час'] },
 ];
 
-/** Ссылка в каталог с фильтром по слову. */
-export function catalogHref(q?: string, city?: string): string {
+/** Ссылка в каталог. `spec` — id специализации (точный фильтр),
+ *  `q` — свободный поиск по имени мастера. */
+export function catalogHref(opts?: { spec?: string; q?: string; city?: string }): string {
   const sp = new URLSearchParams();
-  if (q) sp.set('q', q);
-  if (city) sp.set('city', city);
+  if (opts?.spec) sp.set('spec', opts.spec);
+  if (opts?.q) sp.set('q', opts.q);
+  if (opts?.city) sp.set('city', opts.city);
   const s = sp.toString();
   return s ? `/catalog?${s}` : '/catalog';
 }

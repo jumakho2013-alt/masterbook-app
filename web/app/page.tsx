@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import type { Master } from '@/lib/types';
 import { initials, mastersWord, reviewsWord } from '@/lib/format';
+import { professionLabel } from '@/lib/taxonomy';
 import { HOME_CATEGORIES, catalogHref } from '@/lib/categories';
 import { CatIcon } from '@/components/CatIcon';
 import { MasterCard, isActivePremium } from '@/components/MasterCard';
@@ -49,15 +50,16 @@ export default async function HomePage() {
   // TODO(scale): при больших объёмах заменить на RPC с агрегацией на стороне БД.
   const { data: pubData } = await supabase
     .from('profiles')
-    .select('profession_category, rating, reviews_count')
+    .select('profession_category, specialization_id, rating, reviews_count')
     .eq('published', true);
-  const pub = (pubData ?? []) as { profession_category: string | null; rating: number; reviews_count: number }[];
+  const pub = (pubData ?? []) as { profession_category: string | null; specialization_id: string | null; rating: number; reviews_count: number }[];
   const publishedCount = pub.length;
   const totalReviews = pub.reduce((s, p) => s + (p.reviews_count || 0), 0);
   const rated = pub.filter((p) => (p.reviews_count || 0) > 0);
   const avgRating = rated.length ? rated.reduce((s, p) => s + Number(p.rating || 0), 0) / rated.length : 0;
-  const catCount = (name: string) =>
-    pub.filter((p) => (p.profession_category || '').toLowerCase().includes(name.toLowerCase())).length;
+  // Считаем по id специализации: в БД лежат идентификаторы ('nails'), а не
+  // русские слова — прежний includes() по названию давал 0 у всех категорий.
+  const catCount = (specId: string) => pub.filter((p) => p.specialization_id === specId).length;
 
   const featured = masters[0];
 
@@ -116,7 +118,7 @@ export default async function HomePage() {
                     {isActivePremium(featured) && <span className="mcard-vip" style={{ position: 'static' }}>VIP</span>}
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--text2)' }}>
-                    {featured.profession_category || 'Мастер'}{featured.work_days?.includes(today) ? ' · свободен сегодня' : ''}
+                    {professionLabel(featured.specialization_id, featured.profession_category)}{featured.work_days?.includes(today) ? ' · свободен сегодня' : ''}
                   </div>
                 </div>
                 {featured.slug && (
@@ -141,9 +143,9 @@ export default async function HomePage() {
         </div>
         <div className="cats-grid">
           {HOME_CATEGORIES.map((c) => {
-            const n = catCount(c.name);
+            const n = catCount(c.key);
             return (
-              <Link key={c.key} href={catalogHref(c.name)} className="cat-card">
+              <Link key={c.key} href={catalogHref({ spec: c.key })} className="cat-card">
                 <div className="cat-top">
                   <span className="cat-ico"><CatIcon name={c.key} /></span>
                   <span className="cat-arrow">→</span>

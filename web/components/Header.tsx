@@ -49,7 +49,7 @@ export function Header() {
     const term = q.trim() || (dir !== DIRECTIONS[0] ? dir : '');
     setMega(false);
     setSheet(false);
-    router.push(catalogHref(term || undefined));
+    router.push(catalogHref({ q: term || undefined }));
   }
 
   return (
@@ -124,7 +124,7 @@ export function Header() {
                       <div className="mega-col-title">{g.group}</div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                         {g.items.map((it) => (
-                          <Link key={it} href={catalogHref(it)} className="mega-item" onClick={() => setMega(false)}>
+                          <Link key={it} href={catalogHref({ q: it })} className="mega-item" onClick={() => setMega(false)}>
                             <span>{it}</span>
                           </Link>
                         ))}
@@ -168,7 +168,7 @@ export function Header() {
                 <div className="mega-col-title">{g.group}</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {g.items.map((it) => (
-                    <Link key={it} href={catalogHref(it)} className="msheet-item" onClick={() => setSheet(false)}>
+                    <Link key={it} href={catalogHref({ q: it })} className="msheet-item" onClick={() => setSheet(false)}>
                       <span>{it}</span><span style={{ color: 'var(--text3)' }}>→</span>
                     </Link>
                   ))}

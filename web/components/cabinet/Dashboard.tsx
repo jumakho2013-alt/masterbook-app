@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { getBrowserSupabase } from '@/lib/supabase-browser';
 import { formatPrice } from '@/lib/format';
+import { CATEGORY_OPTIONS } from '@/lib/taxonomy';
 import { COUNTRIES, countryByName, countryOfCity, DEFAULT_COUNTRY } from '@/lib/geo';
 
 type Profile = {
@@ -46,13 +47,11 @@ const CATEGORIES = [
   'Массаж', 'Тату', 'Репетитор', 'Уборка', 'Ремонт', 'Другое',
 ];
 
-// ⚠️ Ориентировочные пакеты премиума. Реальные цены/валюты по странам — за тобой
-// (правится здесь одним местом). Списываются с баланса (пополняется вручную).
-const PACKAGES = [
-  { key: 'premium-7', label: '7 дней', days: 7, amount: 50 },
-  { key: 'premium-30', label: '30 дней', days: 30, amount: 150 },
-  { key: 'premium-90', label: '90 дней', days: 90, amount: 400 },
-];
+// Пакеты премиума приходят из БД (public.promotion_packages) — цена и срок
+// принадлежат серверу. Раньше они лежали здесь и передавались в redeem_promotion
+// параметрами, из-за чего из консоли можно было купить 100 лет за копейку.
+// Цены по странам правятся в таблице, без релиза сайта.
+type Package = { key: string; label: string; days: number; amount: number };
 
 const PAYMENT_STATUS: Record<string, string> = {
   pending: 'на проверке',
@@ -87,6 +86,8 @@ export function Dashboard({ session }: { session: Session }) {
   const [msg, setMsg] = useState('');
   const [saving, setSaving] = useState(false);
   const [buying, setBuying] = useState(false);
+  const [toppingUp, setToppingUp] = useState(false);
+  const [packages, setPackages] = useState<Package[]>([]);
   const [topupAmount, setTopupAmount] = useState('');
   const [topupMethod, setTopupMethod] = useState('Перевод');
   const [countrySel, setCountrySel] = useState(DEFAULT_COUNTRY);
@@ -94,7 +95,7 @@ export function Dashboard({ session }: { session: Session }) {
   const load = useCallback(async () => {
     setLoading(true);
     const today = todayLocal();
-    const [{ data: p }, { data: a }, { data: b }, { data: pay }] = await Promise.all([
+    const [{ data: p }, { data: a }, { data: b }, { data: pay }, { data: pk }] = await Promise.all([
       sb.from('profiles')
         .select('id,name,profession_category,city,district,bio,slug,whatsapp,public_phone,published,premium,premium_until,currency')
         .eq('id', uid).maybeSingle(),
@@ -105,6 +106,8 @@ export function Dashboard({ session }: { session: Session }) {
       sb.from('master_billing').select('balance').eq('master_id', uid).maybeSingle(),
       sb.from('payments').select('id,amount,currency,method,status,created_at')
         .eq('master_id', uid).order('created_at', { ascending: false }).limit(10),
+      sb.from('promotion_packages').select('key,label,days,amount')
+        .eq('active', true).order('sort', { ascending: true }),
     ]);
     const prof = (p as Profile) ?? null;
     setProfile(prof);
@@ -113,6 +116,7 @@ export function Dashboard({ session }: { session: Session }) {
     setAppts((a ?? []) as Appt[]);
     setBalance(Number(b?.balance ?? 0));
     setPayments((pay ?? []) as Payment[]);
+    setPackages((pk ?? []) as Package[]);
     setLoading(false);
   }, [sb, uid]);
 
@@ -158,11 +162,11 @@ export function Dashboard({ session }: { session: Session }) {
     load();
   }
 
-  async function buyPremium(pkg: (typeof PACKAGES)[number]) {
+  async function buyPremium(pkg: Package) {
     if (buying) return; // защита от двойного нажатия → двойное списание
     setError(''); setMsg(''); setBuying(true);
     try {
-      const { error: e } = await sb.rpc('redeem_promotion', { p_package: pkg.key, p_amount: pkg.amount, p_days: pkg.days });
+      const { error: e } = await sb.rpc('redeem_promotion', { p_package: pkg.key });
       if (e) {
         setError(/insufficient/i.test(e.message) ? 'Недостаточно средств — сначала пополните баланс' : 'Не удалось активировать премиум');
         return;
@@ -175,22 +179,36 @@ export function Dashboard({ session }: { session: Session }) {
   }
 
   async function topup() {
+    if (toppingUp) return; // двойной клик создавал ДВЕ заявки → двойное зачисление
     setError(''); setMsg('');
     const amt = Number(topupAmount);
     if (!Number.isFinite(amt) || amt <= 0) return setError('Введите сумму пополнения');
-    const { error: e } = await sb.from('payments').insert({
-      master_id: uid,
-      amount: amt,
-      // Валюта пополнения = валюта мастера (оплата локальным переводом в его стране).
-      currency: profile?.currency ?? 'TJS',
-      method: topupMethod,
-      status: 'pending',
-      idempotency_key: crypto.randomUUID(),
-    });
-    if (e) return setError('Не удалось создать заявку, попробуйте ещё раз');
-    setTopupAmount('');
-    setMsg('Заявка на пополнение создана. После перевода мы подтвердим её вручную.');
-    load();
+    setToppingUp(true);
+    try {
+      const { error: e } = await sb.from('payments').insert({
+        master_id: uid,
+        amount: amt,
+        // Валюта пополнения = валюта мастера (оплата локальным переводом в его стране).
+        currency: profile?.currency ?? 'TJS',
+        method: topupMethod,
+        status: 'pending',
+        // Ключ выводим из содержимого, а не random: повтор той же заявки за день
+        // схлопнется уникальным индексом (master_id, idempotency_key), а не
+        // создаст второй платёж, который админ подтвердит дважды.
+        idempotency_key: `${todayLocal()}:${topupMethod}:${amt}`,
+      });
+      if (e) {
+        setError(e.code === '23505'
+          ? 'Такая заявка уже создана — дождитесь подтверждения'
+          : 'Не удалось создать заявку, попробуйте ещё раз');
+        return;
+      }
+      setTopupAmount('');
+      setMsg('Заявка на пополнение создана. После перевода мы подтвердим её вручную.');
+      load();
+    } finally {
+      setToppingUp(false);
+    }
   }
 
   async function logout() {
@@ -248,7 +266,7 @@ export function Dashboard({ session }: { session: Session }) {
         <label className="bf-field"><span className="bf-label">Категория</span>
           <select className="bf-input" value={form.profession_category ?? ''} onChange={(e) => setField('profession_category', e.target.value)}>
             <option value="">— не указана —</option>
-            {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+            {CATEGORY_OPTIONS.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
           </select>
         </label>
         <div className="bf-row">
@@ -326,7 +344,7 @@ export function Dashboard({ session }: { session: Session }) {
 
         <div className="bf-label" style={{ marginTop: 10 }}>Подключить премиум (списывается с баланса)</div>
         <div className="row" style={{ flexWrap: 'wrap', gap: 10 }}>
-          {PACKAGES.map((pkg) => (
+          {packages.map((pkg) => (
             <button key={pkg.key} className="btn btn-gold" onClick={() => buyPremium(pkg)} disabled={balance < pkg.amount || buying}>
               {pkg.label} · {formatPrice(pkg.amount, profile.currency)}
             </button>
@@ -346,7 +364,9 @@ export function Dashboard({ session }: { session: Session }) {
             </select>
           </label>
         </div>
-        <button className="btn" onClick={topup}>Создать заявку на пополнение</button>
+        <button className="btn" onClick={topup} disabled={toppingUp}>
+          {toppingUp ? 'Создаём…' : 'Создать заявку на пополнение'}
+        </button>
         <p className="faint" style={{ fontSize: 13, margin: '6px 0 0' }}>
           Реквизиты для перевода появятся после настройки. Заявка подтверждается вручную после поступления оплаты.
         </p>

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { professionLabel } from '@/lib/taxonomy';
 import type { Master } from '@/lib/types';
 import { initials, formatPrice } from '@/lib/format';
 
@@ -40,7 +41,7 @@ export function MasterCard({
           <div className="mcard-ava">{initials(m.name)}</div>
           <div style={{ minWidth: 0 }}>
             <div className="mcard-name">{m.name}</div>
-            <div className="mcard-svc">{m.profession_category || 'Мастер'}</div>
+            <div className="mcard-svc">{professionLabel(m.specialization_id, m.profession_category)}</div>
           </div>
         </Link>
         {place && (

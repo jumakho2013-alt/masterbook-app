@@ -400,6 +400,9 @@ export async function pushPublicProfile(): Promise<{ ok: boolean; error?: string
     const { error } = await supabase
       .from('profiles')
       .update({
+        // Имя редактируется на экране публикации, но раньше уходило только
+        // обычным синком — на сайте оставалось старое до следующего syncNow.
+        name: s.masterName ?? '',
         city: s.city || null,
         district: s.district || null,
         bio: s.bio || null,
@@ -412,6 +415,12 @@ export async function pushPublicProfile(): Promise<{ ok: boolean; error?: string
         work_days: s.workDays,
         work_hours_start: s.workHours.start,
         work_hours_end: s.workHours.end,
+        // Перерыв не синкался вообще → edge-функция book знала только рабочие
+        // часы и разрешала запись в обед мастера.
+        break_enabled: s.breakTime.enabled,
+        break_start: s.breakTime.start,
+        break_end: s.breakTime.end,
+        buffer_minutes: s.bufferMinutes,
         currency: s.currency,
         portfolio_photos: s.portfolioPhotos,
         published: s.published,

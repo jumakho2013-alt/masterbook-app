@@ -8,6 +8,7 @@ import { useTheme } from '@/src/theme';
 import { EmptyState, GlassCard, CountUp, Button, useToast } from '@/src/components/ui';
 import { AtelierScheduleRow } from '@/src/components/AtelierScheduleRow';
 import { SleepingClientsCard } from '@/src/components/SleepingClientsCard';
+import { syncNow } from '@/src/lib/cloudSync';
 import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useClientStore } from '@/src/stores/useClientStore';
 import { useServiceStore } from '@/src/stores/useServiceStore';
@@ -160,9 +161,10 @@ function TodayScreen() {
   const getClient = (id: string) => clients.find((c) => c.id === id);
   const getService = (id: string) => services.find((s) => s.id === id);
 
-  const onRefresh = useCallback(() => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 600);
+    // Реальный синк, как на остальных вкладках (гость — быстрый no-op).
+    try { await syncNow(); } finally { setRefreshing(false); }
   }, []);
 
   const currentClient = currentAppointment ? getClient(currentAppointment.clientId) : null;
