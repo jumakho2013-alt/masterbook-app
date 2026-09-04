@@ -11,6 +11,7 @@ import { useClientStore } from '@/src/stores/useClientStore';
 import { useServiceStore } from '@/src/stores/useServiceStore';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { applyLanguage } from '@/src/i18n';
+import { Platform } from 'react-native';
 
 /** За сколько минут до записи напоминаем (совпадает с appointment/new.tsx). */
 const REMINDER_MINUTES_BEFORE = 60;
@@ -59,18 +60,35 @@ export async function rescheduleMissingReminders(): Promise<void> {
     const clients = useClientStore.getState().clients;
     const services = useServiceStore.getState().services;
 
-    for (const a of appts) {
-      if (a.status !== 'scheduled') continue;
-      if (haveReminderFor.has(a.id)) continue;
+    // iOS хранит максимум 64 запланированных локальных уведомления и молча
+    // отбрасывает остальные. Раньше мы шли по ВСЕМ записям в произвольном
+    // порядке: у мастера с расписанием на 2-3 месяца вперёд часть напоминаний
+    // не ставилась, но id всё равно записывался в стор — приложение считало,
+    // что напоминание есть, и не могло его отменить. Плюс 3000 последовательных
+    // await через нативный мост подвешивали холодный старт на десятки секунд.
+    // Берём только ближайшие по времени и не больше лимита платформы.
+    const PENDING_CAP = Platform.OS === 'ios' ? 60 : 200;
+    const due = appts
+      .filter((a) => a.status === 'scheduled' && !haveReminderFor.has(a.id))
+      .map((a) => {
+        const [y, mo, d] = a.date.split('-').map(Number);
+        const [hh, mm] = a.startTime.split(':').map(Number);
+        if ([y, mo, d, hh, mm].some(Number.isNaN)) return null;
+        const fireMs = new Date(y, mo - 1, d, hh, mm).getTime() - REMINDER_MINUTES_BEFORE * 60_000;
+        return fireMs > nowMs ? { a, fireMs } : null;
+      })
+      .filter((x): x is { a: (typeof appts)[number]; fireMs: number } => x !== null)
+      .sort((x, y) => x.fireMs - y.fireMs)
+      .slice(0, PENDING_CAP);
 
-      const [y, mo, d] = a.date.split('-').map(Number);
-      const [hh, mm] = a.startTime.split(':').map(Number);
-      if ([y, mo, d, hh, mm].some(Number.isNaN)) continue;
-      const fireMs = new Date(y, mo - 1, d, hh, mm).getTime() - REMINDER_MINUTES_BEFORE * 60_000;
-      if (fireMs <= nowMs) continue; // время напоминания уже прошло
+    // Резолвим клиента/услугу через Map — иначе find() внутри цикла даёт O(n*m).
+    const clientById = new Map(clients.map((c) => [c.id, c]));
+    const serviceById = new Map(services.map((s) => [s.id, s]));
+    const scheduled: Array<{ id: string; notifId: string }> = [];
 
-      const client = clients.find((c) => c.id === a.clientId);
-      const service = services.find((s) => s.id === a.serviceId);
+    for (const { a } of due) {
+      const client = clientById.get(a.clientId);
+      const service = serviceById.get(a.serviceId);
       const notifId = await scheduleAppointmentReminder(
         a.id,
         client?.name ?? 'Клиент',
@@ -79,9 +97,13 @@ export async function rescheduleMissingReminders(): Promise<void> {
         a.startTime,
         REMINDER_MINUTES_BEFORE,
       );
-      if (notifId) {
-        useAppointmentStore.getState().setReminderId(a.id, notifId);
-      }
+      if (notifId) scheduled.push({ id: a.id, notifId });
+    }
+
+    // Один проход записи вместо N: setReminderId на каждую запись гонял
+    // сериализацию всего стора столько же раз.
+    if (scheduled.length > 0) {
+      useAppointmentStore.getState().setReminderIds(scheduled);
     }
   } catch (err) {
     captureException(err, { tag: 'reminderSync.reschedule' });

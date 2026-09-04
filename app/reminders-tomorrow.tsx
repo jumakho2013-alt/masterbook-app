@@ -13,6 +13,7 @@ import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { toDateKey, formatTimeRange } from '@/src/utils/date';
 import { openOutreach } from '@/src/lib/sleepingClients';
 import { buildReminderMessage } from '@/src/lib/reminderTemplate';
+import { cmpAsc } from '@/src/utils/sort';
 
 function tomorrowKey(): string {
   const d = new Date();
@@ -36,7 +37,7 @@ export default function RemindersTomorrowScreen() {
     const key = tomorrowKey();
     return appointments
       .filter((a) => a.date === key && a.status === 'scheduled')
-      .sort((a, b) => a.startTime.localeCompare(b.startTime))
+      .sort((a, b) => cmpAsc(a.startTime, b.startTime))
       .map((a) => ({
         appt: a,
         client: clients.find((c) => c.id === a.clientId),

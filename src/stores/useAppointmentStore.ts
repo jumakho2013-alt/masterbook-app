@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { persist } from 'zustand/middleware';
+import { coalescedStorage } from '@/src/lib/persistStorage';
 import type { Appointment, AppointmentStatus } from '@/src/types';
 import { generateId } from '@/src/utils/helpers';
 import { toDateKey, nowIso } from '@/src/utils/date';
@@ -8,6 +8,7 @@ import { cancelNotification } from '@/src/lib/notifications';
 import { mergeRemote, type RemoteChange, type Tombstone } from '@/src/lib/syncMerge';
 import { notifyLocalMutation } from '@/src/lib/cloudSyncSignal';
 import { useFinanceStore } from '@/src/stores/useFinanceStore';
+import { cmpAsc, cmpDesc } from '@/src/utils/sort';
 
 // Снимает авто-доход, привязанный к записи (appointmentId). Зовётся когда запись
 // уходит из статуса 'completed' или удаляется — иначе доход остаётся навсегда
@@ -32,6 +33,8 @@ interface AppointmentState {
    *  считаться правкой данных — иначе устройство необоснованно «победит» в
    *  last-write-wins против других устройств. */
   setReminderId: (id: string, notifId: string | undefined) => void;
+  /** Батчевая простановка id напоминаний — один set() на всю пачку. */
+  setReminderIds: (pairs: Array<{ id: string; notifId: string }>) => void;
   deleteAppointment: (id: string) => void;
   getTodayAppointments: () => Appointment[];
   getByDate: (date: string) => Appointment[];
@@ -100,6 +103,16 @@ export const useAppointmentStore = create<AppointmentState>()(
         notifyLocalMutation();
       },
 
+      setReminderIds: (pairs) =>
+        set((s) => {
+          const byId = new Map(pairs.map((p) => [p.id, p.notifId]));
+          return {
+            appointments: s.appointments.map((a) =>
+              byId.has(a.id) ? { ...a, reminderNotificationId: byId.get(a.id) } : a,
+            ),
+          };
+        }),
+
       setReminderId: (id, notifId) =>
         set((s) => ({
           appointments: s.appointments.map((a) =>
@@ -125,18 +138,18 @@ export const useAppointmentStore = create<AppointmentState>()(
         const todayKey = toDateKey(new Date());
         return get()
           .appointments.filter((a) => a.date === todayKey)
-          .sort((a, b) => a.startTime.localeCompare(b.startTime));
+          .sort((a, b) => cmpAsc(a.startTime, b.startTime));
       },
 
       getByDate: (date) =>
         get()
           .appointments.filter((a) => a.date === date)
-          .sort((a, b) => a.startTime.localeCompare(b.startTime)),
+          .sort((a, b) => cmpAsc(a.startTime, b.startTime)),
 
       getByClient: (clientId) =>
         get()
           .appointments.filter((a) => a.clientId === clientId)
-          .sort((a, b) => b.date.localeCompare(a.date)),
+          .sort((a, b) => cmpDesc(a.date, b.date)),
 
       mergeRemote: (remote) => {
         // reminderNotificationId и calendarEventId — device-local: они НЕ
@@ -160,8 +173,12 @@ export const useAppointmentStore = create<AppointmentState>()(
         return appliedDeletes;
       },
 
-      clearTombstones: (ids) =>
-        set((s) => ({ tombstones: s.tombstones.filter((t) => !ids.includes(t.id)) })),
+      clearTombstones: (ids) => {
+        // Set вместо includes: filter+includes — O(n*m), на тысячах удалений
+        // это заметная пауза прямо в момент синка.
+        const drop = new Set(ids);
+        set((s) => ({ tombstones: s.tombstones.filter((t) => !drop.has(t.id)) }));
+      },
 
       reset: () => {
         // Отменяем все запланированные локальные напоминания. Без этого
@@ -175,7 +192,9 @@ export const useAppointmentStore = create<AppointmentState>()(
     }),
     {
       name: 'masterbook-appointments',
-      storage: createJSONStorage(() => AsyncStorage),
+      // Объединяем записи на диск: без этого каждый set() сериализует
+      // весь стор (см. src/lib/persistStorage.ts).
+      storage: coalescedStorage,
     },
   ),
 );

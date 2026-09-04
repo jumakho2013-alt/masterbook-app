@@ -78,6 +78,12 @@ export default async function MasterPage({ params }: { params: { slug: string } 
   const minPrice = prices.length ? Math.min(...prices) : null;
   const freeToday = master.work_days?.includes(dushanbeDow());
   const photos = master.portfolio_photos ?? [];
+  /** Превью через трансформации Supabase Storage: в сетку 96×96 грузился
+   *  оригинал 1280px (~250 КБ). При 20к просмотров/сутки это ~25 ГБ/сутки
+   *  трафика; 400px-превью весит ~8× меньше. Полный размер — по клику. */
+  const thumb = (url: string) => (url.includes('/object/public/')
+    ? `${url}${url.includes('?') ? '&' : '?'}width=400&quality=70`
+    : url);
 
   // Structured data (schema.org) — Google показывает звёзды/инфо в выдаче,
   // выше CTR. Только реальные поля; цены не указываем (валюта зависит от страны).
@@ -170,7 +176,7 @@ export default async function MasterPage({ params }: { params: { slug: string } 
                   {photos.map((src, i) => (
                     <div key={i} className="gallery-cell">
                       <img
-                        src={src}
+                        src={thumb(src)}
                         alt={`${master.name || 'Мастер'}${', ' + professionLabel(master.specialization_id, master.profession_category)} — работа ${i + 1}`}
                         loading="lazy"
                       />

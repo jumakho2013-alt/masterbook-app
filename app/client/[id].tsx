@@ -24,6 +24,7 @@ import { formatCurrency } from '@/src/utils/currency';
 import { openAddressInMaps } from '@/src/lib/openMaps';
 import { useT } from '@/src/hooks/useT';
 import type { ClientTag } from '@/src/types';
+import { cmpDesc } from '@/src/utils/sort';
 
 const tagLabelKeys: Record<string, string> = {
   vip: 'clientDetail.tagVip',
@@ -62,7 +63,7 @@ export default function ClientDetailScreen() {
 
   const client = allClients.find((c) => c.id === id);
   const appointments = useMemo(
-    () => allAppointments.filter((a) => a.clientId === id).sort((a, b) => b.date.localeCompare(a.date)),
+    () => allAppointments.filter((a) => a.clientId === id).sort((a, b) => cmpDesc(a.date, b.date)),
     [allAppointments, id],
   );
   const getService = (sid: string) => services.find((s) => s.id === sid);

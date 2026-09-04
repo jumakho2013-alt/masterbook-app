@@ -12,6 +12,7 @@ import { useServiceStore } from '@/src/stores/useServiceStore';
 import { formatCurrency } from '@/src/utils/currency';
 import { formatDate, toDateKey } from '@/src/utils/date';
 import { useT } from '@/src/hooks/useT';
+import { cmpDesc } from '@/src/utils/sort';
 
 type ReportKind = 'income' | 'expense' | 'net' | 'avgCheck' | 'hours';
 type Period = 'day' | 'week' | 'month' | 'year';
@@ -86,21 +87,21 @@ export default function FinanceReportScreen() {
     if (kind === 'income') {
       const items = entries
         .filter((e) => e.type === 'income')
-        .sort((a, b) => b.date.localeCompare(a.date));
+        .sort((a, b) => cmpDesc(a.date, b.date));
       const total = items.reduce((s, e) => s + e.amount, 0);
       return { items, total, label: tr('misc.reportIncomePeriod') };
     }
     if (kind === 'expense') {
       const items = entries
         .filter((e) => e.type === 'expense')
-        .sort((a, b) => b.date.localeCompare(a.date));
+        .sort((a, b) => cmpDesc(a.date, b.date));
       const total = items.reduce((s, e) => s + e.amount, 0);
       return { items, total, label: tr('misc.reportExpensePeriod') };
     }
     if (kind === 'net') {
       const income = entries.filter((e) => e.type === 'income').reduce((s, e) => s + e.amount, 0);
       const expense = entries.filter((e) => e.type === 'expense').reduce((s, e) => s + e.amount, 0);
-      const items = entries.sort((a, b) => b.date.localeCompare(a.date));
+      const items = entries.sort((a, b) => cmpDesc(a.date, b.date));
       return {
         items,
         total: income - expense,
@@ -112,7 +113,7 @@ export default function FinanceReportScreen() {
     if (kind === 'avgCheck') {
       const total = appts.reduce((s, a) => s + a.price, 0);
       const avg = appts.length > 0 ? Math.round(total / appts.length) : 0;
-      const items = appts.sort((a, b) => b.date.localeCompare(a.date));
+      const items = appts.sort((a, b) => cmpDesc(a.date, b.date));
       return {
         items: items.map((a) => ({
           id: a.id,
@@ -134,7 +135,7 @@ export default function FinanceReportScreen() {
       }, 0);
       const totalH = Math.round((totalMin / 60) * 10) / 10;
       return {
-        items: appts.sort((a, b) => b.date.localeCompare(a.date)).map((a) => ({
+        items: appts.sort((a, b) => cmpDesc(a.date, b.date)).map((a) => ({
           id: a.id,
           type: 'income' as const,
           amount: 0,
@@ -170,7 +171,7 @@ export default function FinanceReportScreen() {
     }
     return Object.entries(byDate)
       .map(([date, items]) => ({ date, items }))
-      .sort((a, b) => b.date.localeCompare(a.date));
+      .sort((a, b) => cmpDesc(a.date, b.date));
   }, [data.items]);
 
   return (

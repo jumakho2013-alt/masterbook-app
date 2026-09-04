@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { File, Directory, Paths } from 'expo-file-system';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { supabase } from '@/src/lib/supabase';
 import { useAuthStore } from '@/src/stores/useAuthStore';
 import { captureException } from '@/src/lib/crashReporter';
@@ -64,9 +65,24 @@ export async function uploadPhoto(localUri: string, folder: string): Promise<str
     const userId = useAuthStore.getState().user?.id;
     if (!userId) return null; // local-only режим — облака нет
 
-    const ext = extOf(localUri);
+    // Раньше файл уходил КАК ЕСТЬ: ImagePicker отдаёт полный кадр (2-5 МБ),
+    // из-за чего и бакет, и локальный кэш росли в разы быстрее необходимого,
+    // а на слабом Android пачка из 5 фото держала десятки МБ в heap.
+    // Нормализуем так же, как портфолио: JPEG ≤1600px.
+    let srcUri = localUri;
+    try {
+      const out = await manipulateAsync(localUri, [{ resize: { width: 1600 } }], {
+        compress: 0.75,
+        format: SaveFormat.JPEG,
+      });
+      srcUri = out.uri;
+    } catch (err) {
+      // Не критично: заливаем оригинал, качество важнее отказа.
+      captureException(err, { tag: 'photoCloud.manipulate' });
+    }
+    const ext = srcUri === localUri ? extOf(localUri) : 'jpg';
     const path = `${userId}/${folder}/${uniqueName(ext)}`;
-    const bytes = await new File(localUri).bytes();
+    const bytes = await new File(srcUri).bytes();
 
     const { error } = await supabase.storage.from(BUCKET).upload(path, bytes, {
       contentType: ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg',
@@ -82,7 +98,9 @@ export async function uploadPhoto(localUri: string, folder: string): Promise<str
     try {
       const cf = cacheFileFor(path);
       if (cf.exists) cf.delete();
-      new File(localUri).copy(cf);
+      // Кладём в кэш ИМЕННО то, что залили (сжатую копию), иначе на
+      // устройстве оставался тяжёлый оригинал.
+      new File(srcUri).copy(cf);
     } catch {
       /* засев кэша best-effort — не критично */
     }

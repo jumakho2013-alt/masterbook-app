@@ -121,7 +121,7 @@ function TodayScreen() {
         if (filter === 'completed') return a.status === 'completed';
         return a.status === 'scheduled';
       })
-      .sort((a, b) => a.startTime.localeCompare(b.startTime));
+      .sort((a, b) => cmpAsc(a.startTime, b.startTime));
   }, [appointments, todayKey, filter]);
 
   // Find "now" appointment (currently in progress)
@@ -490,6 +490,7 @@ const styles = StyleSheet.create({
 
 // --- Tab-level Error Boundary wrapper ---
 import { TabErrorBoundary } from '@/src/components/TabErrorBoundary';
+import { cmpAsc } from '@/src/utils/sort';
 export default function TodayScreenWithBoundary() {
   return (
     <TabErrorBoundary tabName="today">

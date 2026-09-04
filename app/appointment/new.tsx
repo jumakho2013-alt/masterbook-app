@@ -36,6 +36,7 @@ import { appointmentSchema } from '@/src/lib/validation';
 import { syncCreateEvent } from '@/src/lib/calendarSync';
 import { useT } from '@/src/hooks/useT';
 import type { Client, Service } from '@/src/types';
+import { cmpDesc } from '@/src/utils/sort';
 
 type Step = 'client' | 'service' | 'time' | 'confirm';
 
@@ -117,7 +118,7 @@ export default function NewAppointmentScreen() {
     }
     return allClients
       .filter((c) => lastVisit[c.id])
-      .sort((a, b) => lastVisit[b.id].localeCompare(lastVisit[a.id]))
+      .sort((a, b) => cmpDesc(lastVisit[a.id], lastVisit[b.id]))
       .slice(0, 5);
   }, [allClients, allAppointments, search]);
   const workHours = useSettingsStore((s) => s.workHours);

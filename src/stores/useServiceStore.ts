@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { persist } from 'zustand/middleware';
+import { coalescedStorage } from '@/src/lib/persistStorage';
 import type { Service } from '@/src/types';
 import { generateId } from '@/src/utils/helpers';
 import { nowIso } from '@/src/utils/date';
@@ -76,14 +76,20 @@ export const useServiceStore = create<ServiceState>()(
         return appliedDeletes;
       },
 
-      clearTombstones: (ids) =>
-        set((s) => ({ tombstones: s.tombstones.filter((t) => !ids.includes(t.id)) })),
+      clearTombstones: (ids) => {
+        // Set вместо includes: filter+includes — O(n*m), на тысячах удалений
+        // это заметная пауза прямо в момент синка.
+        const drop = new Set(ids);
+        set((s) => ({ tombstones: s.tombstones.filter((t) => !drop.has(t.id)) }));
+      },
 
       reset: () => set({ services: [], tombstones: [] }),
     }),
     {
       name: 'masterbook-services',
-      storage: createJSONStorage(() => AsyncStorage),
+      // Объединяем записи на диск: без этого каждый set() сериализует
+      // весь стор (см. src/lib/persistStorage.ts).
+      storage: coalescedStorage,
     },
   ),
 );

@@ -77,8 +77,8 @@ function ClientsScreen() {
       (byLetter[letter] ??= []).push(c);
     }
     return Object.keys(byLetter)
-      .sort((a, b) => a.localeCompare(b, 'ru'))
-      .map((letter) => ({ title: letter, data: byLetter[letter].sort((a, b) => a.name.localeCompare(b.name, 'ru')) }));
+      .sort(nameCollator.compare)
+      .map((letter) => ({ title: letter, data: byLetter[letter].sort((a, b) => nameCollator.compare(a.name, b.name)) }));
   }, [allClients, search, filter]);
 
   const sleeping = useMemo(() => {
@@ -235,6 +235,7 @@ const styles = StyleSheet.create({
 
 // --- Tab-level Error Boundary wrapper ---
 import { TabErrorBoundary } from '@/src/components/TabErrorBoundary';
+import { nameCollator } from '@/src/utils/sort';
 export default function ClientsScreenWithBoundary() {
   return (
     <TabErrorBoundary tabName="clients">

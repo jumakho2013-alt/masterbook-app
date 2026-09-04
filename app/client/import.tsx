@@ -35,7 +35,7 @@ export default function ImportContactsScreen() {
   const toast = useToast();
 
   const clients = useClientStore((s) => s.clients);
-  const addClient = useClientStore((s) => s.addClient);
+  const addClients = useClientStore((s) => s.addClients);
 
   const [loading, setLoading] = useState(true);
   const [denied, setDenied] = useState(false);
@@ -96,9 +96,7 @@ export default function ImportContactsScreen() {
       return;
     }
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    for (const c of toAdd) {
-      addClient({ name: c.name, phone: c.phone, notes: '', tags: [] });
-    }
+    addClients(toAdd.map((c) => ({ name: c.name, phone: c.phone, notes: '', tags: [] })));
     toast.success(tr('clientImport.added', { n: toAdd.length }));
     router.back();
   };

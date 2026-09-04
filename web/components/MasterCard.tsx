@@ -27,7 +27,7 @@ export function MasterCard({
 }) {
   const href = m.slug ? `/m/${m.slug}` : '#';
   const place = [m.district, m.city].filter(Boolean).join(' · ');
-  const works = m.portfolio_photos?.length ?? 0;
+  const works = m.photos_count ?? m.portfolio_photos?.length ?? 0;
 
   return (
     <div className={`mcard${isActivePremium(m) ? ' mcard-premium' : ''}`}>

@@ -23,6 +23,10 @@ export function generateMetadata({
   if (specLabel) parts.push('—', specLabel);
   if (q) parts.push(q);
   if (city) parts.push(`в городе ${city}`);
+  const canonicalSp = new URLSearchParams();
+  if (searchParams.spec) canonicalSp.set('spec', searchParams.spec);
+  if (city) canonicalSp.set('city', city);
+  const canonicalPath = canonicalSp.toString() ? `/catalog?${canonicalSp}` : '/catalog';
   const title = `${parts.join(' ')} — MasterBook`;
   const description = city
     ? `Найдите мастера${q ? ' «' + q + '»' : ''} в городе ${city}: рейтинг, цены, онлайн-запись.`
@@ -30,7 +34,7 @@ export function generateMetadata({
   return {
     title,
     description,
-    alternates: { canonical: '/catalog' },
+    alternates: { canonical: canonicalPath },
     openGraph: { title, description },
   };
 }
@@ -69,10 +73,23 @@ export default async function CatalogPage({
   const city = searchParams.city?.trim();
   const spec = searchParams.spec?.trim();
   const sort = searchParams.sort === 'rating' ? 'rating' : 'premium';
-  const page = Math.max(1, Number(searchParams.page ?? '1') || 1);
+  // Потолок глубины: без него ?page=5000 давал OFFSET 120000 — полная
+  // сортировка таблицы на каждый запрос, и каждый номер страницы — отдельный
+  // ключ кеша, то есть готовый вектор для краулера.
+  const MAX_PAGE = 200;
+  const page = Math.min(MAX_PAGE, Math.max(1, Number(searchParams.page ?? '1') || 1));
   const from = (page - 1) * PAGE_SIZE;
 
-  let query = supabase.from('profiles').select('*', { count: 'exact' }).eq('published', true);
+  // count: 'estimated' берёт оценку у планировщика (0 мс) вместо полного скана
+  // таблицы на КАЖДЫЙ рендер каталога (замер на 100k: 46.7 мс seq scan).
+  // Для подписи «N мастеров» точность до строки не нужна.
+  // Явный список колонок вместо select('*'): карточке нужно ~0.4 КБ, а '*'
+  // тянул ~3 КБ на мастера (bio, 12 URL портфолио, рабочие часы, контакты) —
+  // семикратный перебор трафика на каждой странице каталога.
+  let query = supabase
+    .from('profiles')
+    .select('id,name,slug,specialization_id,profession_category,city,district,premium,premium_until,rating,reviews_count,work_days,currency,photos_count', { count: 'estimated' })
+    .eq('published', true);
   // Точный фильтр по специализации (в БД лежат id вида 'nails', не русские слова).
   if (spec) query = query.eq('specialization_id', spec);
   // Свободный поиск — только по имени: в profession_category хранятся id,
@@ -124,9 +141,9 @@ export default async function CatalogPage({
 
       {/* категории */}
       <div className="chips">
-        <Link href={hrefWith({ city, sort }, { q: undefined })} className={`chip${!q ? ' active' : ''}`}>Все</Link>
+        <Link href={hrefWith({ q, city, sort }, { spec: undefined })} className={`chip${!spec ? ' active' : ''}`}>Все</Link>
         {HOME_CATEGORIES.map((c) => (
-          <Link key={c.key} href={hrefWith({ city, sort }, { q: c.name })} className={`chip${q === c.name ? ' active' : ''}`}>{c.name}</Link>
+          <Link key={c.key} href={hrefWith({ q, city, sort }, { spec: c.key })} className={`chip${spec === c.key ? ' active' : ''}`}>{c.name}</Link>
         ))}
       </div>
 
@@ -134,13 +151,13 @@ export default async function CatalogPage({
       {cities.length > 1 && (
         <div style={{ marginBottom: 4 }}>
           <div className="chips">
-            <Link href={hrefWith({ q, sort }, { city: undefined })} className={`chip${!city ? ' active' : ''}`}>📍 Все города</Link>
+            <Link href={hrefWith({ q, spec, sort }, { city: undefined })} className={`chip${!city ? ' active' : ''}`}>📍 Все города</Link>
           </div>
           {cityGroups.map((g) => (
             <div key={g.country} className="chips" style={{ marginTop: 8, alignItems: 'center' }}>
               <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.6, color: 'var(--text3)', marginRight: 2 }}>{g.country}</span>
               {g.cities.map((c) => (
-                <Link key={c} href={hrefWith({ q, sort }, { city: c })} className={`chip${city === c ? ' active' : ''}`}>{c}</Link>
+                <Link key={c} href={hrefWith({ q, spec, sort }, { city: c })} className={`chip${city === c ? ' active' : ''}`}>{c}</Link>
               ))}
             </div>
           ))}
@@ -151,7 +168,7 @@ export default async function CatalogPage({
       <div className="chips" style={{ marginBottom: 22, alignItems: 'center' }}>
         <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.4, color: 'var(--text3)', marginRight: 2 }}>СОРТИРОВКА</span>
         {SORTS.map((s) => (
-          <Link key={s.key} href={hrefWith({ q, city }, { sort: s.key })} className={`chip${sort === s.key ? ' active' : ''}`}>{s.label}</Link>
+          <Link key={s.key} href={hrefWith({ q, spec, city }, { sort: s.key })} className={`chip${sort === s.key ? ' active' : ''}`}>{s.label}</Link>
         ))}
       </div>
 
@@ -164,8 +181,8 @@ export default async function CatalogPage({
           </div>
           {(page > 1 || hasNext) && (
             <div className="spread" style={{ marginTop: 28, alignItems: 'center' }}>
-              {page > 1 ? <Link href={hrefWith({ q, city, sort }, { page: page - 1 })} className="btn">← Назад</Link> : <span />}
-              {hasNext && <Link href={hrefWith({ q, city, sort }, { page: page + 1 })} className="btn btn-primary">Дальше →</Link>}
+              {page > 1 ? <Link href={hrefWith({ q, spec, city, sort }, { page: page - 1 })} className="btn">← Назад</Link> : <span />}
+              {hasNext && <Link href={hrefWith({ q, spec, city, sort }, { page: page + 1 })} className="btn btn-primary">Дальше →</Link>}
             </div>
           )}
         </>

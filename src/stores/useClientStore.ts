@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { persist } from 'zustand/middleware';
+import { coalescedStorage } from '@/src/lib/persistStorage';
 import type { Client } from '@/src/types';
 import { generateId } from '@/src/utils/helpers';
 import { nowIso } from '@/src/utils/date';
@@ -13,6 +13,10 @@ interface ClientState {
   tombstones: Tombstone[];
 
   addClient: (client: Omit<Client, 'id' | 'createdAt'>) => Client | null;
+  /** Массовое добавление (импорт контактов) — ОДИН set() на всю пачку.
+   *  Поштучный addClient сериализовал стор на каждого контакта: импорт 200
+   *  штук при базе 1500 замораживал интерфейс на несколько секунд. */
+  addClients: (list: Omit<Client, 'id' | 'createdAt'>[]) => number;
   updateClient: (id: string, updates: Partial<Client>) => void;
   deleteClient: (id: string) => void;
   getClient: (id: string) => Client | undefined;
@@ -44,6 +48,20 @@ export const useClientStore = create<ClientState>()(
         set((s) => ({ clients: [client, ...s.clients] }));
         notifyLocalMutation();
         return client;
+      },
+
+      addClients: (list) => {
+        if (list.length === 0) return 0;
+        const now = nowIso();
+        const created = list.map((c, i) => ({
+          ...c,
+          id: `${generateId()}-${i}`,
+          createdAt: now,
+          updatedAt: now,
+        })) as Client[];
+        set((s) => ({ clients: [...created, ...s.clients] }));
+        notifyLocalMutation();
+        return created.length;
       },
 
       updateClient: (id, updates) => {
@@ -86,19 +104,32 @@ export const useClientStore = create<ClientState>()(
       mergeRemote: (remote) => {
         const { records, appliedDeletes } = mergeRemote(get().clients, remote, get().tombstones);
         // Стабильный порядок: новые сверху (по createdAt убыв.).
-        records.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
+        // Сравниваем лексикографически, а не через localeCompare: createdAt —
+        // ISO-8601, он и так упорядочен, а localeCompare на Hermes уходит в
+        // нативный ICU и на 1500 клиентов давал десятки мс фриза на каждом pull.
+        records.sort((a, b) => {
+          const x = a.createdAt ?? '';
+          const y = b.createdAt ?? '';
+          return x < y ? 1 : x > y ? -1 : 0;
+        });
         set({ clients: records });
         return appliedDeletes;
       },
 
-      clearTombstones: (ids) =>
-        set((s) => ({ tombstones: s.tombstones.filter((t) => !ids.includes(t.id)) })),
+      clearTombstones: (ids) => {
+        // Set вместо includes: filter+includes — O(n*m), на тысячах удалений
+        // это заметная пауза прямо в момент синка.
+        const drop = new Set(ids);
+        set((s) => ({ tombstones: s.tombstones.filter((t) => !drop.has(t.id)) }));
+      },
 
       reset: () => set({ clients: [], tombstones: [] }),
     }),
     {
       name: 'masterbook-clients',
-      storage: createJSONStorage(() => AsyncStorage),
+      // Объединяем записи на диск: без этого каждый set() сериализует
+      // весь стор (см. src/lib/persistStorage.ts).
+      storage: coalescedStorage,
     },
   ),
 );

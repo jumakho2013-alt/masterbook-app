@@ -72,7 +72,7 @@ function CalendarScreen() {
   }, [allAppointments]);
 
   const appointments = useMemo(
-    () => allAppointments.filter((a) => a.date === selectedKey).sort((a, b) => a.startTime.localeCompare(b.startTime)),
+    () => allAppointments.filter((a) => a.date === selectedKey).sort((a, b) => cmpAsc(a.startTime, b.startTime)),
     [allAppointments, selectedKey],
   );
 
@@ -355,6 +355,7 @@ const styles = StyleSheet.create({
 
 // --- Tab-level Error Boundary wrapper ---
 import { TabErrorBoundary } from '@/src/components/TabErrorBoundary';
+import { cmpAsc } from '@/src/utils/sort';
 export default function CalendarScreenWithBoundary() {
   return (
     <TabErrorBoundary tabName="calendar">

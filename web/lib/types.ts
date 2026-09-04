@@ -13,6 +13,9 @@ export interface Master {
   avatar_url: string | null;
   cover_url: string | null;
   portfolio_photos: string[] | null;
+  /** Генерируемая колонка: длина portfolio_photos. Позволяет каталогу не
+   *  тянуть сам массив URL ради одной цифры на карточке. */
+  photos_count?: number | null;
   whatsapp: string | null;
   public_phone: string | null;
   premium: boolean;

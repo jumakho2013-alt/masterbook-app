@@ -7,6 +7,7 @@ import { useServiceStore } from '@/src/stores/useServiceStore';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { formatCurrency } from '@/src/utils/currency';
 import { captureException } from '@/src/lib/crashReporter';
+import { cmpAsc } from '@/src/utils/sort';
 
 /**
  * Налоговый PDF-отчёт для самозанятого (НПД 4%).
@@ -61,15 +62,22 @@ export function collectTaxReportData(range: TaxReportRange): TaxReportData {
     (e) => e.type === 'income' && e.date >= range.start && e.date <= range.end,
   );
 
+  // Раньше здесь на каждую строку дохода делались три .find() по всем
+  // записям/клиентам/услугам: годовой отчёт (2500 доходов × 3000 записей)
+  // это ~11 млн итераций и до секунды заморозки при генерации PDF.
+  const apptById = new Map(appointments.map((a) => [a.id, a]));
+  const clientById = new Map(clients.map((c) => [c.id, c]));
+  const serviceById = new Map(services.map((s) => [s.id, s]));
+
   const rows: TaxReportRow[] = incomeEntries.map((e) => {
     // Если запись привязана к appointment — подтягиваем имена для читаемости.
     let clientName = '—';
     let serviceName = e.description || 'Доход';
     if (e.appointmentId) {
-      const appt = appointments.find((a) => a.id === e.appointmentId);
+      const appt = apptById.get(e.appointmentId);
       if (appt) {
-        const client = clients.find((c) => c.id === appt.clientId);
-        const service = services.find((s) => s.id === appt.serviceId);
+        const client = clientById.get(appt.clientId);
+        const service = serviceById.get(appt.serviceId);
         if (client) clientName = client.name;
         if (service) serviceName = service.name;
       }
@@ -104,7 +112,7 @@ export function collectTaxReportData(range: TaxReportRange): TaxReportData {
   }
 
   // Сортировка по дате ascending — налоговый формат
-  rows.sort((a, b) => a.date.localeCompare(b.date));
+  rows.sort((a, b) => cmpAsc(a.date, b.date));
 
   const totalIncome = rows.reduce((sum, r) => sum + r.amount, 0);
   // НПД: 4% при работе с физлицами. Реальная ставка зависит от того

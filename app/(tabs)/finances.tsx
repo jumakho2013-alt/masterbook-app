@@ -86,7 +86,7 @@ function FinancesScreen() {
   const groupedEntries = useMemo(() => {
     const filtered = allEntries
       .filter((e) => e.date >= range.start && e.date <= range.end)
-      .sort((a, b) => b.date.localeCompare(a.date));
+      .sort((a, b) => cmpDesc(a.date, b.date));
     const byDate: Record<string, typeof filtered> = {};
     for (const e of filtered) {
       (byDate[e.date] ??= []).push(e);
@@ -101,10 +101,9 @@ function FinancesScreen() {
     }));
   }, [allEntries, range]);
 
-  const entries = useMemo(
-    () => allEntries.filter((e) => e.date >= range.start && e.date <= range.end).sort((a, b) => b.date.localeCompare(a.date)),
-    [allEntries, range],
-  );
+  // Выводим из уже посчитанной группировки: раньше тот же фильтр и та же
+  // сортировка по 5000 операций выполнялись во второй раз.
+  const entries = useMemo(() => groupedEntries.flatMap((g) => g.data), [groupedEntries]);
 
   const prevEntries = useMemo(
     () => allEntries.filter((e) => e.date >= prevRange.start && e.date <= prevRange.end),
@@ -143,8 +142,10 @@ function FinancesScreen() {
     periodAppts.forEach((a) => {
       clientRevenue[a.clientId] = (clientRevenue[a.clientId] ?? 0) + a.price;
     });
+    // Map вместо find() в цикле: было O(уникальных клиентов × всей базы).
+    const clientById = new Map(clients.map((c) => [c.id, c]));
     const topClients = Object.entries(clientRevenue)
-      .map(([id, revenue]) => ({ client: clients.find((c) => c.id === id), revenue }))
+      .map(([id, revenue]) => ({ client: clientById.get(id), revenue }))
       .filter((t) => t.client)
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 3);
@@ -508,6 +509,7 @@ const styles = StyleSheet.create({
 
 // --- Tab-level Error Boundary wrapper ---
 import { TabErrorBoundary } from '@/src/components/TabErrorBoundary';
+import { cmpDesc } from '@/src/utils/sort';
 export default function FinancesScreenWithBoundary() {
   return (
     <TabErrorBoundary tabName="finances">

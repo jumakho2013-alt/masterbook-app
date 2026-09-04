@@ -1,11 +1,12 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { persist } from 'zustand/middleware';
+import { coalescedStorage } from '@/src/lib/persistStorage';
 import type { FinanceEntry, FinanceSummary } from '@/src/types';
 import { generateId } from '@/src/utils/helpers';
 import { nowIso } from '@/src/utils/date';
 import { mergeRemote, type RemoteChange, type Tombstone } from '@/src/lib/syncMerge';
 import { notifyLocalMutation } from '@/src/lib/cloudSyncSignal';
+import { cmpDesc } from '@/src/utils/sort';
 
 interface FinanceState {
   entries: FinanceEntry[];
@@ -48,7 +49,7 @@ export const useFinanceStore = create<FinanceState>()(
       getByPeriod: (start, end) =>
         get()
           .entries.filter((e) => e.date >= start && e.date <= end)
-          .sort((a, b) => b.date.localeCompare(a.date)),
+          .sort((a, b) => cmpDesc(a.date, b.date)),
 
       getSummary: (start, end) => {
         const period = get().getByPeriod(start, end);
@@ -67,14 +68,20 @@ export const useFinanceStore = create<FinanceState>()(
         return appliedDeletes;
       },
 
-      clearTombstones: (ids) =>
-        set((s) => ({ tombstones: s.tombstones.filter((t) => !ids.includes(t.id)) })),
+      clearTombstones: (ids) => {
+        // Set вместо includes: filter+includes — O(n*m), на тысячах удалений
+        // это заметная пауза прямо в момент синка.
+        const drop = new Set(ids);
+        set((s) => ({ tombstones: s.tombstones.filter((t) => !drop.has(t.id)) }));
+      },
 
       reset: () => set({ entries: [], tombstones: [] }),
     }),
     {
       name: 'masterbook-finances',
-      storage: createJSONStorage(() => AsyncStorage),
+      // Объединяем записи на диск: без этого каждый set() сериализует
+      // весь стор (см. src/lib/persistStorage.ts).
+      storage: coalescedStorage,
     },
   ),
 );

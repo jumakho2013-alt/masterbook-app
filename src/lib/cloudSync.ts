@@ -26,6 +26,7 @@ import { supabase } from '@/src/lib/supabase';
 import { nowIso } from '@/src/utils/date';
 import { setLocalMutationHandler } from '@/src/lib/cloudSyncSignal';
 import { captureException } from '@/src/lib/crashReporter';
+import { flushPersist } from '@/src/lib/persistStorage';
 import { useAuthStore } from '@/src/stores/useAuthStore';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { useSyncStore } from '@/src/stores/useSyncStore';
@@ -207,6 +208,13 @@ function currentUserId(): string | null {
   return user?.id ?? null;
 }
 
+/** По ~25 байт на id в URL: 100 штук ≈ 2.5 КБ — безопасно для любого шлюза. */
+const TOMBSTONE_CHUNK = 100;
+
+/** Чанк для upsert: 1.2 МБ одним запросом на 3G — одна точка отказа без
+ *  частичного прогресса. 500 строк ≈ 200 КБ. */
+const UPSERT_CHUNK = 500;
+
 // ── PUSH ─────────────────────────────────────────────────────────────────────
 async function pushTable(
   table: string,
@@ -214,18 +222,26 @@ async function pushTable(
   tombstoneIds: string[],
   userId: string,
 ): Promise<void> {
-  if (rows.length > 0) {
-    const { error } = await supabase.from(table).upsert(rows, { onConflict: 'id' });
+  for (let i = 0; i < rows.length; i += UPSERT_CHUNK) {
+    const chunk = rows.slice(i, i + UPSERT_CHUNK);
+    const { error } = await supabase.from(table).upsert(chunk, { onConflict: 'id' });
     if (error) throw new Error(`${table} upsert: ${error.message}`);
   }
   if (tombstoneIds.length > 0) {
     const ts = nowIso();
-    const { error } = await supabase
-      .from(table)
-      .update({ deleted_at: ts, updated_at: ts })
-      .eq('user_id', userId)
-      .in('id', tombstoneIds);
-    if (error) throw new Error(`${table} delete: ${error.message}`);
+    // .in() кодируется в query-строку. При ~330 удалениях URL перерастает
+    // лимит заголовков шлюза → HTTP 414 → pushAll падает → tombstones НЕ
+    // очищаются → следующий push шлёт тот же длинный URL. Это был вечный
+    // дедлок: удаления никогда не доезжали до сервера. Шлём чанками.
+    for (let i = 0; i < tombstoneIds.length; i += TOMBSTONE_CHUNK) {
+      const chunk = tombstoneIds.slice(i, i + TOMBSTONE_CHUNK);
+      const { error } = await supabase
+        .from(table)
+        .update({ deleted_at: ts, updated_at: ts })
+        .eq('user_id', userId)
+        .in('id', chunk);
+      if (error) throw new Error(`${table} delete: ${error.message}`);
+    }
   }
 }
 
@@ -271,26 +287,62 @@ async function pushAll(userId: string): Promise<void> {
 }
 
 // ── PULL ───────────────────────────────────────────────────────────────────
-async function pullAll(userId: string): Promise<void> {
-  const [clientsRes, servicesRes, apptsRes, finRes] = await Promise.all([
-    supabase.from('clients').select('*').eq('user_id', userId),
-    supabase.from('services').select('*').eq('user_id', userId),
-    supabase.from('appointments').select('*').eq('user_id', userId),
-    supabase.from('finance_entries').select('*').eq('user_id', userId),
-  ]);
-  const firstError =
-    clientsRes.error || servicesRes.error || apptsRes.error || finRes.error;
-  if (firstError) throw new Error(`pull: ${firstError.message}`);
 
-  useClientStore.getState().mergeRemote((clientsRes.data ?? []).map(rowToClientChange));
-  useServiceStore.getState().mergeRemote((servicesRes.data ?? []).map(rowToServiceChange));
-  useAppointmentStore.getState().mergeRemote((apptsRes.data ?? []).map(rowToAppointmentChange));
-  useFinanceStore.getState().mergeRemote((finRes.data ?? []).map(rowToFinanceChange));
+/** Размер страницы при выгрузке. PostgREST по умолчанию режет ответ на 1000
+ *  строк БЕЗ ошибки, поэтому тянем постранично, пока страница полная. */
+const PULL_PAGE_SIZE = 1000;
+
+/**
+ * Постраничная выгрузка всех строк таблицы пользователя.
+ *
+ * Раньше здесь был простой `select('*')`: у мастера с 3000 записей на новое
+ * устройство приезжала ПРОИЗВОЛЬНАЯ первая тысяча (сортировки не было), а
+ * статус показывал «Синхронизировано» — то есть тихая потеря двух третей
+ * данных ровно в том сценарии, ради которого синк и делался («потерял телефон»).
+ * Сортировка по id обязательна: без неё страницы могут пересекаться и терять
+ * строки.
+ */
+async function pullTable(table: string, userId: string): Promise<Record<string, unknown>[]> {
+  const rows: Record<string, unknown>[] = [];
+  for (let from = 0; ; from += PULL_PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from(table)
+      .select('*')
+      .eq('user_id', userId)
+      .order('id', { ascending: true })
+      .range(from, from + PULL_PAGE_SIZE - 1);
+    if (error) throw new Error(`pull ${table}: ${error.message}`);
+    const page = data ?? [];
+    rows.push(...page);
+    if (page.length < PULL_PAGE_SIZE) break;
+  }
+  return rows;
+}
+
+async function pullAll(userId: string): Promise<void> {
+  const [clients, services, appts, finance] = await Promise.all([
+    pullTable('clients', userId),
+    pullTable('services', userId),
+    pullTable('appointments', userId),
+    pullTable('finance_entries', userId),
+  ]);
+
+  useClientStore.getState().mergeRemote(clients.map(rowToClientChange));
+  useServiceStore.getState().mergeRemote(services.map(rowToServiceChange));
+  useAppointmentStore.getState().mergeRemote(appts.map(rowToAppointmentChange));
+  useFinanceStore.getState().mergeRemote(finance.map(rowToFinanceChange));
 }
 
 // ── Orchestration ────────────────────────────────────────────────────────────
 let pushTimer: ReturnType<typeof setTimeout> | null = null;
 let pushInFlight = false;
+let syncInFlight = false;
+let lastAppState: AppStateStatus = AppState.currentState;
+let lastForegroundSyncAt = 0;
+/** Не тянуть весь набор чаще раза в 5 минут при возврате из фона. */
+const FOREGROUND_SYNC_MIN_INTERVAL_MS = 5 * 60_000;
+/** Разброс старта, чтобы утренний пик не пришёлся на одну секунду. */
+const FOREGROUND_SYNC_JITTER_MS = 30_000;
 let pushQueuedAgain = false;
 let appStateSub: NativeEventSubscription | null = null;
 let started = false;
@@ -342,6 +394,11 @@ function scheduledPush(): void {
 export async function syncNow(): Promise<{ ok: boolean; error?: string }> {
   const userId = currentUserId();
   if (!userId) return { ok: false, error: 'no-user' };
+  // Без этого два вызова (pull-to-refresh + возврат из фона) шли параллельно:
+  // второй pull читал снимок до того, как первый push долил строки, и мог
+  // «воскресить» только что удалённую запись.
+  if (syncInFlight) return { ok: false, error: 'sync-in-flight' };
+  syncInFlight = true;
   if (pushTimer) {
     clearTimeout(pushTimer);
     pushTimer = null;
@@ -357,6 +414,8 @@ export async function syncNow(): Promise<{ ok: boolean; error?: string }> {
     useSyncStore.getState().setError(msg);
     captureException(e, { tag: 'cloud-sync-now' });
     return { ok: false, error: msg };
+  } finally {
+    syncInFlight = false;
   }
 }
 
@@ -442,7 +501,23 @@ export function startAutoSync(): void {
   started = true;
   setLocalMutationHandler(scheduledPush);
   appStateSub = AppState.addEventListener('change', (s: AppStateStatus) => {
-    if (s === 'active') void syncNow();
+    const prev = lastAppState;
+    lastAppState = s;
+    // Уходим в фон — немедленно сбрасываем отложенные записи persist на диск,
+    // иначе последние правки (до 400 мс) не переживут выгрузку приложения.
+    if (s === 'background' || s === 'inactive') void flushPersist();
+    // Раньше синк запускался на ЛЮБОЙ 'active'. Но iOS шлёт его при закрытии
+    // Face ID-промпта, системного алерта, шторки Control Center, входящем
+    // звонке — то есть полный синк дёргался по десятку раз за сеанс.
+    // Реагируем только на реальный возврат из фона.
+    if (!(prev === 'background' || prev === 'inactive') || s !== 'active') return;
+    // Троттл: чаще раза в 5 минут забирать весь набор смысла нет.
+    const now = Date.now();
+    if (now - lastForegroundSyncAt < FOREGROUND_SYNC_MIN_INTERVAL_MS) return;
+    lastForegroundSyncAt = now;
+    // Джиттер: без него 100k устройств утром синкаются в одну секунду и
+    // складывают бэкенд. Размазываем всплеск по полминуты.
+    setTimeout(() => void syncNow(), Math.random() * FOREGROUND_SYNC_JITTER_MS);
   });
 }
 

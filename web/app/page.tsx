@@ -25,7 +25,7 @@ export default async function HomePage() {
   // Топ-мастера для секции и hero (реальные, опубликованные).
   const { data: topData } = await supabase
     .from('profiles')
-    .select('*')
+    .select('id,name,slug,specialization_id,profession_category,city,district,premium,premium_until,rating,reviews_count,work_days,currency,photos_count')
     .eq('published', true)
     .order('premium', { ascending: false })
     .order('rating', { ascending: false })
@@ -46,20 +46,19 @@ export default async function HomePage() {
     }
   }
 
-  // Одним запросом — статистика и счётчики по категориям (честно, без выдумок).
-  // TODO(scale): при больших объёмах заменить на RPC с агрегацией на стороне БД.
-  const { data: pubData } = await supabase
-    .from('profiles')
-    .select('profession_category, specialization_id, rating, reviews_count')
-    .eq('published', true);
-  const pub = (pubData ?? []) as { profession_category: string | null; specialization_id: string | null; rating: number; reviews_count: number }[];
-  const publishedCount = pub.length;
-  const totalReviews = pub.reduce((s, p) => s + (p.reviews_count || 0), 0);
-  const rated = pub.filter((p) => (p.reviews_count || 0) > 0);
-  const avgRating = rated.length ? rated.reduce((s, p) => s + Number(p.rating || 0), 0) / rated.length : 0;
-  // Считаем по id специализации: в БД лежат идентификаторы ('nails'), а не
-  // русские слова — прежний includes() по названию давал 0 у всех категорий.
-  const catCount = (specId: string) => pub.filter((p) => p.specialization_id === specId).length;
+  // Статистика и счётчики категорий — одним агрегатом на стороне БД.
+  // Раньше здесь выгружались ВСЕ published-профили и считались в JS: на 100k
+  // мастеров это 5.9 МБ по сети и 59 мс в БД (замерено), причём PostgREST режет
+  // ответ на 1000 строк, поэтому цифры на главной были попросту неверными.
+  // Теперь наружу уходит одна строка (~100 байт) и цифры честные при любом объёме.
+  const { data: statsData } = await supabase.rpc('catalog_stats');
+  const stats = (statsData ?? {}) as {
+    masters?: number; reviews?: number; avg_rating?: number; by_spec?: Record<string, number>;
+  };
+  const publishedCount = Number(stats.masters ?? 0);
+  const totalReviews = Number(stats.reviews ?? 0);
+  const avgRating = Number(stats.avg_rating ?? 0);
+  const catCount = (specId: string) => Number(stats.by_spec?.[specId] ?? 0);
 
   const featured = masters[0];
 
