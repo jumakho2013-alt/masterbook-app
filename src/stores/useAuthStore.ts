@@ -28,7 +28,7 @@ function wipeBusinessStores() {
   // Водяные знаки инкрементального пуша — тоже состояние аккаунта. Если их не
   // сбросить, следующий вход на этом устройстве начнёт с чужой меткой и решит,
   // что всё уже отправлено.
-  useSyncStore.getState().clearPushMarks();
+  useSyncStore.getState().clearSyncMarks();
 }
 
 interface AuthState {

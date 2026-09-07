@@ -374,35 +374,100 @@ const PULL_PAGE_SIZE = 1000;
  * Сортировка по id обязательна: без неё страницы могут пересекаться и терять
  * строки.
  */
-async function pullTable(table: string, userId: string): Promise<Record<string, unknown>[]> {
+/** Запас, на который отматываем метку назад. Транзакция получает now() в момент
+ *  СТАРТА, а становится видимой при коммите: строка, начатая до нашей выборки и
+ *  закоммиченная после, имеет отметку меньше максимума, который мы видели. Без
+ *  запаса такую строку мы бы не увидели никогда. Минуты хватает с большим полем. */
+const PULL_LAG_MS = 60_000;
+
+/** Метка старше этого — тянем всё заново. На сервере tombstones физически
+ *  удаляются через 90 дней (purge_old_tombstones): устройство, не синхронное
+ *  дольше, инкрементальной выборкой не узнает об удалениях и оставит у себя
+ *  «воскресшие» записи. Порог с большим запасом внутри окна. */
+const PULL_MARK_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+
+/** Как часто, несмотря на инкремент, всё равно тянуть весь набор. */
+const FULL_PULL_INTERVAL_MS = 24 * 60 * 60 * 1000;
+
+async function pullTable(
+  table: string,
+  userId: string,
+  since?: string,
+): Promise<{ rows: Record<string, unknown>[]; newest: string | null }> {
   const rows: Record<string, unknown>[] = [];
+  let newest = 0;
+  let newestIso: string | null = null;
   for (let from = 0; ; from += PULL_PAGE_SIZE) {
-    const { data, error } = await supabase
+    let q = supabase
       .from(table)
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', userId);
+    // gte, а не gt: строки ровно с временем метки перечитаются повторно. Это
+    // дешевле, чем риск пропустить строку с совпадающей отметкой; слияние
+    // идемпотентно, повтор безвреден.
+    if (since) q = q.gte('server_updated_at', since);
+    const { data, error } = await q
       .order('id', { ascending: true })
       .range(from, from + PULL_PAGE_SIZE - 1);
     if (error) throw new Error(`pull ${table}: ${error.message}`);
     const page = data ?? [];
+    for (const r of page) {
+      const t = ms(r.server_updated_at as string | undefined);
+      if (t > newest) {
+        newest = t;
+        newestIso = r.server_updated_at as string;
+      }
+    }
     rows.push(...page);
     if (page.length < PULL_PAGE_SIZE) break;
   }
-  return rows;
+  return { rows, newest: newestIso };
 }
 
-async function pullAll(userId: string): Promise<void> {
+/**
+ * Выгрузка изменений с сервера.
+ *
+ * Инкрементально — по server_updated_at, которую ставит триггер в БД. Клиентский
+ * updated_at для этого не годится: его пишет устройство, и убежавшие вперёд часы
+ * на одном телефоне навсегда спрятали бы строки от другого.
+ *
+ * Слияние аддитивно (upsert по id), отсутствие строки в ответе НЕ означает
+ * удаления — поэтому частичная выборка безопасна. Удаления приезжают своими
+ * строками с deleted_at.
+ */
+async function pullAll(userId: string, mode: 'incremental' | 'full' = 'incremental'): Promise<void> {
+  const sync = useSyncStore.getState();
+  const метка = (table: string): string | undefined => {
+    if (mode === 'full') return undefined;
+    const m = sync.pullMarks[`${userId}:${table}`];
+    if (!m) return undefined;                                   // первый раз
+    if (Date.now() - ms(m) > PULL_MARK_MAX_AGE_MS) return undefined; // протухла
+    return m;
+  };
+
   const [clients, services, appts, finance] = await Promise.all([
-    pullTable('clients', userId),
-    pullTable('services', userId),
-    pullTable('appointments', userId),
-    pullTable('finance_entries', userId),
+    pullTable('clients', userId, метка('clients')),
+    pullTable('services', userId, метка('services')),
+    pullTable('appointments', userId, метка('appointments')),
+    pullTable('finance_entries', userId, метка('finance_entries')),
   ]);
 
-  useClientStore.getState().mergeRemote(clients.map(rowToClientChange));
-  useServiceStore.getState().mergeRemote(services.map(rowToServiceChange));
-  useAppointmentStore.getState().mergeRemote(appts.map(rowToAppointmentChange));
-  useFinanceStore.getState().mergeRemote(finance.map(rowToFinanceChange));
+  useClientStore.getState().mergeRemote(clients.rows.map(rowToClientChange));
+  useServiceStore.getState().mergeRemote(services.rows.map(rowToServiceChange));
+  useAppointmentStore.getState().mergeRemote(appts.rows.map(rowToAppointmentChange));
+  useFinanceStore.getState().mergeRemote(finance.rows.map(rowToFinanceChange));
+
+  // Метки двигаем ТОЛЬКО после успешного слияния всех четырёх таблиц: если бы
+  // выборка прошла, а слияние упало, метка отрезала бы эти строки навсегда.
+  const продвинуть = (table: string, newest: string | null) => {
+    if (!newest) return;
+    const безопасная = new Date(ms(newest) - PULL_LAG_MS).toISOString();
+    useSyncStore.getState().advancePullMark(`${userId}:${table}`, безопасная);
+  };
+  продвинуть('clients', clients.newest);
+  продвинуть('services', services.newest);
+  продвинуть('appointments', appts.newest);
+  продвинуть('finance_entries', finance.newest);
 }
 
 // ── Orchestration ────────────────────────────────────────────────────────────
@@ -477,7 +542,13 @@ export async function syncNow(): Promise<{ ok: boolean; error?: string }> {
   }
   useSyncStore.getState().setStatus('syncing');
   try {
-    await pullAll(userId);
+    // Раз в сутки тянем всё целиком. Инкремент по серверной отметке надёжен, но
+    // полная выгрузка ограничивает последствия любой мыслимой дыры сутками —
+    // это дешевле разбирательства «почему у мастера на втором телефоне нет записи».
+    const последняяПолная = useSyncStore.getState().lastFullPullAt[userId];
+    const пораПолную = !последняяПолная || Date.now() - ms(последняяПолная) > FULL_PULL_INTERVAL_MS;
+    await pullAll(userId, пораПолную ? 'full' : 'incremental');
+    if (пораПолную) useSyncStore.getState().markFullPull(userId, nowIso());
     await pushAll(userId, 'full');
     useSyncStore.getState().setSynced(nowIso());
     return { ok: true };

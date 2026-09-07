@@ -41,6 +41,7 @@ jest.mock('@/src/lib/supabase', () => ({
       q.select = () => q;
       q.eq = () => q;
       q.order = () => q;
+      q.gte = () => q;
       q.range = (from: number, to: number) => {
         (requestedRanges[table] ??= []).push([from, to]);
         const total = serverRows[table] ?? 0;
@@ -70,7 +71,15 @@ jest.mock('@/src/stores/useAppointmentStore', () => ({ useAppointmentStore: mkSt
 jest.mock('@/src/stores/useFinanceStore', () => ({ useFinanceStore: mkStore('finance_entries') }));
 jest.mock('@/src/stores/useSettingsStore', () => ({ useSettingsStore: { getState: () => ({}) } }));
 jest.mock('@/src/stores/useSyncStore', () => ({
-  useSyncStore: { getState: () => ({ setStatus: jest.fn(), setSynced: jest.fn(), setError: jest.fn() }) },
+  useSyncStore: {
+    getState: () => ({
+      setStatus: jest.fn(), setSynced: jest.fn(), setError: jest.fn(),
+      // Метки пустые → выгрузка идёт полной, что этот тест и проверяет:
+      // постраничность не должна зависеть от режима.
+      pushMarks: {}, pullMarks: {}, lastFullPullAt: {},
+      advancePushMark: jest.fn(), advancePullMark: jest.fn(), markFullPull: jest.fn(),
+    }),
+  },
 }));
 jest.mock('@/src/stores/useAuthStore', () => ({
   useAuthStore: { getState: () => ({ user: { id: 'u1' }, localOnlyMode: false }) },

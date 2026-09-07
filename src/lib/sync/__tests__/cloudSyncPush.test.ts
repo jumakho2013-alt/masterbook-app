@@ -166,7 +166,7 @@ describe('инкрементальный пуш', () => {
     await flushPush();
     expect(useSyncStore.getState().pushMarks[`${МАСТЕР}:clients`]).toBeTruthy();
 
-    useSyncStore.getState().clearPushMarks();
+    useSyncStore.getState().clearSyncMarks();
     expect(useSyncStore.getState().pushMarks).toEqual({});
   });
 

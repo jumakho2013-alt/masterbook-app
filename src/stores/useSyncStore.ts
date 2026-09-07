@@ -22,14 +22,27 @@ interface SyncState {
    * сериализует timestamptz иначе, чем JS toISOString().
    */
   pushMarks: Record<string, string>;
+  /**
+   * Водяные знаки инкрементальной ВЫГРУЗКИ: по таблице — до какого момента
+   * серверного времени данные уже забраны. Ключ `<userId>:<таблица>`.
+   * Значение — server_updated_at, а не updated_at: серверную отметку ставит
+   * триггер в БД, её нельзя испортить часами устройства.
+   */
+  pullMarks: Record<string, string>;
+  /** Когда по этому аккаунту последний раз тянули ВСЁ. Ключ — userId. */
+  lastFullPullAt: Record<string, string>;
 
   setStatus: (status: SyncStatus) => void;
   setSynced: (at: string) => void;
   setError: (message: string) => void;
   /** Продвинуть метку таблицы. Назад метка не откатывается. */
   advancePushMark: (key: string, iso: string) => void;
-  /** Забыть все метки — при выходе и смене аккаунта. */
-  clearPushMarks: () => void;
+  /** Продвинуть метку выгрузки. Назад не откатывается. */
+  advancePullMark: (key: string, iso: string) => void;
+  /** Отметить, что по аккаунту сделана полная выгрузка. */
+  markFullPull: (userId: string, iso: string) => void;
+  /** Забыть все метки синхронизации — при выходе и смене аккаунта. */
+  clearSyncMarks: () => void;
   reset: () => void;
 }
 
@@ -40,6 +53,8 @@ export const useSyncStore = create<SyncState>()(
       lastSyncedAt: null,
       error: null,
       pushMarks: {},
+      pullMarks: {},
+      lastFullPullAt: {},
 
       setStatus: (status) => set({ status }),
       setSynced: (at) => set({ status: 'synced', lastSyncedAt: at, error: null }),
@@ -50,7 +65,15 @@ export const useSyncStore = create<SyncState>()(
           const новее = !было || new Date(iso).getTime() > new Date(было).getTime();
           return новее ? { pushMarks: { ...s.pushMarks, [key]: iso } } : {};
         }),
-      clearPushMarks: () => set({ pushMarks: {} }),
+      advancePullMark: (key, iso) =>
+        set((s) => {
+          const было = s.pullMarks[key];
+          const новее = !было || new Date(iso).getTime() > new Date(было).getTime();
+          return новее ? { pullMarks: { ...s.pullMarks, [key]: iso } } : {};
+        }),
+      markFullPull: (userId, iso) =>
+        set((s) => ({ lastFullPullAt: { ...s.lastFullPullAt, [userId]: iso } })),
+      clearSyncMarks: () => set({ pushMarks: {}, pullMarks: {}, lastFullPullAt: {} }),
       reset: () => set({ status: 'idle', error: null }),
     }),
     {
@@ -59,7 +82,12 @@ export const useSyncStore = create<SyncState>()(
       // status/error — runtime-only. lastSyncedAt показываем в интерфейсе,
       // pushMarks нужны между запусками: иначе после каждого перезапуска
       // приложение заново заливало бы весь набор.
-      partialize: (s) => ({ lastSyncedAt: s.lastSyncedAt, pushMarks: s.pushMarks }),
+      partialize: (s) => ({
+        lastSyncedAt: s.lastSyncedAt,
+        pushMarks: s.pushMarks,
+        pullMarks: s.pullMarks,
+        lastFullPullAt: s.lastFullPullAt,
+      }),
     },
   ),
 );
