@@ -1,104 +1,170 @@
 /**
- * Crash reporter — thin wrapper.
+ * Crash reporter — тонкая обёртка над Sentry.
  *
- * v1 (текущее): no-op stub. Все вызовы безопасны, ничего не отправляется
- * никуда. Это нужно чтобы wiring (captureException(...) везде) был на месте
- * заранее — когда добавим Sentry / Bugsnag / Crashlytics, поменяется
- * ТОЛЬКО реализация этого файла.
+ * Включается только когда задан `EXPO_PUBLIC_SENTRY_DSN`. Без него модуль
+ * Sentry даже не загружается (ленивый require), и все вызовы — no-op. Это
+ * важно не только для тестов: без DSN незачем платить за загрузку нативного
+ * модуля на старте.
  *
- * v2 (когда есть DSN):
- *   npx expo install @sentry/react-native
- *   В app.json plugins: [..., "@sentry/react-native/expo"]
- *   В этом файле: вызвать Sentry.init({ dsn, ... }) в initCrashReporter()
- *   и Sentry.captureException(err) в captureException()
+ * DSN задаётся через EAS Secrets, а не в репозитории:
+ *   eas env:create --scope project --name EXPO_PUBLIC_SENTRY_DSN --value "https://...@...ingest.sentry.io/..."
  *
- * Wiring уже сделан в этих местах:
- *   - app/_layout.tsx → initCrashReporter() при старте
- *   - src/components/ErrorScreen.tsx → captureException(error)
- *   - src/lib/deleteAccount.ts (rpc fail, sign-out fail)
- *   - src/lib/exportData.ts (file write fail)
- *   - src/lib/taxReportPdf.ts (print fail)
- *   - src/stores/useAuthStore.ts (signOut errors)
- *
- * Privacy guardrails (когда подключим реальный Sentry):
- *   - НИКОГДА не отправлять user.email / phone / client.name / appointment.notes
- *   - Маскировать суммы (amounts) — это PII для самозанятого
- *   - beforeSend hook что фильтрует PII из crumbs
+ * ПРИВАТНОСТЬ. Мастер ведёт в приложении персональные данные СВОИХ клиентов —
+ * имена, телефоны, заметки, суммы. Ничего из этого не должно попадать в Sentry
+ * ни при каких обстоятельствах: это данные третьих лиц, на передачу которых
+ * согласия никто не давал. Поэтому:
+ *   • user — только opaque id, без email и телефона;
+ *   • sendDefaultPii выключен;
+ *   • beforeSend/beforeBreadcrumb вычищают всё, кроме белого списка полей;
+ *   • в extra разрешены только скалярные значения, которые мы кладём сами.
  */
 
-/** Уровень логирования сообщения. Маппится на Sentry severity когда подключим. */
+/** Уровень логирования сообщения. */
 export type CrashReporterLevel = 'fatal' | 'error' | 'warning' | 'info' | 'debug';
 
 export interface CrashReporterContext {
-  /** Опциональный тег для категории ошибки (например, 'auth', 'export-pdf'). */
+  /** Тег категории ошибки, например 'cloud-sync-push'. */
   tag?: string;
-  /** Дополнительные ключи (БЕЗ PII — никаких email, phone, имён клиентов!). */
+  /** Дополнительные ключи. БЕЗ персональных данных — только техника. */
   extra?: Record<string, string | number | boolean>;
 }
 
+/** Минимальный кусок Sentry, которым мы пользуемся. Полный тип не тянем, чтобы
+ *  файл не зависел от установленности пакета на этапе компиляции. */
+interface SentryApi {
+  init(options: Record<string, unknown>): void;
+  captureException(e: unknown, hint?: Record<string, unknown>): void;
+  captureMessage(m: string, level?: string): void;
+  setUser(u: { id: string } | null): void;
+}
+
+let sentry: SentryApi | null = null;
 let initialized = false;
 
-/** `__DEV__` глобал доступен в React Native, но не в jest по умолчанию.
- *  Безопасное чтение — если undefined, считаем что production (no console). */
+/** `__DEV__` есть в React Native, но не в jest. Безопасное чтение. */
 const isDev = (() => {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return typeof __DEV__ !== 'undefined' && (__DEV__ as any);
+    return typeof __DEV__ !== 'undefined' && __DEV__ === true;
   } catch {
     return false;
   }
 })();
 
-/** Безопасный init — можно звать многократно, no-op без DSN. */
+/**
+ * Поля события, которые разрешено отправлять. Всё остальное вырезается.
+ * Белый список, а не чёрный: при добавлении нового поля в Sentry SDK оно по
+ * умолчанию НЕ уедет, вместо того чтобы утечь до первого аудита.
+ */
+const РАЗРЕШЕННЫЕ_ПОЛЯ = new Set([
+  'event_id', 'timestamp', 'platform', 'level', 'logger', 'environment',
+  'release', 'dist', 'sdk', 'exception', 'tags', 'extra', 'contexts', 'user',
+  'fingerprint', 'transaction', 'mechanism',
+]);
+
+/**
+ * Вычистить из события всё, кроме белого списка. Sentry по умолчанию кладёт в
+ * событие много контекста; оставляем только техническую часть.
+ *
+ * Экспортируется ради теста: ошибка здесь — это утечка персональных данных
+ * КЛИЕНТОВ мастера в сторонний сервис, и заметить её по логам невозможно.
+ */
+export function очиститьСобытие(event: Record<string, unknown>): Record<string, unknown> {
+  const чистое: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(event)) {
+    if (РАЗРЕШЕННЫЕ_ПОЛЯ.has(k)) чистое[k] = v;
+  }
+  // user — только opaque id, никаких email/ip/имён.
+  const u = чистое.user as { id?: string } | undefined;
+  чистое.user = u?.id ? { id: u.id } : undefined;
+  return чистое;
+}
+
+/** Безопасный init — можно звать многократно. */
 export function initCrashReporter(): void {
   if (initialized) return;
   initialized = true;
 
-  // v1: no-op. Здесь будет Sentry.init({ dsn, environment, ... }).
-  // Если EXPO_PUBLIC_SENTRY_DSN не задан — оставляем no-op.
   const dsn = process.env.EXPO_PUBLIC_SENTRY_DSN;
   if (!dsn) {
-    // dev-only лог — в production вообще тишина.
-    if (isDev) {
-      console.log('[crashReporter] no DSN — running in no-op mode');
-    }
+    if (isDev) console.log('[crashReporter] нет DSN — работаем вхолостую');
     return;
   }
-  // TODO(sentry): когда добавим @sentry/react-native:
-  //   Sentry.init({
-  //     dsn,
-  //     environment: __DEV__ ? 'development' : 'production',
-  //     tracesSampleRate: 0.1,
-  //     beforeSend: scrubPII,    // фильтр имён/телефонов/email/сумм
-  //   });
+
+  try {
+    // Ленивый require: без DSN нативный модуль не грузится вовсе.
+    sentry = require('@sentry/react-native') as SentryApi;
+    sentry.init({
+      dsn,
+      environment: isDev ? 'development' : 'production',
+      // Персональные данные третьих лиц (клиентов мастера) уехать не должны.
+      sendDefaultPii: false,
+      // Хлебные крошки — главный источник случайных утечек: в них попадают
+      // тела HTTP-запросов и введённый текст. Отключаем целиком.
+      maxBreadcrumbs: 0,
+      enableAutoPerformanceTracing: false,
+      tracesSampleRate: 0,
+      beforeBreadcrumb: () => null,
+      beforeSend: (event: Record<string, unknown>) => очиститьСобытие(event),
+    });
+  } catch (err) {
+    // Падение инициализации телеметрии не должно ронять приложение.
+    sentry = null;
+    if (isDev) console.warn('[crashReporter] init не удался:', err);
+  }
 }
 
-/** Залогировать exception. В no-op режиме — только dev console.warn. */
+/** Залогировать исключение. */
 export function captureException(err: unknown, ctx?: CrashReporterContext): void {
   if (isDev) {
     const tag = ctx?.tag ? `[${ctx.tag}] ` : '';
     console.warn(`[crashReporter] ${tag}`, err, ctx?.extra ?? '');
   }
-  // TODO(sentry): Sentry.captureException(err, { tags: { source: ctx?.tag }, extra: ctx?.extra });
+  if (!sentry) return;
+  try {
+    sentry.captureException(err, {
+      tags: ctx?.tag ? { source: ctx.tag } : undefined,
+      extra: ctx?.extra,
+    });
+  } catch {
+    // Телеметрия молчит, приложение живёт.
+  }
 }
 
 /** Залогировать сообщение (не-Error). */
-export function captureMessage(msg: string, level: CrashReporterLevel = 'info', ctx?: CrashReporterContext): void {
+export function captureMessage(
+  msg: string,
+  level: CrashReporterLevel = 'info',
+  ctx?: CrashReporterContext,
+): void {
   if (isDev) {
     const tag = ctx?.tag ? `[${ctx.tag}] ` : '';
     console.log(`[crashReporter:${level}] ${tag}${msg}`, ctx?.extra ?? '');
   }
-  // TODO(sentry): Sentry.captureMessage(msg, level);
+  if (!sentry) return;
+  try {
+    sentry.captureMessage(msg, level);
+  } catch {
+    /* см. выше */
+  }
 }
 
-/** Очистить контекст пользователя (вызывается на signOut / deleteAccount).
- *  В no-op режиме — ничего; в Sentry режиме — Sentry.setUser(null). */
+/** Очистить контекст пользователя — при выходе и удалении аккаунта. */
 export function clearUserContext(): void {
-  // TODO(sentry): Sentry.setUser(null);
+  if (!sentry) return;
+  try {
+    sentry.setUser(null);
+  } catch {
+    /* см. выше */
+  }
 }
 
-/** Установить user context. Передаём НЕ email/phone — только opaque id
- *  (Supabase user.id или 'local-only:<random>'). */
+/** Установить контекст пользователя. Только opaque id (Supabase user.id) —
+ *  никогда email или телефон. */
 export function setUserContext(id: string): void {
-  // TODO(sentry): Sentry.setUser({ id });
+  if (!sentry) return;
+  try {
+    sentry.setUser({ id });
+  } catch {
+    /* см. выше */
+  }
 }

@@ -10,6 +10,7 @@ import { useFinanceStore } from '@/src/stores/useFinanceStore';
 import { useServiceStore } from '@/src/stores/useServiceStore';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { useSyncStore } from '@/src/stores/useSyncStore';
+import { setUserContext, clearUserContext } from '@/src/lib/crashReporter';
 
 /**
  * Очистка ВСЕХ in-memory сторов кроме auth — нужна при signOut и deleteAccount
@@ -172,6 +173,18 @@ export const useAuthStore = create<AuthState>()(
           user: session?.user ?? null,
           session,
         });
+        // Сюда приходят все переходы состояния сессии: setSession дёргается из
+        // подписки supabase.auth.onAuthStateChange (app/index.tsx), а она эмитит
+        // и INITIAL_SESSION при старте, и SIGNED_IN, и TOKEN_REFRESHED, и
+        // SIGNED_OUT. signIn/signUp/checkSession меняют стор напрямую, но
+        // следом за ними всё равно приходит событие — поэтому один вызов здесь
+        // покрывает все пути, и дублировать его в тех методах не нужно.
+        //
+        // Без этого в отчётах о падениях не видно, какого мастера они касаются
+        // и скольких людей затронула проблема.
+        // Только opaque id — email и телефон в телеметрию не уходят.
+        if (session?.user?.id) setUserContext(session.user.id);
+        else clearUserContext();
       },
 
       setOnboarded: (value) => set({ onboarded: value }),
