@@ -77,7 +77,7 @@ jest.mock('@/src/stores/useAuthStore', () => ({
 }));
 jest.mock('@/src/lib/crashReporter', () => ({ captureException: jest.fn() }));
 
-import { syncNow } from '@/src/lib/cloudSync';
+import { syncNow } from '@/src/lib/sync/cloudSync';
 
 describe('pullAll — постраничная выгрузка (защита от лимита в 1000 строк)', () => {
   beforeEach(() => {

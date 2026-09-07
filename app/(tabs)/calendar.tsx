@@ -7,7 +7,7 @@ import { useTheme } from '@/src/theme';
 import { EmptyState } from '@/src/components/ui';
 import { DayView } from '@/src/components/CalendarDayView';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, LayoutGrid, CalendarDays, Clock } from 'lucide-react-native';
-import { syncNow } from '@/src/lib/cloudSync';
+import { syncNow } from '@/src/lib/sync/cloudSync';
 import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useClientStore } from '@/src/stores/useClientStore';
 import { useServiceStore } from '@/src/stores/useServiceStore';
@@ -44,6 +44,12 @@ function plural(n: number, one: string, few: string, many: string): string {
 function CalendarScreen() {
   const router = useRouter();
   const { colors, typography: typo, borderRadius: br, spacing: sp, isDark } = useTheme();
+  // Стабильная ссылка: инлайновая стрелка — новый тип компонента на каждый
+  // рендер, из-за чего все разделители списка перемонтировались заново.
+  const renderSeparator = useCallback(
+    () => <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border }} />,
+    [colors.border],
+  );
   const tr = useT();
   const onPrimary = isDark ? '#2A2030' : colors.white;
   const bottomOffset = useTabBarOffset(0);
@@ -284,7 +290,7 @@ function CalendarScreen() {
         data={appointments}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: bottomOffset + 20 }}
-        ItemSeparatorComponent={() => <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border }} />}
+        ItemSeparatorComponent={renderSeparator}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />
         }

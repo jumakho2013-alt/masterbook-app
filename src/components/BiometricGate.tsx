@@ -5,7 +5,7 @@ import { MasterBookLogo } from '@/src/components/MasterBookLogo';
 import { useTheme } from '@/src/theme';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { useAuthStore } from '@/src/stores/useAuthStore';
-import { authenticate, biometricLabel, getBiometricKind, type BiometricKind } from '@/src/lib/biometric';
+import { authenticate, biometricLabel, getBiometricKind, type BiometricKind } from '@/src/lib/account/biometric';
 import { useT } from '@/src/hooks/useT';
 
 /**

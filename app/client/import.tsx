@@ -21,7 +21,7 @@ import {
   requestContactsPermission,
   phoneDigits,
   type DeviceContact,
-} from '@/src/lib/contactsImport';
+} from '@/src/lib/integrations/contactsImport';
 
 /**
  * Импорт клиентов из телефонной книги (фидбэк: «не вбивать каждого руками»).

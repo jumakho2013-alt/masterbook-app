@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { secureStorage } from '@/src/lib/secureStorage';
+import { secureStorage } from '@/src/lib/account/secureStorage';
 
 // EXPO_PUBLIC_* инлайнятся в бандл при сборке. Если их забыли прокинуть в
 // EAS-сборку (eas.json → build.<profile>.env, либо EAS env vars), они будут

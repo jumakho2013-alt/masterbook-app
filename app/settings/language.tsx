@@ -9,6 +9,11 @@ import { GlassCard, IconButton } from '@/src/components/ui';
 import { useT } from '@/src/hooks/useT';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
 
+// Вынесено из рендера: инлайновая стрелка — это НОВЫЙ тип компонента на
+// каждый рендер списка, из-за чего React размонтировал и монтировал заново
+// все разделители.
+const SEP = () => <View style={{ height: 8 }} />;
+
 type LangCode = 'system' | 'ru' | 'en';
 type LangOption = { code: LangCode; label: string; sub: string };
 
@@ -50,7 +55,7 @@ export default function LanguageSettingsScreen() {
         data={OPTIONS}
         keyExtractor={(item) => item.code}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
-        ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
+        ItemSeparatorComponent={SEP}
         renderItem={({ item }) => {
           const selected = item.code === current;
           return (

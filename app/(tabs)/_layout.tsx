@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Tabs, Redirect } from 'expo-router';
 import { GlassTabBar } from '@/src/components/GlassTabBar';
-import { registerForPushNotifications } from '@/src/lib/notifications';
+import { registerForPushNotifications } from '@/src/lib/reminders/notifications';
 import { useAuthStore } from '@/src/stores/useAuthStore';
 
 export default function TabLayout() {

@@ -2,6 +2,9 @@
 
 CRM-приложение для частных мастеров. React Native + Expo SDK 54, Supabase, Zustand.
 
+> **Новый в проекте?** Начни с [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) —
+> что где лежит, как течёт синхронизация и обо что тут уже спотыкались.
+
 ## Быстрый старт (dev)
 
 ```bash
@@ -29,14 +32,18 @@ xcrun simctl openurl booted "exp://127.0.0.1:8081"  # запуск в симул
 ## Ключевые документы
 
 ### Релиз / store compliance
-- [`docs/`](./docs/) — сайт на GitHub Pages (privacy, support, landing)
+- [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) — карта проекта: структура, потоки данных, соглашения, открытые долги
+- [`docs/`](./docs/) — вся документация. Файлы с Jekyll-заголовками остались от
+  идеи публиковать docs/ через GitHub Pages; сейчас Pages этого репозитория
+  не опубликован (404), так что это просто markdown в репозитории
 - [`docs/SUPABASE_SETUP.md`](./docs/SUPABASE_SETUP.md) — настройка Supabase пошагово
 - [`docs/DATA_SAFETY.md`](./docs/DATA_SAFETY.md) — готовые ответы на Google Play Data Safety form
 - [`docs/APP_STORE_METADATA.md`](./docs/APP_STORE_METADATA.md) — метадата для App Store Connect + инструкция по настройке `eas submit`
 - [`docs/ANDROID_PERMISSIONS.md`](./docs/ANDROID_PERMISSIONS.md) — обоснования permissions для Play Console (SCHEDULE_EXACT_ALARM и др.)
 - [`docs/SCREENSHOTS.md`](./docs/SCREENSHOTS.md) — инструкция по снятию скриншотов
-- [`PRIVACY_POLICY.md`](./PRIVACY_POLICY.md) — политика конфиденциальности (каноническая версия на GitHub Pages)
-- [`supabase-schema.sql`](./supabase-schema.sql) — SQL схема БД + RLS + delete_user RPC
+- [`PRIVACY_POLICY.md`](./PRIVACY_POLICY.md) — политика конфиденциальности. ⚠️ НЕ опубликована:
+  пользователи видят версию из репозитория `masterbook-privacy`, и она старее. См. ARCHITECTURE.md
+- [`supabase/migrations/`](./supabase/migrations/) — схема БД, RLS, гранты, RPC и крон-джобы. Единственный источник правды по базе; см. [`supabase/README.md`](./supabase/README.md)
 
 ### Стратегия и дорожная карта (июнь 2026)
 - [`docs/CHANGELOG-2026-06.md`](./docs/CHANGELOG-2026-06.md) — что сделано в релизном спринте + что отложено + 7 следующих шагов

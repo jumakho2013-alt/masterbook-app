@@ -6,7 +6,7 @@ import * as Haptics from '@/src/lib/haptics';
 import { useTheme } from '@/src/theme';
 import { ClientRow } from '@/src/components/ClientRow';
 import { useClientStore } from '@/src/stores/useClientStore';
-import { phoneForWhatsApp, normalizePhoneForLink } from '@/src/lib/sleepingClients';
+import { phoneForWhatsApp, normalizePhoneForLink } from '@/src/lib/reports/sleepingClients';
 import { useT } from '@/src/hooks/useT';
 import type { Client } from '@/src/types';
 

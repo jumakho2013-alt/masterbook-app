@@ -11,6 +11,11 @@ import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { SUPPORTED_CURRENCIES, formatCurrency } from '@/src/utils/currency';
 import type { CurrencyCode } from '@/src/utils/currency.types';
 
+// Вынесено из рендера: инлайновая стрелка — это НОВЫЙ тип компонента на
+// каждый рендер списка, из-за чего React размонтировал и монтировал заново
+// все разделители.
+const SEP = () => <View style={{ height: 8 }} />;
+
 /**
  * Экран выбора валюты. Меняет настройку глобально — все экраны где
  * вызывается formatCurrency(amount) сразу начнут показывать новый знак
@@ -59,7 +64,7 @@ export default function CurrencyScreen() {
         data={pickerCurrencies}
         keyExtractor={(item) => item.code}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
-        ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
+        ItemSeparatorComponent={SEP}
         renderItem={({ item }) => {
           const selected = item.code === current;
           return (

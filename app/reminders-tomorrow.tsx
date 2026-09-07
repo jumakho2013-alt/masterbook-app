@@ -11,9 +11,14 @@ import { useClientStore } from '@/src/stores/useClientStore';
 import { useServiceStore } from '@/src/stores/useServiceStore';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { toDateKey, formatTimeRange } from '@/src/utils/date';
-import { openOutreach } from '@/src/lib/sleepingClients';
-import { buildReminderMessage } from '@/src/lib/reminderTemplate';
+import { openOutreach } from '@/src/lib/reports/sleepingClients';
+import { buildReminderMessage } from '@/src/lib/reminders/reminderTemplate';
 import { cmpAsc } from '@/src/utils/sort';
+
+// Вынесено из рендера: инлайновая стрелка — это НОВЫЙ тип компонента на
+// каждый рендер списка, из-за чего React размонтировал и монтировал заново
+// все разделители.
+const SEP = () => <View style={{ height: 10 }} />;
 
 function tomorrowKey(): string {
   const d = new Date();
@@ -72,7 +77,7 @@ export default function RemindersTomorrowScreen() {
         data={rows}
         keyExtractor={(r) => r.appt.id}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
-        ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
+        ItemSeparatorComponent={SEP}
         ListHeaderComponent={
           rows.length > 0 ? (
             <Text style={[typo.body, { color: colors.textSecondary, marginBottom: sp.md }]}>

@@ -1,0 +1,19 @@
+{
+  "insights": {
+    "title": "Analytics",
+    "empty": "Not enough data yet. Add clients and complete your first appointments — your business stats will show up here.",
+    "revenueMonth": "Revenue this month",
+    "deltaVsLastMonth": "%{pct}% vs last month",
+    "newClients": "new clients this month",
+    "visitsDone": "appointments completed this month",
+    "avgCheck": "average check this month",
+    "sleeping": "haven't visited in a while",
+    "bestDay": "%{day} is your best day",
+    "bestDayRevenue": "Most earned: %{amount}",
+    "topServices": "Top services",
+    "visits": {
+      "one": "%{count} visit",
+      "other": "%{count} visits"
+    }
+  }
+}

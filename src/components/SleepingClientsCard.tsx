@@ -18,7 +18,7 @@ import {
   openOutreach,
   type SleepingClient,
   type OutreachChannel,
-} from '@/src/lib/sleepingClients';
+} from '@/src/lib/reports/sleepingClients';
 
 /**
  * Карточка-блок «Спящие клиенты» для Today экрана.

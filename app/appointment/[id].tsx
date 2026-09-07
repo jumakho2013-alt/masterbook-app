@@ -9,8 +9,8 @@ import {
 } from 'lucide-react-native';
 import * as Haptics from '@/src/lib/haptics';
 import * as ImagePicker from 'expo-image-picker';
-import { persistImageToAppDir } from '@/src/lib/photoStorage';
-import { uploadPhoto } from '@/src/lib/photoCloud';
+import { persistImageToAppDir } from '@/src/lib/media/photoStorage';
+import { uploadPhoto } from '@/src/lib/media/photoCloud';
 import * as Clipboard from 'expo-clipboard';
 import { useTheme } from '@/src/theme';
 import { GlassCard, IconButton, Button, Badge, Divider, CustomAlert, useToast, CloudImage } from '@/src/components/ui';
@@ -23,9 +23,9 @@ import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { formatDate, formatTimeRange, toDateKey } from '@/src/utils/date';
 import { formatCurrency } from '@/src/utils/currency';
 import { addMinutes, generateTimeSlots, timeRangesOverlap } from '@/src/utils/time';
-import { openOutreach, type OutreachChannel } from '@/src/lib/sleepingClients';
+import { openOutreach, type OutreachChannel } from '@/src/lib/reports/sleepingClients';
 import { useProfessionPack } from '@/src/hooks/useProfessionPack';
-import { syncUpdateEvent, syncDeleteEvent } from '@/src/lib/calendarSync';
+import { syncUpdateEvent, syncDeleteEvent } from '@/src/lib/integrations/calendarSync';
 import { useT } from '@/src/hooks/useT';
 
 const REBOOK_OPTIONS = [

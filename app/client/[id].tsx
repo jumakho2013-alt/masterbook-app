@@ -11,8 +11,8 @@ import {
 import * as Haptics from '@/src/lib/haptics';
 import * as Clipboard from 'expo-clipboard';
 import * as ImagePicker from 'expo-image-picker';
-import { persistImageToAppDir } from '@/src/lib/photoStorage';
-import { uploadPhoto } from '@/src/lib/photoCloud';
+import { persistImageToAppDir } from '@/src/lib/media/photoStorage';
+import { uploadPhoto } from '@/src/lib/media/photoCloud';
 import { useTheme } from '@/src/theme';
 import { Avatar, Badge, GlassCard, Divider, IconButton, Button, CustomAlert, useToast } from '@/src/components/ui';
 import { useAlert } from '@/src/hooks/useAlert';
@@ -21,10 +21,15 @@ import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useServiceStore } from '@/src/stores/useServiceStore';
 import { formatDate, formatTimeRange, daysSince } from '@/src/utils/date';
 import { formatCurrency } from '@/src/utils/currency';
-import { openAddressInMaps } from '@/src/lib/openMaps';
+import { openAddressInMaps } from '@/src/lib/integrations/openMaps';
 import { useT } from '@/src/hooks/useT';
 import type { ClientTag } from '@/src/types';
 import { cmpDesc } from '@/src/utils/sort';
+
+// Вынесено из рендера: инлайновая стрелка — это НОВЫЙ тип компонента на
+// каждый рендер списка, из-за чего React размонтировал и монтировал заново
+// все разделители.
+const SEP = () => <Divider style={{ marginLeft: 24, marginRight: 24, marginVertical: 0 }} />;
 
 const tagLabelKeys: Record<string, string> = {
   vip: 'clientDetail.tagVip',
@@ -358,7 +363,7 @@ export default function ClientDetailScreen() {
             </Pressable>
           );
         }}
-        ItemSeparatorComponent={() => <Divider style={{ marginLeft: 24, marginRight: 24, marginVertical: 0 }} />}
+        ItemSeparatorComponent={SEP}
         ListFooterComponent={
           editing ? null : (
             <View style={{ marginTop: 8 }}>

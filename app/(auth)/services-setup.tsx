@@ -21,6 +21,11 @@ import { localizeServiceName } from '@/src/data/serviceNames.i18n';
 import { useT } from '@/src/hooks/useT';
 import type { Service } from '@/src/types';
 
+// Вынесено из рендера: инлайновая стрелка — это НОВЫЙ тип компонента на
+// каждый рендер списка, из-за чего React размонтировал и монтировал заново
+// все разделители.
+const SEP = () => <View style={{ height: 10 }} />;
+
 export default function ServicesSetupScreen() {
   const router = useRouter();
   const { specializationId } = useLocalSearchParams<{ specializationId: string }>();
@@ -133,7 +138,7 @@ export default function ServicesSetupScreen() {
         data={services}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
-        ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
+        ItemSeparatorComponent={SEP}
         ListEmptyComponent={
           <Text style={[typo.body, { color: colors.textSecondary, textAlign: 'center', marginTop: 32 }]}>
             {tr('misc.servicesEmpty')}

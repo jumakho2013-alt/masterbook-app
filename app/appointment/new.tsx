@@ -31,9 +31,9 @@ import {
   timeRangesOverlap,
   timeToMinutes,
 } from '@/src/utils/time';
-import { scheduleAppointmentReminder } from '@/src/lib/notifications';
-import { appointmentSchema } from '@/src/lib/validation';
-import { syncCreateEvent } from '@/src/lib/calendarSync';
+import { scheduleAppointmentReminder } from '@/src/lib/reminders/notifications';
+import { appointmentSchema, serviceSchema } from '@/src/lib/validation';
+import { syncCreateEvent } from '@/src/lib/integrations/calendarSync';
 import { useT } from '@/src/hooks/useT';
 import type { Client, Service } from '@/src/types';
 import { cmpDesc } from '@/src/utils/sort';
@@ -121,6 +121,22 @@ export default function NewAppointmentScreen() {
       .sort((a, b) => cmpDesc(lastVisit[a.id], lastVisit[b.id]))
       .slice(0, 5);
   }, [allClients, allAppointments, search]);
+
+  // Дата последнего ЗАВЕРШЁННОГО визита — подпись под именем в списке выбора.
+  // Раньше ClientRow звался без неё, и КАЖДЫЙ клиент, включая постоянных,
+  // подписывался «ещё не приходил» — ровно в тот момент, когда мастер решает,
+  // кого записывать. Считаем только 'completed', как на вкладке «Клиенты»:
+  // карта выше берёт ещё и 'scheduled' (это осознанно — она про «с кем недавно
+  // имел дело»), но для «последнего визита» будущая запись дала бы «через 3 дня».
+  const lastVisitByClient = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const a of allAppointments) {
+      if (a.status === 'completed' && (!map[a.clientId] || a.date > map[a.clientId])) {
+        map[a.clientId] = a.date;
+      }
+    }
+    return map;
+  }, [allAppointments]);
   const workHours = useSettingsStore((s) => s.workHours);
   const workDays = useSettingsStore((s) => s.workDays);
   const breakTime = useSettingsStore((s) => s.breakTime);
@@ -224,9 +240,20 @@ export default function NewAppointmentScreen() {
   const submitNewService = () => {
     const name = newSvcName.trim();
     if (name.length < 2) { showError(tr('appt.service.nameRequired')); return; }
-    const price = Math.max(0, parseInt(newSvcPrice.replace(/\D/g, ''), 10) || 0);
-    const duration = Math.max(5, parseInt(newSvcDuration.replace(/\D/g, ''), 10) || 60);
-    const service = addService({ name, price, duration, color: colors.primary });
+    // Раньше здесь стоял только нижний порог: Math.max(5, parseInt(...)).
+    // Верхнего не было вообще, и «200000» в поле длительности сохранялось как
+    // услуга на 139 суток. serviceSchema (максимум 24 часа) уже была написана и
+    // покрыта тестами, но нигде не подключена — подключаем.
+    const parsed = serviceSchema.safeParse({
+      name,
+      price: Math.max(0, parseInt(newSvcPrice.replace(/\D/g, ''), 10) || 0),
+      duration: parseInt(newSvcDuration.replace(/\D/g, ''), 10) || 60,
+    });
+    if (!parsed.success) {
+      showError(parsed.error.errors[0]?.message ?? tr('appt.validation.invalidData'));
+      return;
+    }
+    const service = addService({ ...parsed.data, color: colors.primary });
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setSelectedService(service);
     setCustomDurationMinutes(null);
@@ -484,6 +511,7 @@ export default function NewAppointmentScreen() {
             renderItem={({ item }) => (
               <ClientRow
                 client={item}
+                lastVisitDate={lastVisitByClient[item.id]}
                 onPress={() => {
                   setSelectedClient(item);
                   next();

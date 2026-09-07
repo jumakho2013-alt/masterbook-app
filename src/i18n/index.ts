@@ -31,15 +31,30 @@ import miscRu from './locales/extra/misc.ru.json';
 import miscEn from './locales/extra/misc.en.json';
 import componentsRu from './locales/extra/components.ru.json';
 import componentsEn from './locales/extra/components.en.json';
+import insightsRu from './locales/extra/insights.ru.json';
+import insightsEn from './locales/extra/insights.en.json';
 
 export type AppLanguage = 'system' | 'ru' | 'en';
 
-const ru = Object.assign({}, ruLocale, clientDetailRu, apptRu, settingsRu, miscRu, componentsRu);
-const en = Object.assign({}, enLocale, clientDetailEn, apptEn, settingsEn, miscEn, componentsEn);
+const ru = Object.assign({}, ruLocale, clientDetailRu, apptRu, settingsRu, miscRu, componentsRu, insightsRu);
+const en = Object.assign({}, enLocale, clientDetailEn, apptEn, settingsEn, miscEn, componentsEn, insightsEn);
 
 const i18n = new I18n({ ru, en });
 i18n.defaultLocale = 'ru';
 i18n.enableFallback = true;
+
+// Русские формы множественного числа (CLDR). i18n-js везёт готовое правило в
+// dist/pluralize/ru, но не экспортирует его из индекса — заводим своё, чтобы
+// не импортировать внутренности пакета.
+// Срабатывает ТОЛЬКО когда значение ключа — объект {one/few/many}: обычные
+// строки с %{count} (их в словаре десятки) идут мимо и не меняются.
+i18n.pluralization.register('ru', (_i18n, count) => {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+  if (mod10 === 1 && mod100 !== 11) return ['one'];
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return ['few'];
+  return ['many'];
+});
 
 /** Резолвит финальный locale на основе настройки + system. */
 export function resolveLocale(setting: AppLanguage): 'ru' | 'en' {

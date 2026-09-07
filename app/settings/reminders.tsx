@@ -19,12 +19,12 @@ import { GlassCard, IconButton, CustomAlert, useToast } from '@/src/components/u
 import { useAlert } from '@/src/hooks/useAlert';
 import { useT } from '@/src/hooks/useT';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
-import { buildReminderMessage, defaultReminderTemplate } from '@/src/lib/reminderTemplate';
+import { buildReminderMessage, defaultReminderTemplate } from '@/src/lib/reminders/reminderTemplate';
 import {
   registerForPushNotifications,
   scheduleDailyClientReminderPrompt,
   cancelDailyClientReminderPrompt,
-} from '@/src/lib/notifications';
+} from '@/src/lib/reminders/notifications';
 
 const CHANNELS = ['whatsapp', 'telegram', 'sms'] as const;
 

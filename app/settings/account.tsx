@@ -9,11 +9,11 @@ import { GlassCard, Divider, IconButton, CustomAlert, Button, useToast } from '@
 import { useAlert } from '@/src/hooks/useAlert';
 import { useT } from '@/src/hooks/useT';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
-import { authenticate, biometricLabel, getBiometricKind, type BiometricKind } from '@/src/lib/biometric';
-import { exportDataToFile } from '@/src/lib/exportData';
-import { generateAndShareTaxReport, currentMonthRange } from '@/src/lib/taxReportPdf';
-import { clearAllBusinessData } from '@/src/lib/sampleData';
-import { deleteAccount } from '@/src/lib/deleteAccount';
+import { authenticate, biometricLabel, getBiometricKind, type BiometricKind } from '@/src/lib/account/biometric';
+import { exportDataToFile } from '@/src/lib/reports/exportData';
+import { generateAndShareTaxReport, currentMonthRange } from '@/src/lib/reports/taxReportPdf';
+import { clearAllBusinessData } from '@/src/lib/dev/sampleData';
+import { deleteAccount } from '@/src/lib/account/deleteAccount';
 
 export default function AccountSettingsScreen() {
   const router = useRouter();

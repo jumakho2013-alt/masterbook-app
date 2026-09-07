@@ -14,6 +14,11 @@ import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { useT } from '@/src/hooks/useT';
 import type { ProfessionCategory, Specialization } from '@/src/types';
 
+// Вынесено из рендера: инлайновая стрелка — это НОВЫЙ тип компонента на
+// каждый рендер списка, из-за чего React размонтировал и монтировал заново
+// все разделители.
+const SEP = () => <View style={{ height: 10 }} />;
+
 export default function SpecializationScreen() {
   const router = useRouter();
   const { categoryId } = useLocalSearchParams<{ categoryId: string }>();
@@ -50,7 +55,7 @@ export default function SpecializationScreen() {
         data={category.specializations}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: Math.max(insets.bottom, 24) }}
-        ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
+        ItemSeparatorComponent={SEP}
         renderItem={({ item, index }) => {
           const Icon = (LucideIcons as unknown as Record<string, React.ComponentType<{ size: number; color: string }>>)[item.icon];
           return (

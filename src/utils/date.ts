@@ -63,6 +63,14 @@ export function getDayNumber(date: Date): string {
   return format(date, 'd');
 }
 
+/** Полное название дня недели по номеру (0 = воскресенье), в активной локали.
+ *  Раньше названия лежали отдельным русским списком в lib/insights; теперь
+ *  язык берётся из той же date-fns локали, что и остальные даты.
+ *  2024-01-07 — воскресенье; сдвигом получаем нужный день. */
+export function getWeekdayName(dayOfWeek: number): string {
+  return format(addDays(new Date(2024, 0, 7), dayOfWeek), 'EEEE', { locale: activeLocale });
+}
+
 export function getMonthName(date: Date): string {
   return format(date, 'LLLL', { locale: activeLocale });
 }

@@ -9,7 +9,7 @@ import { GlassCard, IconButton, useToast, CustomAlert } from '@/src/components/u
 import { useAlert } from '@/src/hooks/useAlert';
 import { useT } from '@/src/hooks/useT';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
-import { requestCalendarSync, disableCalendarSync } from '@/src/lib/calendarSync';
+import { requestCalendarSync, disableCalendarSync } from '@/src/lib/integrations/calendarSync';
 
 /**
  * Calendar sync settings.

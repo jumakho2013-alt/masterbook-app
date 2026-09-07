@@ -6,7 +6,7 @@ import { CalendarClock, X, Check } from 'lucide-react-native';
 import * as Haptics from '@/src/lib/haptics';
 import { useTheme } from '@/src/theme';
 import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
-import { syncDeleteEvent } from '@/src/lib/calendarSync';
+import { syncDeleteEvent } from '@/src/lib/integrations/calendarSync';
 import { useT } from '@/src/hooks/useT';
 import { formatCurrency } from '@/src/utils/currency';
 import type { Appointment, Client, Service } from '@/src/types';

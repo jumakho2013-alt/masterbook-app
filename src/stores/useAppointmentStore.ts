@@ -1,12 +1,12 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { coalescedStorage } from '@/src/lib/persistStorage';
+import { coalescedStorage } from '@/src/lib/sync/persistStorage';
 import type { Appointment, AppointmentStatus } from '@/src/types';
 import { generateId } from '@/src/utils/helpers';
 import { toDateKey, nowIso } from '@/src/utils/date';
-import { cancelNotification } from '@/src/lib/notifications';
-import { mergeRemote, type RemoteChange, type Tombstone } from '@/src/lib/syncMerge';
-import { notifyLocalMutation } from '@/src/lib/cloudSyncSignal';
+import { cancelNotification } from '@/src/lib/reminders/notifications';
+import { mergeRemote, type RemoteChange, type Tombstone } from '@/src/lib/sync/syncMerge';
+import { notifyLocalMutation } from '@/src/lib/sync/cloudSyncSignal';
 import { useFinanceStore } from '@/src/stores/useFinanceStore';
 import { cmpAsc, cmpDesc } from '@/src/utils/sort';
 

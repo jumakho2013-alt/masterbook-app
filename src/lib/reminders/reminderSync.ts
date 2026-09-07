@@ -4,7 +4,7 @@ import {
   scheduleAppointmentReminder,
   scheduleDailyClientReminderPrompt,
   cancelDailyClientReminderPrompt,
-} from '@/src/lib/notifications';
+} from './notifications';
 import { captureException } from '@/src/lib/crashReporter';
 import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useClientStore } from '@/src/stores/useClientStore';

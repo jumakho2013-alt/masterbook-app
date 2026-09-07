@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
 import { useTheme } from '@/src/theme';
 import { getInitials } from '@/src/utils/helpers';
-import { useResolvedPhoto } from '@/src/lib/photoCloud';
+import { useResolvedPhoto } from '@/src/lib/media/photoCloud';
 
 interface AvatarProps {
   name: string;

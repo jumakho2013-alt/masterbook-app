@@ -10,9 +10,15 @@ import { useTheme } from '@/src/theme';
 import { GlassCard, IconButton, Button, Input, CustomAlert, useToast, SearchBar } from '@/src/components/ui';
 import { useAlert } from '@/src/hooks/useAlert';
 import { useT } from '@/src/hooks/useT';
+import { serviceSchema } from '@/src/lib/validation';
 import { useServiceStore } from '@/src/stores/useServiceStore';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { formatCurrency, SUPPORTED_CURRENCIES } from '@/src/utils/currency';
+
+// Вынесено из рендера: инлайновая стрелка — это НОВЫЙ тип компонента на
+// каждый рендер списка, из-за чего React размонтировал и монтировал заново
+// все разделители.
+const SEP = () => <View style={{ height: 10 }} />;
 
 // Пресеты длительности — мастеру не нужно думать «120 минут», он тапает «2 ч».
 const DURATION_OPTIONS = [15, 30, 45, 60, 90, 120, 180, 240];
@@ -79,12 +85,22 @@ export default function ManageServicesScreen() {
       toast.error(tr('misc.svcPriceRequired'));
       return;
     }
+    // Границы (имя ≤ 80, длительность 5 мин … 24 ч) держит serviceSchema — она
+    // была написана и покрыта тестами, но ни один экран её не звал. Здесь это
+    // ловит не столько чипы длительности (они и так 15…240), сколько правку
+    // услуги с уже испорченным значением: открыв её, мастер не сможет сохранить
+    // мусор дальше, не выбрав нормальную длительность.
+    const parsed = serviceSchema.safeParse({ name: name.trim(), price: priceNum, duration });
+    if (!parsed.success) {
+      toast.error(parsed.error.errors[0]?.message ?? tr('misc.svcPriceRequired'));
+      return;
+    }
     if (editingId) {
       // Не трогаем color — сохраняем существующий цвет услуги (merge в сторе).
-      updateService(editingId, { name: name.trim(), price: priceNum, duration });
+      updateService(editingId, { name: parsed.data.name, price: parsed.data.price, duration: parsed.data.duration });
       toast.success(tr('misc.svcUpdated'));
     } else {
-      addService({ name: name.trim(), price: priceNum, duration, color: colors.primary });
+      addService({ ...parsed.data, color: colors.primary });
       toast.success(tr('misc.svcAdded'));
     }
     resetForm();
@@ -126,7 +142,7 @@ export default function ManageServicesScreen() {
           data={filtered}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
-          ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
+          ItemSeparatorComponent={SEP}
           keyboardShouldPersistTaps="handled"
           ListEmptyComponent={
             <Text style={[typo.body, { color: colors.textSecondary, textAlign: 'center', marginTop: 40 }]}>

@@ -5,7 +5,7 @@ import { useTheme } from '@/src/theme';
 import { GlassCard } from '@/src/components/ui';
 import { useAuthStore } from '@/src/stores/useAuthStore';
 import { useSyncStore } from '@/src/stores/useSyncStore';
-import { syncNow } from '@/src/lib/cloudSync';
+import { syncNow } from '@/src/lib/sync/cloudSync';
 import { daysSince } from '@/src/utils/date';
 import { useT } from '@/src/hooks/useT';
 

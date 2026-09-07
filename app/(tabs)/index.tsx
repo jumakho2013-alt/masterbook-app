@@ -8,7 +8,7 @@ import { useTheme } from '@/src/theme';
 import { EmptyState, GlassCard, CountUp, Button, useToast } from '@/src/components/ui';
 import { AtelierScheduleRow } from '@/src/components/AtelierScheduleRow';
 import { SleepingClientsCard } from '@/src/components/SleepingClientsCard';
-import { syncNow } from '@/src/lib/cloudSync';
+import { syncNow } from '@/src/lib/sync/cloudSync';
 import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useClientStore } from '@/src/stores/useClientStore';
 import { useServiceStore } from '@/src/stores/useServiceStore';
@@ -18,11 +18,11 @@ import { useReduceMotion } from '@/src/hooks/useReduceMotion';
 import { formatDateFull, toDateKey } from '@/src/utils/date';
 import { formatCurrency } from '@/src/utils/currency';
 import { nowMinutesOfDay, timeToMinutes } from '@/src/utils/time';
-import { seedSampleData } from '@/src/lib/sampleData';
+import { seedSampleData } from '@/src/lib/dev/sampleData';
 import { useProfessionPack } from '@/src/hooks/useProfessionPack';
 import { useT } from '@/src/hooks/useT';
 import { useFinanceStore } from '@/src/stores/useFinanceStore';
-import { syncDeleteEvent } from '@/src/lib/calendarSync';
+import { syncDeleteEvent } from '@/src/lib/integrations/calendarSync';
 import type { Appointment } from '@/src/types';
 
 /** Русские склонения числительных. */
@@ -47,6 +47,12 @@ const FILTER_KEYS: Record<Filter, string> = {
 function TodayScreen() {
   const router = useRouter();
   const { colors, typography: typo, spacing: sp, borderRadius: br, isDark } = useTheme();
+  // Стабильная ссылка: инлайновая стрелка — новый тип компонента на каждый
+  // рендер, из-за чего все разделители списка перемонтировались заново.
+  const renderSeparator = useCallback(
+    () => <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginHorizontal: 8 }} />,
+    [colors.border],
+  );
   const fabOffset = useTabBarOffset(16);
   const reduceMotion = useReduceMotion();
   const [filter, setFilter] = useState<Filter>('upcoming');
@@ -195,7 +201,7 @@ function TodayScreen() {
         data={todayAppointments}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: fabOffset + 72 }}
-        ItemSeparatorComponent={() => <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginHorizontal: 8 }} />}
+        ItemSeparatorComponent={renderSeparator}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />
         }

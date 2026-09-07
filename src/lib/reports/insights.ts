@@ -121,4 +121,3 @@ export function computeInsights(args: {
   };
 }
 
-export const WEEKDAY_NAMES_RU = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];

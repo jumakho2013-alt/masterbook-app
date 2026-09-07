@@ -6,9 +6,9 @@ import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useFinanceStore } from '@/src/stores/useFinanceStore';
 import { useServiceStore } from '@/src/stores/useServiceStore';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
-import { cancelAllNotifications } from '@/src/lib/notifications';
+import { cancelAllNotifications } from '@/src/lib/reminders/notifications';
 import { captureException, clearUserContext } from '@/src/lib/crashReporter';
-import { stopAutoSync } from '@/src/lib/cloudSync';
+import { stopAutoSync } from '@/src/lib/sync/cloudSync';
 
 /**
  * Результат удаления аккаунта.

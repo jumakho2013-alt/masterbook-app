@@ -24,9 +24,9 @@
 import { AppState, type AppStateStatus, type NativeEventSubscription } from 'react-native';
 import { supabase } from '@/src/lib/supabase';
 import { nowIso } from '@/src/utils/date';
-import { setLocalMutationHandler } from '@/src/lib/cloudSyncSignal';
+import { setLocalMutationHandler } from './cloudSyncSignal';
 import { captureException } from '@/src/lib/crashReporter';
-import { flushPersist } from '@/src/lib/persistStorage';
+import { flushPersist } from './persistStorage';
 import { useAuthStore } from '@/src/stores/useAuthStore';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { useSyncStore } from '@/src/stores/useSyncStore';
@@ -34,7 +34,7 @@ import { useClientStore } from '@/src/stores/useClientStore';
 import { useServiceStore } from '@/src/stores/useServiceStore';
 import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useFinanceStore } from '@/src/stores/useFinanceStore';
-import type { RemoteChange } from '@/src/lib/syncMerge';
+import type { RemoteChange } from './syncMerge';
 import type { Client, Service, Appointment, FinanceEntry } from '@/src/types';
 
 const PUSH_DEBOUNCE_MS = 2500;

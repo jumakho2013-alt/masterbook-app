@@ -18,9 +18,10 @@ import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useFinanceStore } from '@/src/stores/useFinanceStore';
 import { useServiceStore } from '@/src/stores/useServiceStore';
 import { formatCurrency } from '@/src/utils/currency';
-import { toDateKey } from '@/src/utils/date';
-import { computeInsights, WEEKDAY_NAMES_RU } from '@/src/lib/insights';
-import { findSleepingClients } from '@/src/lib/sleepingClients';
+import { toDateKey, getWeekdayName } from '@/src/utils/date';
+import { computeInsights } from '@/src/lib/reports/insights';
+import { findSleepingClients } from '@/src/lib/reports/sleepingClients';
+import { useT } from '@/src/hooks/useT';
 
 function monthKey(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -29,6 +30,7 @@ function monthKey(d: Date): string {
 export default function InsightsScreen() {
   const router = useRouter();
   const { colors, typography: typo, spacing: sp } = useTheme();
+  const tr = useT();
 
   const clients = useClientStore((s) => s.clients);
   const appointments = useAppointmentStore((s) => s.appointments);
@@ -66,21 +68,21 @@ export default function InsightsScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]} edges={['top']}>
       <View style={styles.topBar}>
         <IconButton icon={<ArrowLeft size={22} color={colors.text} />} onPress={() => router.back()} variant="ghost" />
-        <Text style={[typo.h3, { color: colors.text }]}>Аналитика</Text>
+        <Text style={[typo.h3, { color: colors.text }]}>{tr('insights.title')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
         {!hasAnyData && (
           <Text style={[typo.body, { color: colors.textSecondary, textAlign: 'center', marginTop: 40 }]}>
-            Пока мало данных. Добавь клиентов и проведи первые записи — здесь появится статистика по бизнесу.
+            {tr('insights.empty')}
           </Text>
         )}
 
         {/* Выручка месяца + дельта к прошлому */}
         <GlassCard elevated style={styles.heroCard}>
           <View style={styles.rowBetween}>
-            <Text style={[typo.caption, { color: colors.textSecondary }]}>Выручка за этот месяц</Text>
+            <Text style={[typo.caption, { color: colors.textSecondary }]}>{tr('insights.revenueMonth')}</Text>
             <Wallet size={20} color={colors.primary} />
           </View>
           <Text style={[typo.h1, { color: colors.text, marginTop: 4 }]}>
@@ -89,7 +91,7 @@ export default function InsightsScreen() {
           {insights.revenueDeltaPct !== null && (
             <View style={{ marginTop: 8 }}>
               <StatusPill
-                label={`${deltaPositive ? '+' : ''}${insights.revenueDeltaPct}% к прошлому месяцу`}
+                label={tr('insights.deltaVsLastMonth', { pct: `${deltaPositive ? '+' : ''}${insights.revenueDeltaPct}` })}
                 tone={deltaPositive ? 'good' : 'bad'}
                 icon={deltaPositive ? 'up' : 'down'}
               />
@@ -102,22 +104,22 @@ export default function InsightsScreen() {
           <MetricTile
             icon={<UserPlus size={18} color={colors.primary} />}
             value={String(insights.newClientsThisMonth)}
-            label="новых клиентов в этом месяце"
+            label={tr('insights.newClients')}
           />
           <MetricTile
             icon={<CalendarCheck size={18} color={colors.primary} />}
             value={String(insights.completedThisMonth)}
-            label="визитов проведено за месяц"
+            label={tr('insights.visitsDone')}
           />
           <MetricTile
             icon={<Scissors size={18} color={colors.primary} />}
             value={formatCurrency(insights.avgCheck)}
-            label="средний чек за месяц"
+            label={tr('insights.avgCheck')}
           />
           <MetricTile
             icon={<Moon size={18} color={colors.warning} />}
             value={String(sleeping)}
-            label="давно не приходили"
+            label={tr('insights.sleeping')}
           />
         </View>
 
@@ -127,10 +129,10 @@ export default function InsightsScreen() {
             <CalendarHeart size={20} color={colors.accent} />
             <View style={{ flex: 1 }}>
               <Text style={[typo.bodyBold, { color: colors.text }]}>
-                {WEEKDAY_NAMES_RU[insights.bestWeekday]} — твой лучший день
+                {tr('insights.bestDay', { day: capitalize(getWeekdayName(insights.bestWeekday)) })}
               </Text>
               <Text style={[typo.caption, { color: colors.textSecondary, marginTop: 2 }]}>
-                Больше всего заработано: {formatCurrency(insights.bestWeekdayRevenue)}
+                {tr('insights.bestDayRevenue', { amount: formatCurrency(insights.bestWeekdayRevenue) })}
               </Text>
             </View>
           </GlassCard>
@@ -140,7 +142,7 @@ export default function InsightsScreen() {
         {insights.topServices.length > 0 && (
           <View style={{ marginTop: sp.md }}>
             <Text style={[typo.small, { color: colors.textTertiary, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8, marginLeft: 4 }]}>
-              Топ услуг
+              {tr('insights.topServices')}
             </Text>
             <GlassCard style={{ padding: 0 }}>
               {insights.topServices.map((s, i) => (
@@ -151,7 +153,7 @@ export default function InsightsScreen() {
                       {s.name}
                     </Text>
                     <Text style={[typo.caption, { color: colors.textSecondary, marginRight: 12 }]}>
-                      {s.count} {pluralVisits(s.count)}
+                      {tr('insights.visits', { count: s.count })}
                     </Text>
                     <Text style={[typo.bodyBold, { color: colors.text }]}>{formatCurrency(s.revenue)}</Text>
                   </View>
@@ -165,12 +167,10 @@ export default function InsightsScreen() {
   );
 }
 
-function pluralVisits(n: number): string {
-  const mod10 = n % 10;
-  const mod100 = n % 100;
-  if (mod10 === 1 && mod100 !== 11) return 'визит';
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return 'визита';
-  return 'визитов';
+/** date-fns отдаёт день недели строчными («воскресенье»), а здесь он
+ *  открывает предложение. В английской локали уже с заглавной — no-op. */
+function capitalize(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 function MetricTile({ icon, value, label }: { icon: React.ReactNode; value: string; label: string }) {

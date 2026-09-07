@@ -9,7 +9,7 @@ import { GlassCard, Divider, Avatar, CountUp, CustomAlert } from '@/src/componen
 import { useAlert } from '@/src/hooks/useAlert';
 import { FinanceChart } from '@/src/components/FinanceChart';
 import { FinanceMetricCard } from '@/src/components/FinanceMetricCard';
-import { syncNow } from '@/src/lib/cloudSync';
+import { syncNow } from '@/src/lib/sync/cloudSync';
 import { useFinanceStore } from '@/src/stores/useFinanceStore';
 import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useClientStore } from '@/src/stores/useClientStore';
@@ -18,6 +18,11 @@ import { useTabBarOffset } from '@/src/hooks/useTabBarOffset';
 import { useT } from '@/src/hooks/useT';
 import { formatCurrency } from '@/src/utils/currency';
 import { toDateKey, formatDate } from '@/src/utils/date';
+
+// Вынесено из рендера: инлайновая стрелка — это НОВЫЙ тип компонента на
+// каждый рендер списка, из-за чего React размонтировал и монтировал заново
+// все разделители.
+const SEP = () => <Divider style={{ marginVertical: 0 }} />;
 
 type Period = 'day' | 'week' | 'month';
 
@@ -340,7 +345,7 @@ function FinancesScreen() {
         sections={groupedEntries}
         keyExtractor={(item) => item.id}
         ListHeaderComponent={listHeader}
-        ItemSeparatorComponent={() => <Divider style={{ marginVertical: 0 }} />}
+        ItemSeparatorComponent={SEP}
         stickySectionHeadersEnabled
         contentContainerStyle={{ paddingBottom: bottomOffset + 88 }}
         showsVerticalScrollIndicator={false}

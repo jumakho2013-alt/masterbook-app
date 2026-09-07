@@ -2,7 +2,7 @@ import React from 'react';
 import { View, type StyleProp, type ViewStyle } from 'react-native';
 import { Image, type ImageStyle } from 'expo-image';
 import { useTheme } from '@/src/theme';
-import { useResolvedPhoto } from '@/src/lib/photoCloud';
+import { useResolvedPhoto } from '@/src/lib/media/photoCloud';
 
 interface CloudImageProps {
   /** Локальный URI или storage-path (резолвится через photoCloud). */

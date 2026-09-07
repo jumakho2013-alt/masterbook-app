@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useAuthStore } from '@/src/stores/useAuthStore';
-import { startAutoSync, stopAutoSync, syncNow } from '@/src/lib/cloudSync';
+import { startAutoSync, stopAutoSync, syncNow } from '@/src/lib/sync/cloudSync';
 
 /**
  * Управляет жизненным циклом облачной синхронизации, реагируя на auth-состояние.

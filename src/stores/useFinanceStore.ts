@@ -1,11 +1,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { coalescedStorage } from '@/src/lib/persistStorage';
+import { coalescedStorage } from '@/src/lib/sync/persistStorage';
 import type { FinanceEntry, FinanceSummary } from '@/src/types';
 import { generateId } from '@/src/utils/helpers';
 import { nowIso } from '@/src/utils/date';
-import { mergeRemote, type RemoteChange, type Tombstone } from '@/src/lib/syncMerge';
-import { notifyLocalMutation } from '@/src/lib/cloudSyncSignal';
+import { mergeRemote, type RemoteChange, type Tombstone } from '@/src/lib/sync/syncMerge';
+import { notifyLocalMutation } from '@/src/lib/sync/cloudSyncSignal';
 import { cmpDesc } from '@/src/utils/sort';
 
 interface FinanceState {

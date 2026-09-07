@@ -17,7 +17,7 @@ import {
   recordAuthFailure,
   resetAuthRateLimit,
   formatRetryDuration,
-} from '@/src/lib/authRateLimit';
+} from '@/src/lib/account/authRateLimit';
 
 // Каноническая Privacy Policy — должна совпадать с register.tsx.
 const PRIVACY_POLICY_URL = 'https://jumakho2013-alt.github.io/masterbook-privacy/';

@@ -17,7 +17,7 @@ jest.mock('@react-native-async-storage/async-storage', () => {
   };
 });
 
-jest.mock('@/src/lib/notifications', () => ({
+jest.mock('@/src/lib/reminders/notifications', () => ({
   cancelNotification: jest.fn(async () => undefined),
   scheduleAppointmentReminder: jest.fn(),
   scheduleMorningReminder: jest.fn(),
@@ -27,7 +27,7 @@ jest.mock('@/src/lib/notifications', () => ({
 
 import { useClientStore } from '../useClientStore';
 import { useAppointmentStore } from '../useAppointmentStore';
-import type { RemoteChange } from '@/src/lib/syncMerge';
+import type { RemoteChange } from '@/src/lib/sync/syncMerge';
 import type { Client, Appointment } from '@/src/types';
 
 beforeEach(() => {

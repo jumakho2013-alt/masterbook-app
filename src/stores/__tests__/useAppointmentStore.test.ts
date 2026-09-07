@@ -24,7 +24,7 @@ jest.mock('@react-native-async-storage/async-storage', () => {
 // Капчурим вызовы cancelNotification — это то, что должно происходить
 // при смене статуса и удалении записи.
 const cancelNotificationMock = jest.fn(async (_id: string) => undefined);
-jest.mock('@/src/lib/notifications', () => ({
+jest.mock('@/src/lib/reminders/notifications', () => ({
   cancelNotification: (id: string) => cancelNotificationMock(id),
   // Остальные экспорты модуля не используются в сторе.
   scheduleAppointmentReminder: jest.fn(),

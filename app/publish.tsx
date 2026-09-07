@@ -16,8 +16,8 @@ import { useServiceStore } from '@/src/stores/useServiceStore';
 import { useAuthStore } from '@/src/stores/useAuthStore';
 import { makeSlug } from '@/src/utils/slug';
 import { COUNTRIES, countryByName, countryOfCity, DEFAULT_COUNTRY } from '@/src/data/geo';
-import { pushPublicProfile } from '@/src/lib/cloudSync';
-import { uploadPortfolioPhoto, deletePortfolioPhoto } from '@/src/lib/portfolioCloud';
+import { pushPublicProfile } from '@/src/lib/sync/cloudSync';
+import { uploadPortfolioPhoto, deletePortfolioPhoto } from '@/src/lib/media/portfolioCloud';
 
 const MAX_PHOTOS = 12;
 
