@@ -20,16 +20,36 @@ permalink: /supabase-setup/
 
 ## 2. Применить схему БД
 
-1. В левом меню → **SQL Editor** → **New query**.
-2. Открой в репозитории файл `supabase-schema.sql`, скопируй целиком.
-3. Вставь в SQL Editor → **Run** (Cmd/Ctrl + Enter).
-4. Проверь что внизу нет ошибок — должен быть зелёный `Success. No rows returned`.
+Схема живёт в `supabase/migrations/` — это единственный источник правды.
+Файлы применяются **строго по возрастанию имени** (имя начинается с метки времени).
 
-**Что это сделало:**
-- Таблицы `profiles`, `clients`, `services`, `appointments`, `finance_entries`
-- Row Level Security (RLS) — каждый пользователь видит только свои строки
-- Триггер `handle_new_user` — автоматически создаёт профиль при регистрации
-- RPC `delete_user()` — нужна для кнопки «Удалить аккаунт»
+**Способ А — через Supabase CLI (рекомендуется):**
+
+```bash
+npx supabase link --project-ref <ref из URL дашборда>
+npx supabase db push
+```
+
+**Способ Б — вручную, если CLI недоступен:**
+
+1. В левом меню → **SQL Editor** → **New query**.
+2. Открывай файлы из `supabase/migrations/` **по порядку**, от самого раннего
+   к самому позднему, и выполняй каждый отдельно.
+3. После каждого — зелёный `Success`. Порядок нарушать нельзя: поздние
+   миграции опираются на таблицы и функции из ранних.
+
+**Что получится:**
+- Таблицы `profiles`, `clients`, `services`, `appointments`, `finance_entries`,
+  `reviews`, `master_billing`, `payments`, `promotions`, `promotion_packages`
+- Row Level Security — каждый мастер видит только свои строки; каталог
+  публичен только для тех, кто сам нажал «Опубликовать»
+- Колоночные гранты — мастер не может выписать себе премиум или рейтинг
+- Триггер `handle_new_user` — профиль создаётся при регистрации
+- RPC `delete_user()` — для кнопки «Удалить аккаунт»
+- Крон-джобы `expire-premium` и `purge-tombstones`
+
+> Подробности про сам каталог миграций и правила работы с ним —
+> [`supabase/README.md`](../supabase/README.md).
 
 ---
 
@@ -143,19 +163,28 @@ Subject: Подтвердите email в MasterBook
 5. В Supabase → **Authentication → Users** должен появиться новый пользователь.
 6. **Table Editor → profiles** → появилась строка с твоим именем (это сработал триггер `handle_new_user`).
 7. В приложении добавь клиента → проверь что в **Table Editor → clients** появилась строка с правильным `user_id`.
-   - *Если строка не появилась — значит sync-слой ещё не реализован. Сейчас данные пишутся в AsyncStorage. Ждёт реализации Supabase sync.*
+   - Строка появляется не мгновенно: пуш в облако идёт с задержкой (debounce),
+     а полный синк — при возврате приложения из фона и по pull-to-refresh.
+   - Если строки нет — смотри лог Metro на `permission denied`. Это почти всегда
+     означает, что гранты в БД разошлись с тем, какие колонки шлёт
+     `src/lib/cloudSync.ts` (см. миграции `fix_*_upsert_*`).
 
 ---
 
-## 8. На будущее — синхронизация с Supabase
+## 8. Как устроена синхронизация
 
-Сейчас сторы (Zustand) пишут только в AsyncStorage. Таблицы Supabase созданы и готовы — нужен слой sync:
+Слой синка реализован в `src/lib/cloudSync.ts`. Коротко:
 
-1. После `signUp` / `signIn` → загрузить `clients`, `services`, `appointments`, `finance_entries` из Supabase в сторы
-2. После каждого `add/update/delete` в сторе → upsert в Supabase
-3. На случай offline — очередь операций в AsyncStorage, retry при восстановлении сети
+1. Сторы (Zustand) — источник правды на устройстве, пишут в AsyncStorage.
+2. После каждой мутации — отложенный пуш в облако (debounce).
+3. `syncNow()` = pull, затем push. Дёргается при входе, при возврате из фона
+   (не чаще раза в 5 минут) и по pull-to-refresh.
+4. Разрешение конфликтов — last-write-wins по `updated_at` (`src/lib/syncMerge.ts`).
+   Удаления едут как tombstones (`deleted_at`), чтобы удаление не «воскресало»
+   со второго устройства.
 
-Это отдельная фича, не в текущей версии.
+Чего пока нет: офлайн-очереди операций и инкрементальной выборки — при каждом
+пуше уезжает весь локальный набор.
 
 ---
 
@@ -165,13 +194,13 @@ Subject: Подтвердите email в MasterBook
 → Проверь что в `.env.local` стоит `anon public` ключ, а не `service_role`. Последний нельзя использовать в клиенте.
 
 ### Регистрация не создаёт профиль в `profiles`
-→ Триггер `handle_new_user` не сработал. Открой **Database → Functions** → убедись что функция создана. Если нет — запусти SQL из `supabase-schema.sql` ещё раз.
+→ Триггер `handle_new_user` не сработал. Открой **Database → Functions** → убедись что функция создана. Если нет — примени миграцию `supabase/migrations/*_fix_handle_new_user_search_path.sql`.
 
 ### `Permission denied for table clients`
 → RLS настроены, но у пользователя нет сессии. Проверь что `supabase.auth.getSession()` возвращает сессию перед запросом.
 
 ### Supabase RPC `delete_user` не работает
-→ Запусти ту часть SQL ещё раз (или всю схему). RPC появилась в последней версии схемы.
+→ Применена ли миграция `*_masterbook_profile_trigger_and_delete_rpc.sql`, а следом `*_harden_function_grants.sql` (она оставляет право вызова только роли `authenticated`).
 
 ---
 

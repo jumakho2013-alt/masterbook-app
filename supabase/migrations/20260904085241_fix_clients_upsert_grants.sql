@@ -1,0 +1,23 @@
+-- Вторая половина той же поломки, что и в profiles: синхронизация клиентов
+-- падала с «clients upsert: permission denied for table clients».
+--
+-- Клиент шлёт supabase.from('clients').upsert(...), PostgREST разворачивает это
+-- в insert ... on conflict (id) do update set <ВСЕ колонки тела>, включая
+-- id, user_id и created_at. Колоночные гранты на clients (появились вместе с
+-- phone_digits) UPDATE на эти три не давали → отказ, и pushAll обрывался на
+-- первой же таблице: ни клиенты, ни услуги, ни записи, ни финансы дальше не
+-- уезжали вообще.
+--
+-- Сверено по всем четырём синхронизируемым таблицам против того, что реально
+-- складывают clientToRow / serviceToRow / appointmentToRow / financeToRow —
+-- других пробелов нет, только эти три.
+--
+-- Почему безопасно: у clients политика «own clients» FOR ALL несёт и USING, и
+-- WITH CHECK = (auth.uid() = user_id). Переписать user_id на чужой нельзя —
+-- строка не пройдёт WITH CHECK. id и created_at меняются только внутри своих
+-- же данных, что мастер и так может сделать удалением и повторным созданием.
+--
+-- ВНИМАНИЕ: эти гранты связаны с тем, что клиент делает upsert. Убирать их
+-- нельзя, не изменив сначала pushTable в src/lib/cloudSync.ts, — иначе синк
+-- снова молча ляжет у всех уже установленных версий приложения.
+grant update (id, user_id, created_at) on public.clients to authenticated;

@@ -1,5 +1,5 @@
 // Форма публичных строк Supabase, которые читает сайт. Совпадает с колонками
-// public_catalog_layer (см. supabase-schema.sql в корне репозитория).
+// public_catalog_layer (см. supabase/migrations/*_public_catalog_layer.sql).
 
 export interface Master {
   id: string;
