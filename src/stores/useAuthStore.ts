@@ -9,6 +9,7 @@ import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useFinanceStore } from '@/src/stores/useFinanceStore';
 import { useServiceStore } from '@/src/stores/useServiceStore';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
+import { useSyncStore } from '@/src/stores/useSyncStore';
 
 /**
  * Очистка ВСЕХ in-memory сторов кроме auth — нужна при signOut и deleteAccount
@@ -24,6 +25,10 @@ function wipeBusinessStores() {
   useFinanceStore.getState().reset();
   useServiceStore.getState().reset();
   useSettingsStore.getState().reset();
+  // Водяные знаки инкрементального пуша — тоже состояние аккаунта. Если их не
+  // сбросить, следующий вход на этом устройстве начнёт с чужой меткой и решит,
+  // что всё уже отправлено.
+  useSyncStore.getState().clearPushMarks();
 }
 
 interface AuthState {

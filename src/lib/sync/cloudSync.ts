@@ -216,6 +216,44 @@ const TOMBSTONE_CHUNK = 100;
 const UPSERT_CHUNK = 500;
 
 // ── PUSH ─────────────────────────────────────────────────────────────────────
+/** Числовое время. Лексикографически ISO-строки сравнивать нельзя: Postgres
+ *  сериализует timestamptz иначе, чем JS toISOString(). */
+const ms = (iso?: string | null): number => {
+  if (!iso) return 0;
+  const t = new Date(iso).getTime();
+  return Number.isNaN(t) ? 0 : t;
+};
+
+/**
+ * Отобрать строки, изменённые после последней успешной отправки этой таблицы.
+ *
+ * Метки локальные, и `updatedAt` тоже ставит устройство — сравниваются два
+ * значения ОДНИХ часов, так что расхождение времени между устройствами тут ни
+ * при чём. Опасен только перевод часов назад на самом устройстве: правка
+ * получит `updatedAt` раньше метки и в инкрементальный пуш не попадёт. Ровно
+ * поэтому `syncNow` раз в несколько минут делает полный пуш — он такую строку
+ * подберёт (см. вызовы pushAll ниже).
+ */
+function changedSince<T extends { updatedAt?: string }>(rows: T[], markIso?: string): T[] {
+  if (!markIso) return rows; // метки нет (первый запуск, другой аккаунт) → шлём всё
+  const mark = ms(markIso);
+  return rows.filter((r) => ms(r.updatedAt) > mark);
+}
+
+/** Максимальный updatedAt среди отправленных строк — новая метка таблицы. */
+function newestUpdatedAt(rows: { updatedAt?: string }[]): string | null {
+  let best = 0;
+  let iso: string | null = null;
+  for (const r of rows) {
+    const t = ms(r.updatedAt);
+    if (t > best) {
+      best = t;
+      iso = r.updatedAt ?? null;
+    }
+  }
+  return iso;
+}
+
 async function pushTable(
   table: string,
   rows: Record<string, unknown>[],
@@ -245,7 +283,17 @@ async function pushTable(
   }
 }
 
-async function pushAll(userId: string): Promise<void> {
+/**
+ * Отправка локальных изменений в облако.
+ *
+ * 'incremental' — только строки, изменённые с прошлой успешной отправки. Это
+ *   путь частого отложенного пуша после каждой правки.
+ * 'full' — весь локальный набор. Путь syncNow (не чаще раза в 5 минут) и
+ *   flushPush перед выходом. Служит страховкой: если инкрементальный пуш
+ *   пропустил строку (например, на устройстве перевели часы назад), полный
+ *   пуш подберёт её в течение нескольких минут.
+ */
+export async function pushAll(userId: string, mode: 'incremental' | 'full' = 'full'): Promise<void> {
   // 1. Профиль обязан существовать — на него FK у всех бизнес-таблиц. Триггер
   //    создаёт его при регистрации, но upsert тут страхует (идемпотентно).
   const settings = useSettingsStore.getState();
@@ -274,10 +322,34 @@ async function pushAll(userId: string): Promise<void> {
 
   // Порядок: clients/services раньше appointments (на которые ссылаются), хотя
   // FK на эти ссылки нет — порядок лишь для логической чистоты.
-  await pushTable('clients', clients.clients.map((c) => clientToRow(c, userId)), clientTombs, userId);
-  await pushTable('services', services.services.map((s) => serviceToRow(s, userId)), serviceTombs, userId);
-  await pushTable('appointments', appts.appointments.map((a) => appointmentToRow(a, userId)), apptTombs, userId);
-  await pushTable('finance_entries', fin.entries.map((f) => financeToRow(f, userId)), finTombs, userId);
+  //
+  // При mode='incremental' отправляем только изменённое с прошлого раза. Раньше
+  // при КАЖДОЙ правке уезжал весь локальный набор: у мастера с 4000 записей это
+  // полтора мегабайта на каждое «отметить визит выполненным».
+  const sync = useSyncStore.getState();
+  const метка = (table: string) =>
+    mode === 'full' ? undefined : sync.pushMarks[`${userId}:${table}`];
+
+  const отправить = async <T extends { updatedAt?: string }>(
+    table: string,
+    все: T[],
+    вРяд: (item: T) => Record<string, unknown>,
+    tombs: string[],
+  ) => {
+    const кандидаты = changedSince(все, метка(table));
+    // Нечего слать и нечего удалять — запрос не нужен вовсе.
+    if (кандидаты.length === 0 && tombs.length === 0) return;
+    await pushTable(table, кандидаты.map(вРяд), tombs, userId);
+    // Метку двигаем ТОЛЬКО после успеха этой таблицы: если следующая упадёт,
+    // уже отправленное не будет слаться заново, а неотправленное не потеряется.
+    const новая = newestUpdatedAt(кандидаты);
+    if (новая) useSyncStore.getState().advancePushMark(`${userId}:${table}`, новая);
+  };
+
+  await отправить('clients', clients.clients, (c) => clientToRow(c, userId), clientTombs);
+  await отправить('services', services.services, (s) => serviceToRow(s, userId), serviceTombs);
+  await отправить('appointments', appts.appointments, (a) => appointmentToRow(a, userId), apptTombs);
+  await отправить('finance_entries', fin.entries, (f) => financeToRow(f, userId), finTombs);
 
   // Tombstones успешно отправлены → чистим (после успеха каждого pushTable).
   if (clientTombs.length) clients.clearTombstones(clientTombs);
@@ -362,7 +434,7 @@ async function pushNow(): Promise<void> {
   pushInFlight = true;
   useSyncStore.getState().setStatus('syncing');
   try {
-    await pushAll(userId);
+    await pushAll(userId, 'incremental');
     useSyncStore.getState().setSynced(nowIso());
   } catch (e) {
     useSyncStore.getState().setError(classifyError(e));
@@ -406,7 +478,7 @@ export async function syncNow(): Promise<{ ok: boolean; error?: string }> {
   useSyncStore.getState().setStatus('syncing');
   try {
     await pullAll(userId);
-    await pushAll(userId);
+    await pushAll(userId, 'full');
     useSyncStore.getState().setSynced(nowIso());
     return { ok: true };
   } catch (e) {
@@ -433,7 +505,7 @@ export async function flushPush(): Promise<{ ok: boolean; error?: string }> {
     pushTimer = null;
   }
   try {
-    await pushAll(userId);
+    await pushAll(userId, 'full');
     useSyncStore.getState().setSynced(nowIso());
     return { ok: true };
   } catch (e) {
