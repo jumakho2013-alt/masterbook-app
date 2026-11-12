@@ -8,8 +8,7 @@
 |---|---|
 | hero-nails.jpg | https://images.unsplash.com/photo-1604654894610-df63bc536371 |
 | hero-hair.jpg, hair.jpg | https://images.unsplash.com/photo-1580618672591-eb180b1a973f |
-| hero-art.jpg, nails.jpg | https://images.unsplash.com/photo-1754799670312-8e7da8e40ad7 |
-| barber.jpg | https://images.unsplash.com/photo-1647140655214-e4a2d914971f |
+| nails.jpg | https://images.unsplash.com/photo-1754799670312-8e7da8e40ad7 |
 | brows.jpg | https://images.unsplash.com/photo-1519415387722-a1c3bbef716c |
 | lashes.jpg | https://images.unsplash.com/photo-1589710751893-f9a6770ad71b |
 | cosmetology.jpg | https://images.unsplash.com/photo-1552693673-1bf958298935 |

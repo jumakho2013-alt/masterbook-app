@@ -16,15 +16,18 @@ export function generateMetadata({
 }: {
   searchParams: { q?: string; city?: string; spec?: string };
 }) {
-  const q = searchParams.q?.trim();
+  // Та же логика, что в самой странице: «барбер» в поиске — это раздел, а не имя.
+  const guessed = !searchParams.spec && searchParams.q ? specFromQuery(searchParams.q) : undefined;
+  const specId = searchParams.spec || guessed;
+  const q = guessed ? undefined : searchParams.q?.trim();
   const city = searchParams.city?.trim();
-  const specLabel = searchParams.spec ? SPECIALIZATION_LABELS[searchParams.spec] : undefined;
+  const specLabel = specId ? SPECIALIZATION_LABELS[specId] : undefined;
   const parts = ['Мастера'];
   if (specLabel) parts.push('—', specLabel);
   if (q) parts.push(q);
   if (city) parts.push(`в городе ${city}`);
   const canonicalSp = new URLSearchParams();
-  if (searchParams.spec) canonicalSp.set('spec', searchParams.spec);
+  if (specId) canonicalSp.set('spec', specId);
   if (city) canonicalSp.set('city', city);
   const canonicalPath = canonicalSp.toString() ? `/catalog?${canonicalSp}` : '/catalog';
   const title = `${parts.join(' ')} — MasterBook`;

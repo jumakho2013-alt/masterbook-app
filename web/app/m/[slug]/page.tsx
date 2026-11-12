@@ -122,8 +122,12 @@ export default async function MasterPage({ params }: { params: { slug: string } 
     <div className="prof-wrap">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdSafe }} />
       {/* cover */}
-      <div className="prof-cover" style={{ height: 210 }}>
-        <span className="ink" style={{ fontSize: 100 }}>{initials(master.name)}</span>
+      <div className={`prof-cover${photos.length ? ' has-photo' : ''}`} style={{ height: 230 }}>
+        {/* Обложка — первая работа мастера; без работ — фирменный тёмный фон.
+            Раньше здесь всегда была буква на пастели, даже при 12 работах. */}
+        {photos.length > 0
+          ? <img className="prof-cover-img" src={photos[0]} alt="" />
+          : <span className="ink" style={{ fontSize: 100 }}>{initials(master.name)}</span>}
         <Link href="/catalog" className="prof-back">← Каталог</Link>
         {isPremium && <span className="vip-static prof-vip-top">★ VIP-МАСТЕР</span>}
       </div>

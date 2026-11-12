@@ -42,23 +42,27 @@ const STEPS = [
 export default function ForMastersPage() {
   return (
     <div className="container" style={{ paddingTop: 40, paddingBottom: 64 }}>
-      {/* hero */}
-      <div style={{ maxWidth: 680, marginBottom: 40 }}>
-        <div className="hero-eyebrow">ДЛЯ МАСТЕРОВ</div>
-        <h1 className="serif" style={{ fontSize: 'clamp(34px, 6vw, 52px)', lineHeight: 1.05, margin: '14px 0 0' }}>
-          Записи, клиенты и доход — в одном бесплатном приложении
-        </h1>
-        <p className="muted" style={{ fontSize: 18, lineHeight: 1.5, margin: '18px 0 26px', maxWidth: 560 }}>
-          MasterBook ведёт вашу базу клиентов и даёт страницу на сайте, куда клиенты
-          записываются онлайн. Бесплатно. Платите только за продвижение — и только если захотите.
-        </p>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
-          <Link href="/cabinet" className="btn btn-primary">Зарегистрироваться бесплатно</Link>
-          <a href={APP_STORE} target="_blank" rel="noreferrer" className="btn">Приложение для iPhone</a>
+      {/* hero — тот же тёмный бренд-блок, что на главной */}
+      <div className="pro-banner pro-hero">
+        <div className="pro-banner-text" style={{ maxWidth: 640 }}>
+          <div className="hero-eyebrow">ДЛЯ МАСТЕРОВ</div>
+          <h1 className="serif">Записи, клиенты и доход — в одном месте. Бесплатно.</h1>
+          <p>
+            Страница с ценами в каталоге города, онлайн-запись и база клиентов.
+            Без комиссии с записей. Платите только за продвижение — и только если захотите.
+          </p>
+          <div className="pro-banner-cta" style={{ marginTop: 26 }}>
+            <Link href="/cabinet" className="btn btn-gold btn-lg">Зарегистрироваться бесплатно</Link>
+            <a href={APP_STORE} target="_blank" rel="noreferrer" className="btn btn-ghost-light btn-lg">Приложение для iPhone</a>
+          </div>
+          <p style={{ fontSize: 13, marginTop: 14 }}>
+            Всё работает и без приложения — регистрация, услуги и записи прямо на сайте.
+          </p>
         </div>
-        <p className="faint" style={{ fontSize: 13, marginTop: 12 }}>
-          Всё работает и без приложения — регистрация, услуги и записи прямо на сайте. Android-приложение скоро в Google Play.
-        </p>
+        <div className="pro-hero-art" aria-hidden="true">
+          <img src="/stock/nails.jpg" alt="" />
+          <img src="/stock/lashes.jpg" alt="" />
+        </div>
       </div>
 
       {/* values */}

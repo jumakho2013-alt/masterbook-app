@@ -140,6 +140,16 @@ export function Dashboard({ session }: { session: Session }) {
         .eq('user_id', uid).is('deleted_at', null).order('name', { ascending: true }),
     ]);
     const prof = (p as Profile) ?? null;
+    if (!prof) {
+      // Профиля нет — чаще всего потому, что аккаунт удалён (с другого
+      // устройства или из приложения), а в браузере осталась его сессия.
+      // Тогда честно выходим: страница покажет форму входа, а не тупик.
+      const { data: u, error: ue } = await sb.auth.getUser();
+      if (ue || !u.user) {
+        await sb.auth.signOut();
+        return;
+      }
+    }
     setProfile(prof);
     if (prof) setForm(prof);
     if (prof?.city) setCountrySel(countryOfCity(prof.city) || DEFAULT_COUNTRY);
