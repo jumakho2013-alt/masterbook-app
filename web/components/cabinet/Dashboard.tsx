@@ -5,7 +5,7 @@ import type { Session } from '@supabase/supabase-js';
 import { getBrowserSupabase } from '@/lib/supabase-browser';
 import { formatPrice, CURRENCY_CODES } from '@/lib/format';
 import { SPECIALIZATION_GROUPS, SPECIALIZATION_CATEGORY, CATEGORY_LABELS, SPECIALIZATION_LABELS } from '@/lib/taxonomy';
-import { COUNTRIES, countryByName, countryOfCity, DEFAULT_COUNTRY } from '@/lib/geo';
+import { COUNTRIES, countryByName, countryOfCity, DEFAULT_COUNTRY, phonePlaceholder } from '@/lib/geo';
 import { makeSlug, slugValid } from '@/lib/slug';
 
 type Profile = {
@@ -448,10 +448,10 @@ export function Dashboard({ session }: { session: Session }) {
         </div>
         <div className="bf-row">
           <label className="bf-field"><span className="bf-label">WhatsApp</span>
-            <input className="bf-input" type="tel" value={form.whatsapp ?? ''} onChange={(e) => setField('whatsapp', e.target.value)} placeholder="+992 …" maxLength={32} />
+            <input className="bf-input" type="tel" value={form.whatsapp ?? ''} onChange={(e) => setField('whatsapp', e.target.value)} placeholder={phonePlaceholder(null, countrySel)} maxLength={32} />
           </label>
           <label className="bf-field"><span className="bf-label">Телефон для звонков</span>
-            <input className="bf-input" type="tel" value={form.public_phone ?? ''} onChange={(e) => setField('public_phone', e.target.value)} placeholder="+992 …" maxLength={32} />
+            <input className="bf-input" type="tel" value={form.public_phone ?? ''} onChange={(e) => setField('public_phone', e.target.value)} placeholder={phonePlaceholder(null, countrySel)} maxLength={32} />
           </label>
         </div>
         <label className="bf-field"><span className="bf-label">О себе</span>

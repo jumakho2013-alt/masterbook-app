@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import './globals.css';
 import { Header } from '@/components/Header';
+import { Footer } from '@/components/Footer';
 
 const SITE_URL = 'https://masterbook-app.vercel.app';
 const TITLE = 'MasterBook — мастера в твоём городе';
@@ -36,20 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <Header />
         <main>{children}</main>
-        <footer className="footer">
-          <div className="footer-inner">
-            <span>
-              <span className="serif" style={{ fontSize: 19, fontWeight: 600 }}>MasterBook</span>
-              <span style={{ color: 'var(--gold)', fontSize: 10, fontWeight: 700, letterSpacing: 1.6, marginLeft: 7 }}>ATELIER</span>
-            </span>
-            <nav style={{ display: 'flex', gap: 18, flexWrap: 'wrap' }}>
-              <Link href="/catalog" className="footer-link">Каталог</Link>
-              <Link href="/dlya-masterov" className="footer-link">Для мастеров</Link>
-              <Link href="/cabinet" className="footer-link">Кабинет мастера</Link>
-            </nav>
-            <span>Душанбе · {new Date().getFullYear()}</span>
-          </div>
-        </footer>
+        <Footer />
       </body>
     </html>
   );

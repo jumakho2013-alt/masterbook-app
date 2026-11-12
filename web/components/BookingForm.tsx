@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { formatPrice } from '@/lib/format';
+import { phonePlaceholder } from '@/lib/geo';
 
 type SvcOpt = { id: string; name: string; price: number; duration: number };
 type Contact = { href: string; label: string } | null;
@@ -60,6 +61,7 @@ export function BookingForm({
   workHoursEnd,
   workDays,
   contact,
+  city = null,
 }: {
   slug: string;
   services: SvcOpt[];
@@ -68,6 +70,8 @@ export function BookingForm({
   workHoursEnd: string | null;
   workDays: number[] | null;
   contact: Contact;
+  /** Город мастера — для подсказки кода страны в поле телефона. */
+  city?: string | null;
 }) {
   const min = useMemo(() => todayLocal(), []);
   // Верхняя граница даты — как в edge-функции book (today + 366 дн.), чтобы не
@@ -232,7 +236,7 @@ export function BookingForm({
 
       <label className="bf-field">
         <span className="bf-label">Телефон</span>
-        <input className="bf-input" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+992 …" maxLength={32} required />
+        <input className="bf-input" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder={phonePlaceholder(city)} maxLength={32} required />
       </label>
 
       <label className="bf-field">

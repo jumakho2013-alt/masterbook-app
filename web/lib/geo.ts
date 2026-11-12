@@ -11,6 +11,8 @@ export type Country = {
   /** ISO-подобный код для ключей/иконок. */
   code: string;
   name: string;
+  /** Телефонный код — подсказка в полях телефона. */
+  dial: string;
   /** Курированные города (крупные/частые). Мастер может задать и другой —
    *  такой попадёт в группу «Другие города» внутри своей страны по city, но
    *  без карты — в общий «Другой регион». */
@@ -22,6 +24,7 @@ export type Country = {
 export const COUNTRIES: ReadonlyArray<Country> = [
   {
     code: 'TJ',
+    dial: '+992',
     name: 'Таджикистан',
     cities: [
       'Душанбе', 'Худжанд', 'Бохтар', 'Куляб', 'Истаравшан', 'Турсунзаде',
@@ -31,6 +34,7 @@ export const COUNTRIES: ReadonlyArray<Country> = [
   },
   {
     code: 'RU',
+    dial: '+7',
     name: 'Россия',
     cities: [
       'Москва', 'Санкт-Петербург', 'Новосибирск', 'Екатеринбург', 'Казань',
@@ -40,6 +44,7 @@ export const COUNTRIES: ReadonlyArray<Country> = [
   },
   {
     code: 'KZ',
+    dial: '+7',
     name: 'Казахстан',
     cities: [
       'Алматы', 'Астана', 'Шымкент', 'Караганда', 'Актобе', 'Тараз',
@@ -48,6 +53,7 @@ export const COUNTRIES: ReadonlyArray<Country> = [
   },
   {
     code: 'UZ',
+    dial: '+998',
     name: 'Узбекистан',
     cities: [
       'Ташкент', 'Самарканд', 'Бухара', 'Наманган', 'Андижан', 'Фергана',
@@ -56,6 +62,7 @@ export const COUNTRIES: ReadonlyArray<Country> = [
   },
   {
     code: 'KG',
+    dial: '+996',
     name: 'Кыргызстан',
     cities: ['Бишкек', 'Ош', 'Джалал-Абад', 'Каракол', 'Токмок', 'Узген'],
   },
@@ -84,6 +91,14 @@ export function countryOfCity(city: string | null | undefined): string | null {
 export function countryByName(name: string | null | undefined): Country | null {
   if (!name) return null;
   return COUNTRIES.find((c) => c.name === name) ?? null;
+}
+
+/** Подсказка для поля телефона: код страны города, иначе Таджикистан.
+ *  Раньше везде стояло «+992 …» — и у мастера из Уфы клиента просили
+ *  вводить таджикский номер. */
+export function phonePlaceholder(city: string | null | undefined, countryName?: string | null): string {
+  const c = countryByName(countryName) ?? countryByName(countryOfCity(city)) ?? countryByName(DEFAULT_COUNTRY);
+  return `${c?.dial ?? '+992'} …`;
 }
 
 /** Сгруппировать произвольный список городов (из БД) по странам, сохранив

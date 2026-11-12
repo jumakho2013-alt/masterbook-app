@@ -31,7 +31,7 @@ export function ThemeToggle() {
   return (
     <button className="theme-toggle" onClick={toggle} title="Сменить тему" aria-label="Сменить тему">
       <span className="theme-dot" />
-      {theme === 'light' ? 'Noir' : 'Warm'}
+      <span className="theme-label">{theme === 'light' ? 'Noir' : 'Warm'}</span>
     </button>
   );
 }

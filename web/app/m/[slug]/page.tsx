@@ -257,6 +257,7 @@ export default async function MasterPage({ params }: { params: { slug: string } 
                 workHoursEnd={master.work_hours_end}
                 workDays={master.work_days}
                 contact={cta}
+                city={master.city}
               />
             </div>
           </div>

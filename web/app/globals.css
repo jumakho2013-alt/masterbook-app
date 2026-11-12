@@ -124,7 +124,7 @@ button { font-family: inherit; }
 .brand-name { font-family: var(--serif); font-size: 24px; font-weight: 600; color: var(--text); }
 .brand-badge { font-family: var(--sans); font-size: 8px; font-weight: 700; letter-spacing: 1.6px; color: var(--gold); }
 .allsvc { flex: none; display: flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 700; color: var(--text); background: none; border: none; padding: 0 2px; cursor: pointer; white-space: nowrap; }
-.searchbox { flex: 1; max-width: 460px; display: flex; align-items: center; background: var(--card); border: 1px solid var(--line); border-radius: 14px; height: 48px; position: relative; box-shadow: var(--shadow); }
+.searchbox { flex: 1; min-width: 0; max-width: 460px; display: flex; align-items: center; background: var(--card); border: 1px solid var(--line); border-radius: 14px; height: 48px; position: relative; box-shadow: var(--shadow); }
 .searchbox input { flex: 1; min-width: 0; border: none; outline: none; background: none; padding: 0 14px; font-family: var(--sans); font-size: 14px; color: var(--text); height: 100%; }
 .search-cat { display: flex; align-items: center; gap: 7px; height: 100%; padding: 0 14px; background: none; border: none; border-right: 1px solid var(--line); cursor: pointer; font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; }
 .search-go { margin-right: 5px; width: 38px; height: 38px; flex: none; border: none; border-radius: 10px; background: var(--btn); color: var(--on-btn); cursor: pointer; display: flex; align-items: center; justify-content: center; }
@@ -319,10 +319,22 @@ button { font-family: inherit; }
 /* ============================================================
    FOOTER
    ============================================================ */
-.footer { border-top: 1px solid var(--line); margin-top: 56px; padding: 28px 40px; color: var(--text3); font-size: 14px; background: var(--card); }
-.footer-inner { max-width: 1240px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-.footer-link { color: var(--text2); transition: color 0.15s; }
-.footer-link:hover { color: var(--text); }
+.footer { margin-top: 72px; padding: 56px 40px 28px; background: var(--ink); color: var(--on-ink-2); font-size: 14px; }
+.footer-inner { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; gap: 32px; }
+.footer-brand { color: var(--on-ink); }
+.footer-brand p { color: var(--on-ink-2); line-height: 1.55; max-width: 320px; margin: 12px 0 18px; }
+.footer-atelier { color: var(--gold-bright); font-size: 10px; font-weight: 700; letter-spacing: 1.6px; margin-left: 7px; }
+.footer-store { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.22); color: var(--on-ink); font-weight: 600; font-size: 13.5px; transition: background 0.15s, border-color 0.15s; }
+.footer-store:hover { background: rgba(255,255,255,0.08); border-color: var(--gold-bright); }
+.footer-col { display: flex; flex-direction: column; gap: 10px; }
+.footer-h { color: var(--gold-bright); font-size: 11px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; margin-bottom: 4px; }
+.footer-link { color: var(--on-ink-2); transition: color 0.15s; }
+.footer-link:hover { color: var(--on-ink); }
+.footer-bottom { max-width: 1240px; margin: 40px auto 0; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.12); display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 13px; }
+@media (max-width: 860px) {
+  .footer-inner { grid-template-columns: 1fr 1fr; gap: 28px 20px; }
+  .footer-brand { grid-column: 1 / -1; }
+}
 
 /* ============================================================
    BOOKING FORM (kept + refined)
@@ -357,6 +369,17 @@ textarea.bf-input { resize: vertical; min-height: 48px; }
 /* ============================================================
    RESPONSIVE
    ============================================================ */
+/* Средние ширины (ноутбук с боковой панелью, планшет в альбомной): раньше шапка
+   не помещалась и вся страница получала горизонтальный скролл на 100+ px. */
+@media (max-width: 1180px) {
+  .hdr-row { gap: 12px; padding-left: 24px; padding-right: 24px; }
+  .brand-badge { display: none; }
+  .search-cat { display: none; }
+}
+@media (max-width: 1000px) {
+  .hdr-formasters { display: none; }
+  .theme-label { display: none; }
+}
 @media (max-width: 960px) {
   .hero-art { display: none; }
   .hero-grid { gap: 24px; }
