@@ -8,6 +8,14 @@
 // (он ставит data-theme до первой отрисовки, чтобы не было вспышки светлой
 // темы). Это осознанный компромисс: XSS-вектор в JSON-LD закрыт экранированием
 // на стороне рендера, а connect-src ограничивает, куда вообще можно утечь.
+// Шрифты грузятся из Google Fonts (@import в globals.css): таблица стилей с
+// fonts.googleapis.com, файлы — с fonts.gstatic.com. Без этих двух источников
+// CSP молча резал шрифты, и с сентября живой сайт рисовался системными.
+//
+// 'unsafe-eval' — ТОЛЬКО в разработке: на нём держится горячая перезагрузка
+// Next. В проде eval не нужен и не разрешён.
+const isDev = process.env.NODE_ENV !== 'production';
+
 const CSP = [
   "default-src 'self'",
   "base-uri 'self'",
@@ -15,9 +23,9 @@ const CSP = [
   "frame-ancestors 'none'",
   "form-action 'self'",
   "img-src 'self' data: blob: https://*.supabase.co",
-  "font-src 'self' data:",
-  "style-src 'self' 'unsafe-inline'",
-  "script-src 'self' 'unsafe-inline'",
+  "font-src 'self' data: https://fonts.gstatic.com",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
   "connect-src 'self' https://*.supabase.co",
 ].join('; ');
 

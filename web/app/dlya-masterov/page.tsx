@@ -34,8 +34,8 @@ const VALUES = [
 ];
 
 const STEPS = [
-  { n: '1', t: 'Установите приложение', d: 'Скачайте MasterBook и заполните профиль: имя, город, услуги с ценами.' },
-  { n: '2', t: 'Включите страницу на сайте', d: 'Нажмите «Показать на сайте» — ваша анкета появится в каталоге города.' },
+  { n: '1', t: 'Зарегистрируйтесь', d: 'Прямо здесь, на сайте, или в приложении MasterBook. Это бесплатно и занимает минуту.' },
+  { n: '2', t: 'Добавьте услуги и опубликуйтесь', d: 'Специализация, город, услуги с ценами — и кнопка «Опубликовать». Анкета сразу появится в каталоге города.' },
   { n: '3', t: 'Получайте записи', d: 'Делитесь ссылкой в Instagram/WhatsApp. Клиенты записываются — вы подтверждаете.' },
 ];
 
@@ -53,10 +53,12 @@ export default function ForMastersPage() {
           записываются онлайн. Бесплатно. Платите только за продвижение — и только если захотите.
         </p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
-          <a href={APP_STORE} target="_blank" rel="noreferrer" className="btn btn-primary">Скачать в App Store</a>
-          <Link href="/cabinet" className="btn">Войти в кабинет</Link>
+          <Link href="/cabinet" className="btn btn-primary">Зарегистрироваться бесплатно</Link>
+          <a href={APP_STORE} target="_blank" rel="noreferrer" className="btn">Приложение для iPhone</a>
         </div>
-        <p className="faint" style={{ fontSize: 13, marginTop: 12 }}>Android — скоро в Google Play (идёт закрытый тест).</p>
+        <p className="faint" style={{ fontSize: 13, marginTop: 12 }}>
+          Всё работает и без приложения — регистрация, услуги и записи прямо на сайте. Android-приложение скоро в Google Play.
+        </p>
       </div>
 
       {/* values */}
@@ -97,7 +99,7 @@ export default function ForMastersPage() {
       </div>
 
       <div style={{ marginTop: 40, display: 'flex', flexWrap: 'wrap', gap: 12 }}>
-        <a href={APP_STORE} target="_blank" rel="noreferrer" className="btn btn-primary">Скачать в App Store</a>
+        <Link href="/cabinet" className="btn btn-primary">Зарегистрироваться бесплатно</Link>
         <Link href="/catalog" className="btn">Посмотреть каталог</Link>
       </div>
     </div>

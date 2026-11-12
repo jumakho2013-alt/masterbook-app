@@ -16,6 +16,9 @@ const CURRENCIES: Record<string, { symbol: string; prefix?: boolean }> = {
   EUR: { symbol: '€', prefix: true },
 };
 
+/** Коды валют для выбора в кабинете — тот же список, что умеет formatPrice. */
+export const CURRENCY_CODES = Object.keys(CURRENCIES);
+
 export function formatPrice(n: number, currency?: string | null): string {
   const s = Math.round(n).toLocaleString('ru-RU').replace(/\s/g, NBSP);
   const cur = CURRENCIES[(currency ?? 'TJS').toUpperCase()] ?? CURRENCIES.TJS;

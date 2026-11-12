@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { getBrowserSupabase } from '@/lib/supabase-browser';
-import { LoginForm } from '@/components/cabinet/LoginForm';
+import { AuthForm } from '@/components/cabinet/AuthForm';
 import { Dashboard } from '@/components/cabinet/Dashboard';
 
 export default function CabinetPage() {
@@ -21,6 +21,6 @@ export default function CabinetPage() {
   }, []);
 
   if (!ready) return <p className="muted" style={{ padding: 48, textAlign: 'center' }}>Загрузка…</p>;
-  if (!session) return <LoginForm />;
+  if (!session) return <AuthForm />;
   return <Dashboard session={session} />;
 }

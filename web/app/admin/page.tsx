@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { getBrowserSupabase } from '@/lib/supabase-browser';
-import { LoginForm } from '@/components/cabinet/LoginForm';
+import { AuthForm } from '@/components/cabinet/AuthForm';
 import { AdminPanel } from '@/components/admin/AdminPanel';
 
 export default function AdminPage() {
@@ -21,6 +21,6 @@ export default function AdminPage() {
   }, []);
 
   if (!ready) return <p className="muted" style={{ padding: 48, textAlign: 'center' }}>Загрузка…</p>;
-  if (!session) return <LoginForm />;
+  if (!session) return <AuthForm loginOnly />;
   return <AdminPanel session={session} />;
 }

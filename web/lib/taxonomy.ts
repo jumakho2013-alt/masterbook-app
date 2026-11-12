@@ -23,42 +23,103 @@ export const CATEGORY_LABELS: Record<string, string> = {
   other: 'Другое',
 };
 
-export const SPECIALIZATION_LABELS: Record<string, string> = {
-  // beauty
-  nails: 'Маникюр', hair: 'Парикмахер', lashes: 'Ресницы', brows: 'Брови',
-  cosmetology: 'Косметолог', makeup: 'Визажист', depilation: 'Депиляция / Шугаринг',
-  tattoo: 'Тату-мастер', stylist: 'Стилист',
-  // health
-  massage: 'Массажист', psychologist: 'Психолог', osteopath: 'Остеопат',
-  nutritionist: 'Нутрициолог', speech: 'Логопед',
-  // repair
-  electrician: 'Электрик', plumber: 'Сантехник', handyman: 'Мастер по ремонту',
-  furniture: 'Сборка мебели', ac_repair: 'Кондиционеры', locksmith: 'Замки и двери',
-  painter: 'Маляр', tiler: 'Плиточник',
-  // education
-  tutor: 'Репетитор', trainer: 'Тренер', instructor: 'Инструктор', coach: 'Коуч',
-  music_teacher: 'Учитель музыки', dance: 'Танцы',
-  // photo
-  photographer: 'Фотограф', videographer: 'Видеограф', designer: 'Дизайнер',
-  smm: 'SMM-специалист', target: 'Таргетолог',
-  // auto
-  mechanic: 'Автомастер', detailing: 'Детейлинг', carwash: 'Автомойка',
-  tinting: 'Тонировка', tire: 'Шиномонтаж',
-  // home
-  cleaning: 'Клининг', nanny: 'Няня', gardener: 'Садовник', cook: 'Повар на дом',
-  moving: 'Грузоперевозки',
-  // pets
-  groomer: 'Грумер', dog_trainer: 'Кинолог', pet_sitter: 'Передержка', vet: 'Ветеринар',
-  // events
-  host: 'Ведущий', animator: 'Аниматор', dj: 'DJ', decorator: 'Декоратор',
-  baker: 'Торты на заказ',
-  // handmade
-  cakes: 'Торты на заказ', baking: 'Домашняя выпечка', candles: 'Свечи / мыло',
-  florist: 'Флорист / букеты', knitting: 'Вязание / шитьё', jewelry: 'Украшения',
-  pottery: 'Керамика', resin: 'Эпоксидная смола',
-  // other
-  custom: 'Мастер',
-};
+/** Специализации по категориям — зеркало src/data/professions.ts.
+ *  Отсюда выводятся и подписи, и категория для записи в profiles. */
+export const SPECIALIZATION_GROUPS: { category: string; items: { id: string; label: string }[] }[] = [
+  { category: 'beauty', items: [
+    { id: 'nails', label: 'Маникюр' },
+    { id: 'hair', label: 'Парикмахер' },
+    { id: 'lashes', label: 'Ресницы' },
+    { id: 'brows', label: 'Брови' },
+    { id: 'cosmetology', label: 'Косметолог' },
+    { id: 'makeup', label: 'Визажист' },
+    { id: 'depilation', label: 'Депиляция / Шугаринг' },
+    { id: 'tattoo', label: 'Тату-мастер' },
+    { id: 'stylist', label: 'Стилист' },
+  ] },
+  { category: 'health', items: [
+    { id: 'massage', label: 'Массажист' },
+    { id: 'psychologist', label: 'Психолог' },
+    { id: 'osteopath', label: 'Остеопат' },
+    { id: 'nutritionist', label: 'Нутрициолог' },
+    { id: 'speech', label: 'Логопед' },
+  ] },
+  { category: 'repair', items: [
+    { id: 'electrician', label: 'Электрик' },
+    { id: 'plumber', label: 'Сантехник' },
+    { id: 'handyman', label: 'Мастер по ремонту' },
+    { id: 'furniture', label: 'Сборка мебели' },
+    { id: 'ac_repair', label: 'Кондиционеры' },
+    { id: 'locksmith', label: 'Замки и двери' },
+    { id: 'painter', label: 'Маляр' },
+    { id: 'tiler', label: 'Плиточник' },
+  ] },
+  { category: 'education', items: [
+    { id: 'tutor', label: 'Репетитор' },
+    { id: 'trainer', label: 'Тренер' },
+    { id: 'instructor', label: 'Инструктор' },
+    { id: 'coach', label: 'Коуч' },
+    { id: 'music_teacher', label: 'Учитель музыки' },
+    { id: 'dance', label: 'Танцы' },
+  ] },
+  { category: 'photo', items: [
+    { id: 'photographer', label: 'Фотограф' },
+    { id: 'videographer', label: 'Видеограф' },
+    { id: 'designer', label: 'Дизайнер' },
+    { id: 'smm', label: 'SMM-специалист' },
+    { id: 'target', label: 'Таргетолог' },
+  ] },
+  { category: 'auto', items: [
+    { id: 'mechanic', label: 'Автомастер' },
+    { id: 'detailing', label: 'Детейлинг' },
+    { id: 'carwash', label: 'Автомойка' },
+    { id: 'tinting', label: 'Тонировка' },
+    { id: 'tire', label: 'Шиномонтаж' },
+  ] },
+  { category: 'home', items: [
+    { id: 'cleaning', label: 'Клининг' },
+    { id: 'nanny', label: 'Няня' },
+    { id: 'gardener', label: 'Садовник' },
+    { id: 'cook', label: 'Повар на дом' },
+    { id: 'moving', label: 'Грузоперевозки' },
+  ] },
+  { category: 'pets', items: [
+    { id: 'groomer', label: 'Грумер' },
+    { id: 'dog_trainer', label: 'Кинолог' },
+    { id: 'pet_sitter', label: 'Передержка' },
+    { id: 'vet', label: 'Ветеринар' },
+  ] },
+  { category: 'events', items: [
+    { id: 'host', label: 'Ведущий' },
+    { id: 'animator', label: 'Аниматор' },
+    { id: 'dj', label: 'DJ' },
+    { id: 'decorator', label: 'Декоратор' },
+    { id: 'baker', label: 'Торты на заказ' },
+  ] },
+  { category: 'handmade', items: [
+    { id: 'cakes', label: 'Торты на заказ' },
+    { id: 'baking', label: 'Домашняя выпечка' },
+    { id: 'candles', label: 'Свечи / мыло' },
+    { id: 'florist', label: 'Флорист / букеты' },
+    { id: 'knitting', label: 'Вязание / шитьё' },
+    { id: 'jewelry', label: 'Украшения' },
+    { id: 'pottery', label: 'Керамика' },
+    { id: 'resin', label: 'Эпоксидная смола' },
+  ] },
+  { category: 'other', items: [
+    { id: 'custom', label: 'Мастер' },
+  ] },
+];
+
+export const SPECIALIZATION_LABELS: Record<string, string> = Object.fromEntries(
+  SPECIALIZATION_GROUPS.flatMap((g) => g.items.map((i) => [i.id, i.label])),
+);
+
+/** Категория специализации. Пишется в profiles.profession_category вместе со
+ *  specialization_id — каталог фильтрует по второму, карточка падает на первое. */
+export const SPECIALIZATION_CATEGORY: Record<string, string> = Object.fromEntries(
+  SPECIALIZATION_GROUPS.flatMap((g) => g.items.map((i) => [i.id, g.category])),
+);
 
 /**
  * Что показать пользователю вместо сырых id. Приоритет — специализация

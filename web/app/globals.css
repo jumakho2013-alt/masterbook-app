@@ -368,3 +368,15 @@ textarea.bf-input { resize: vertical; min-height: 48px; }
   .prof-aside { width: 100%; position: static; }
   .prof-body { padding: 0 18px; }
 }
+
+/* Кнопка, выглядящая как ссылка (переключатель «Войти / Зарегистрироваться»). */
+.linkbtn { background: none; border: 0; padding: 0; font: inherit; color: var(--plum); text-decoration: underline; cursor: pointer; }
+
+/* Кабинет: шаги до публикации и ссылка на страницу. */
+.cab-steps { list-style: none; padding: 0; margin: 20px 0 0; display: flex; gap: 10px; flex-wrap: wrap; }
+.cab-steps li { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border: 1px solid var(--line); border-radius: 999px; font-size: 14px; color: var(--text2, var(--text)); }
+.cab-steps li.done { background: var(--money-soft); color: var(--money); border-color: transparent; }
+.cab-step-n { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--plum-soft); color: var(--plum); font-size: 12px; font-weight: 700; }
+.cab-steps li.done .cab-step-n { background: var(--money); color: #fff; }
+.cab-link { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; }
+.cab-link a { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: 14px; }
