@@ -32,7 +32,12 @@ export function MasterCard({
   return (
     <div className={`mcard${isActivePremium(m) ? ' mcard-premium' : ''}`}>
       <Link href={href} className={`mcard-cover ${TONES[toneIndex % TONES.length]}`} aria-label={`Открыть профиль: ${m.name}`}>
-        <span className="ink">{initials(m.name)}</span>
+        {/* Обложка — первая работа мастера. Буква на пастели — только если
+            работ нет: в красоте выбирают глазами, и карточка без фото
+            проигрывает любой с фото. */}
+        {m.cover_photo
+          ? <img className="mcard-photo" src={m.cover_photo} alt={`Работа мастера ${m.name}`} loading="lazy" decoding="async" />
+          : <span className="ink">{initials(m.name)}</span>}
         {isActivePremium(m) && <span className="mcard-vip">VIP</span>}
         {works > 0 && <span className="mcard-works">{works} работ</span>}
       </Link>

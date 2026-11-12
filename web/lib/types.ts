@@ -16,6 +16,8 @@ export interface Master {
   /** Генерируемая колонка: длина portfolio_photos. Позволяет каталогу не
    *  тянуть сам массив URL ради одной цифры на карточке. */
   photos_count?: number | null;
+  /** Первая работа из портфолио — обложка карточки (генерируемая колонка). */
+  cover_photo?: string | null;
   whatsapp: string | null;
   public_phone: string | null;
   premium: boolean;

@@ -1,8 +1,17 @@
-// Иконки категорий — взяты 1:1 из дизайна (Claude Design). stroke=currentColor.
+// Иконки категорий. stroke=currentColor.
+// Ключи — РЕАЛЬНЫЕ id специализаций (lib/categories → HOME_CATEGORIES). Раньше
+// здесь были старые ключи manicure/barber: для «nails» и «hair» иконка не
+// находилась, и обеим категориям подставлялась одна и та же капля.
 
 const PATHS: Record<string, React.ReactNode> = {
-  manicure: <path d="M12 3c4 5 6 7 6 10a6 6 0 0 1-12 0c0-3 2-5 6-10z" />,
-  barber: (
+  nails: (
+    <>
+      <path d="M8.5 10.5h7v8.5a2 2 0 0 1-2 2h-3a2 2 0 0 1-2-2z" />
+      <path d="M10 10.5V7h4v3.5" />
+      <path d="M11 7V3.5h2V7" />
+    </>
+  ),
+  hair: (
     <>
       <circle cx="6" cy="6" r="2.4" />
       <circle cx="6" cy="18" r="2.4" />
@@ -47,7 +56,7 @@ const PATHS: Record<string, React.ReactNode> = {
 export function CatIcon({ name, size = 25 }: { name: string; size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-      {PATHS[name] ?? PATHS.manicure}
+      {PATHS[name] ?? PATHS.nails}
     </svg>
   );
 }

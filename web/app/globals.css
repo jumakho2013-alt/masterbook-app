@@ -15,10 +15,10 @@
   --elevated: #f1ece4;
   --shell: #eae5dc;
   --text: #241e29;
-  --text2: #6e6576;
-  --text3: #a89fb0;
-  --muted: #6e6576;
-  --faint: #a89fb0;
+  --text2: #574d5f;
+  --text3: #8b8194;
+  --muted: #574d5f;
+  --faint: #8b8194;
   --plum: #6b4e71;
   --plum-soft: #efe8f0;
   --gold: #b08d57;
@@ -36,6 +36,14 @@
   --serif: 'Cormorant Garamond', Georgia, serif;
   --sans: 'Manrope', system-ui, -apple-system, sans-serif;
   --collage-ink: rgba(36, 30, 41, 0.13);
+  /* Тёмная «чернильная» слива и яркое золото — для первого экрана и акцентов.
+     Одинаковые в обеих темах: это бренд, а не фон. */
+  --ink: #241828;
+  --ink-2: #3a2641;
+  --ink-glow: #5b3d63;
+  --gold-bright: #e0b878;
+  --on-ink: #fbf5ec;
+  --on-ink-2: #d9cdd8;
 }
 
 [data-theme='noir'] {
@@ -380,3 +388,110 @@ textarea.bf-input { resize: vertical; min-height: 48px; }
 .cab-steps li.done .cab-step-n { background: var(--money); color: #fff; }
 .cab-link { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; }
 .cab-link a { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: 14px; }
+
+
+/* ============================================================
+   ДИЗАЙН-СИСТЕМА v2 — контраст и цвет
+   Было: вся палитра в узкой полосе светлого (бежевый фон, белые карточки,
+   бледно-лиловые подложки), ни одного тёмного пятна и ни одной фотографии —
+   отсюда «блекло». Стало: тёмный первый экран, золото вторым акцентом, фото
+   работ, у каждой категории свой цвет.
+   ============================================================ */
+
+/* — первый экран — */
+.hero { background: radial-gradient(120% 140% at 85% 10%, var(--ink-glow) 0%, var(--ink-2) 45%, var(--ink) 100%); border-bottom: 0; padding-top: 64px; padding-bottom: 64px; }
+.hero h1 { color: var(--on-ink); }
+.hero-sub { color: var(--on-ink-2); }
+.hero-eyebrow { color: var(--gold-bright); }
+.hero .btn-primary { background: var(--gold-bright); border-color: var(--gold-bright); color: var(--ink); }
+.hero .btn-primary:hover { filter: brightness(1.06); }
+.hero .btn:not(.btn-primary) { background: rgba(255, 255, 255, 0.06); color: var(--on-ink); border-color: rgba(251, 245, 236, 0.28); }
+.hero .btn:not(.btn-primary):hover { border-color: var(--gold-bright); }
+.hero .btn:not(.btn-primary) svg { stroke: var(--gold-bright); }
+.hero-art { width: 360px; }
+.hero-tiles { grid-template-rows: 150px 150px; }
+.hero-tile { border: 0; box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35); background: var(--ink-2); }
+.hero-tile img { width: 100%; height: 100%; object-fit: cover; }
+.hero-feat { color: var(--text); }
+.hero-feat-ava.photo { object-fit: cover; padding: 0; }
+.hero-feat-btn { width: auto; padding: 0 14px; height: 38px; display: inline-flex; align-items: center; margin-left: 4px; flex: none; }
+
+/* — кнопки — */
+.btn-gold { background: var(--gold-bright); border-color: var(--gold-bright); color: var(--ink); }
+.btn-gold:hover { filter: brightness(1.06); border-color: var(--gold-bright); }
+.btn-ghost-light { background: transparent; color: var(--on-ink); border-color: rgba(251, 245, 236, 0.32); }
+.btn-ghost-light:hover { border-color: var(--gold-bright); }
+.sec-head h2 { font-size: 32px; }
+
+/* — категории: фото + цветная иконка — */
+.cats-grid { grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr)); gap: 16px; }
+.cat-card { padding: 0; gap: 0; border: 0; overflow: hidden; }
+.cat-photo { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; transition: transform 0.45s ease; }
+.cat-card:hover .cat-photo { transform: scale(1.05); }
+.cat-body { display: flex; align-items: center; gap: 12px; padding: 14px 16px; }
+.cat-body .cat-arrow { margin-left: auto; }
+.cat-ico { width: 38px; height: 38px; border-radius: 12px; flex: none; }
+.cats-grid .cat-card:nth-child(8n+1) .cat-ico { background: #f8dfe4; color: #b23a5a; }
+.cats-grid .cat-card:nth-child(8n+2) .cat-ico { background: #fbe7cf; color: #a85c12; }
+.cats-grid .cat-card:nth-child(8n+3) .cat-ico { background: #e2ecdf; color: #3f7a4a; }
+.cats-grid .cat-card:nth-child(8n+4) .cat-ico { background: #e4e0f6; color: #5a49b0; }
+.cats-grid .cat-card:nth-child(8n+5) .cat-ico { background: #dcedf0; color: #2d7584; }
+.cats-grid .cat-card:nth-child(8n+6) .cat-ico { background: #f6e3d8; color: #b25632; }
+.cats-grid .cat-card:nth-child(8n+7) .cat-ico { background: #e6e9f5; color: #3d5a9e; }
+.cats-grid .cat-card:nth-child(8n+8) .cat-ico { background: #e6f1ea; color: #2f7d5b; }
+
+/* 8 категорий — ровная сетка 4×2 на широком экране (auto-fill давал 5+3). */
+@media (min-width: 861px) { .cats-grid { grid-template-columns: repeat(4, 1fr); } }
+
+/* — блок доверия: свой цвет у каждого обещания — */
+.trust-card { border: 0; }
+.trust-grid .trust-card:nth-child(1) .trust-ico { background: #e4e0f6; color: #5a49b0; }
+.trust-grid .trust-card:nth-child(2) .trust-ico { background: #fbe7cf; color: #a85c12; }
+.trust-grid .trust-card:nth-child(3) .trust-ico { background: #e2ecdf; color: #3f7a4a; }
+
+/* — карточка мастера: фото работы как обложка — */
+.mcard-cover { height: 190px; overflow: hidden; }
+.mcard-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 0.45s ease; }
+.mcard:hover .mcard-photo { transform: scale(1.04); }
+.mcard-works, .mcard-vip { z-index: 1; }
+
+/* — баннер для мастеров — */
+.pro-banner { display: flex; align-items: center; justify-content: space-between; gap: 28px; flex-wrap: wrap; padding: 40px 44px; border-radius: 24px; background: radial-gradient(120% 160% at 100% 0%, var(--ink-glow) 0%, var(--ink-2) 50%, var(--ink) 100%); color: var(--on-ink); }
+.pro-banner-text { max-width: 560px; }
+.pro-banner h2 { font-family: var(--serif); font-weight: 500; font-size: clamp(26px, 3.4vw, 36px); line-height: 1.1; margin: 0; color: var(--on-ink); }
+.pro-banner p { color: var(--on-ink-2); margin: 12px 0 0; font-size: 16px; line-height: 1.5; }
+.pro-banner .hero-eyebrow { margin-bottom: 12px; }
+.pro-banner-cta { display: flex; gap: 12px; flex-wrap: wrap; }
+
+/* — пустой город — */
+.empty-city { text-align: center; padding: 44px 24px; border-radius: 20px; background: var(--card); box-shadow: var(--shadow); }
+.empty-city-t { font-size: 26px; font-weight: 500; color: var(--text); }
+.sec-sub-head { margin: 30px 0 14px; font-size: 12px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; color: var(--text3); }
+
+/* — мобильная шапка: вход для мастеров — */
+.m-formasters { font-size: 13px; font-weight: 700; color: var(--plum); padding: 8px 12px; border-radius: 999px; background: var(--plum-soft); white-space: nowrap; }
+
+@media (max-width: 960px) {
+  /* На телефоне раньше фото пропадали целиком — оставляем их полосой. */
+  .hero-art { display: block; width: 100%; max-width: 560px; }
+  .hero-tiles { grid-template-columns: 1.4fr 1fr 1fr; grid-template-rows: 150px; }
+  .hero-tile.tall { grid-row: auto; }
+  .hero-chip { display: none; }
+  .hero-feat { position: relative; left: 0; bottom: 0; margin-top: 14px; }
+}
+@media (max-width: 860px) {
+  .hero { padding-top: 32px; padding-bottom: 36px; }
+  .hero-tiles { grid-template-rows: 120px; gap: 8px; }
+  .sec-head h2 { font-size: 26px; }
+  .cats-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .cat-body { padding: 10px 12px; gap: 9px; }
+  .cat-ico { width: 30px; height: 30px; border-radius: 9px; }
+  .cat-body .cat-arrow { display: none; }
+  .cat-name { font-size: 14px; }
+  .pro-banner { padding: 28px 22px; }
+  /* Каталог: фильтры одной прокручиваемой строкой, а не экраном чипов
+     перед первым мастером. */
+  .cat-page .chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-left: -18px; margin-right: -18px; padding: 2px 18px 4px; }
+  .cat-page .chips::-webkit-scrollbar { display: none; }
+  .cat-page .chips > * { flex: none; }
+}

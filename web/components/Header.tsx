@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { ThemeToggle } from './ThemeToggle';
 import { LocationPicker } from './LocationPicker';
-import { DIRECTIONS, MEGA_GROUPS, catalogHref } from '@/lib/categories';
+import { SEARCH_SPECS, MEGA_GROUPS, catalogHref, specFromQuery } from '@/lib/categories';
 
 const GridIcon = ({ s = 16, stroke = 'var(--plum)' }: { s?: number; stroke?: string }) => (
   <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth={1.7}>
@@ -23,7 +23,7 @@ export function Header() {
   const [mega, setMega] = useState(false);
   const [catMenu, setCatMenu] = useState(false);
   const [sheet, setSheet] = useState(false);
-  const [dir, setDir] = useState(DIRECTIONS[0]);
+  const [dir, setDir] = useState(SEARCH_SPECS[0]);
   const [q, setQ] = useState('');
   const searchRef = useRef<HTMLFormElement>(null);
 
@@ -46,10 +46,14 @@ export function Header() {
 
   function submit(e?: React.FormEvent) {
     e?.preventDefault();
-    const term = q.trim() || (dir !== DIRECTIONS[0] ? dir : '');
+    const term = q.trim();
     setMega(false);
     setSheet(false);
-    router.push(catalogHref({ q: term || undefined }));
+    // Выбранное направление — точный фильтр. Если направление не выбрано, а в
+    // тексте услуга («барбер», «ногти») — тоже переводим в фильтр; иначе текст
+    // ищется по имени мастера и району.
+    const spec = dir.spec || specFromQuery(term);
+    router.push(catalogHref({ spec: spec || undefined, q: spec && !dir.spec ? undefined : term || undefined }));
   }
 
   return (
@@ -74,7 +78,7 @@ export function Header() {
               aria-haspopup="listbox"
               aria-expanded={catMenu}
             >
-              {dir} <span style={{ color: 'var(--text3)', fontSize: 10 }}>▾</span>
+              {dir.label} <span style={{ color: 'var(--text3)', fontSize: 10 }}>▾</span>
             </button>
             <input
               value={q}
@@ -85,16 +89,16 @@ export function Header() {
             <button type="submit" className="search-go" aria-label="Искать"><SearchIcon /></button>
             {catMenu && (
               <div className="search-menu" role="listbox" aria-label="Направление">
-                {DIRECTIONS.map((d) => (
+                {SEARCH_SPECS.map((d) => (
                   <button
                     type="button"
-                    key={d}
+                    key={d.label}
                     role="option"
-                    aria-selected={d === dir}
-                    className={`search-menu-item${d === dir ? ' active' : ''}`}
+                    aria-selected={d.label === dir.label}
+                    className={`search-menu-item${d.label === dir.label ? ' active' : ''}`}
                     onClick={() => { setDir(d); setCatMenu(false); }}
                   >
-                    {d}
+                    {d.label}
                   </button>
                 ))}
               </div>
@@ -124,8 +128,8 @@ export function Header() {
                       <div className="mega-col-title">{g.group}</div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                         {g.items.map((it) => (
-                          <Link key={it} href={catalogHref({ q: it })} className="mega-item" onClick={() => setMega(false)}>
-                            <span>{it}</span>
+                          <Link key={it.label} href={catalogHref({ spec: it.spec })} className="mega-item" onClick={() => setMega(false)}>
+                            <span>{it.label}</span>
                           </Link>
                         ))}
                       </div>
@@ -144,7 +148,10 @@ export function Header() {
           <Link href="/" className="brand">
             <span className="brand-name" style={{ fontSize: 22 }}>MasterBook</span>
           </Link>
-          <LocationPicker />
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <Link href="/dlya-masterov" className="m-formasters">Мастерам</Link>
+            <LocationPicker />
+          </div>
         </div>
         <div className="msearch">
           <Link href="/catalog" className="msearch-box"><SearchIcon s={16} /> Поиск услуги или мастера…</Link>
@@ -168,8 +175,8 @@ export function Header() {
                 <div className="mega-col-title">{g.group}</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {g.items.map((it) => (
-                    <Link key={it} href={catalogHref({ q: it })} className="msheet-item" onClick={() => setSheet(false)}>
-                      <span>{it}</span><span style={{ color: 'var(--text3)' }}>→</span>
+                    <Link key={it.label} href={catalogHref({ spec: it.spec })} className="msheet-item" onClick={() => setSheet(false)}>
+                      <span>{it.label}</span><span style={{ color: 'var(--text3)' }}>→</span>
                     </Link>
                   ))}
                 </div>

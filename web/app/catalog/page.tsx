@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { MasterCard } from '@/components/MasterCard';
 import type { Master } from '@/lib/types';
-import { HOME_CATEGORIES } from '@/lib/categories';
+import { HOME_CATEGORIES, specFromQuery } from '@/lib/categories';
 import { SPECIALIZATION_LABELS } from '@/lib/taxonomy';
 import { mastersWord } from '@/lib/format';
 import { groupCitiesByCountry } from '@/lib/geo';
@@ -69,9 +69,13 @@ export default async function CatalogPage({
 }: {
   searchParams: { q?: string; city?: string; spec?: string; page?: string; sort?: string };
 }) {
-  const q = searchParams.q?.trim();
+  const rawQ = searchParams.q?.trim();
   const city = searchParams.city?.trim();
-  const spec = searchParams.spec?.trim();
+  // «барбер», «ногти» из поиска — это услуга, а не имя: переводим в точный
+  // фильтр. Иначе текст ищем по имени и району.
+  const guessed = !searchParams.spec && rawQ ? specFromQuery(rawQ) : undefined;
+  const spec = searchParams.spec?.trim() || guessed;
+  const q = guessed ? undefined : rawQ;
   const sort = searchParams.sort === 'rating' ? 'rating' : 'premium';
   // Потолок глубины: без него ?page=5000 давал OFFSET 120000 — полная
   // сортировка таблицы на каждый запрос, и каждый номер страницы — отдельный
@@ -88,15 +92,15 @@ export default async function CatalogPage({
   // семикратный перебор трафика на каждой странице каталога.
   let query = supabase
     .from('profiles')
-    .select('id,name,slug,specialization_id,profession_category,city,district,premium,premium_until,rating,reviews_count,work_days,currency,photos_count', { count: 'estimated' })
+    .select('id,name,slug,specialization_id,profession_category,city,district,premium,premium_until,rating,reviews_count,work_days,currency,photos_count,cover_photo', { count: 'estimated' })
     .eq('published', true);
   // Точный фильтр по специализации (в БД лежат id вида 'nails', не русские слова).
   if (spec) query = query.eq('specialization_id', spec);
-  // Свободный поиск — только по имени: в profession_category хранятся id,
-  // искать в них русский текст бессмысленно.
+  // Свободный поиск — по имени и району (подсказка в шапке обещает «мастер
+  // или район»). Скобки и запятые вырезаем: они синтаксис or-фильтра PostgREST.
   if (q) {
-    const safe = q.replace(/[(),]/g, ' ').replace(/[%_]/g, '\\$&');
-    query = query.ilike('name', `%${safe}%`);
+    const safe = q.replace(/[(),.*]/g, ' ').replace(/[%_]/g, '\\$&').trim();
+    if (safe) query = query.or(`name.ilike.*${safe}*,district.ilike.*${safe}*`);
   }
   if (city) query = query.eq('city', city);
   if (sort === 'rating') {

@@ -1,12 +1,15 @@
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import type { Master } from '@/lib/types';
-import { initials, mastersWord, reviewsWord } from '@/lib/format';
-import { professionLabel } from '@/lib/taxonomy';
+import { mastersWord, reviewsWord } from '@/lib/format';
 import { HOME_CATEGORIES, catalogHref } from '@/lib/categories';
 import { CatIcon } from '@/components/CatIcon';
-import { MasterCard, isActivePremium } from '@/components/MasterCard';
+import { CityMasters, HeroFeatured } from '@/components/CityMasters';
 import { HeroCity } from '@/components/HeroCity';
+
+/** Сколько мастеров нужно, чтобы показывать счётчики на главной. «1 мастер»
+ *  сообщает посетителю, что сайт пустой, — это хуже, чем не показывать цифру. */
+const STATS_MIN_MASTERS = 10;
 
 export const revalidate = 60;
 
@@ -25,12 +28,13 @@ export default async function HomePage() {
   // Топ-мастера для секции и hero (реальные, опубликованные).
   const { data: topData } = await supabase
     .from('profiles')
-    .select('id,name,slug,specialization_id,profession_category,city,district,premium,premium_until,rating,reviews_count,work_days,currency,photos_count')
+    .select('id,name,slug,specialization_id,profession_category,city,district,premium,premium_until,rating,reviews_count,work_days,currency,photos_count,cover_photo')
     .eq('published', true)
     .order('premium', { ascending: false })
     .order('rating', { ascending: false })
     .order('id', { ascending: true })
-    .limit(6);
+    // С запасом: из них клиент отберёт мастеров выбранного города.
+    .limit(30);
   const masters = (topData ?? []) as Master[];
 
   // Минимальная цена услуги по каждому показанному мастеру (для «от N сом.»).
@@ -60,8 +64,6 @@ export default async function HomePage() {
   const avgRating = Number(stats.avg_rating ?? 0);
   const catCount = (specId: string) => Number(stats.by_spec?.[specId] ?? 0);
 
-  const featured = masters[0];
-
   return (
     <div>
       {/* ===== HERO ===== */}
@@ -85,19 +87,12 @@ export default async function HomePage() {
 
           {/* декоративный коллаж + (если есть реальные данные) живые плашки */}
           <div className="hero-art">
+            {/* Пока у мастеров города мало своих работ — стоковые фото
+                (Unsplash, свободная лицензия, см. public/stock/CREDITS.md). */}
             <div className="hero-tiles">
-              <div className="hero-tile tall" style={{ background: 'var(--plum-soft)' }}>
-                <span className="ink" style={{ fontSize: 64 }}>МК</span>
-                <span className="tag">МАНИКЮР</span>
-              </div>
-              <div className="hero-tile" style={{ background: 'var(--gold-soft)' }}>
-                <span className="ink" style={{ fontSize: 42 }}>БР</span>
-                <span className="tag">БРОВИ</span>
-              </div>
-              <div className="hero-tile" style={{ background: 'var(--neutral-soft)' }}>
-                <span className="ink" style={{ fontSize: 42 }}>БА</span>
-                <span className="tag">БАРБЕР</span>
-              </div>
+              <div className="hero-tile tall"><img src="/stock/hero-nails.jpg" alt="Маникюр" /></div>
+              <div className="hero-tile"><img src="/stock/hero-hair.jpg" alt="Укладка волос" /></div>
+              <div className="hero-tile"><img src="/stock/brows.jpg" alt="Коррекция бровей" /></div>
             </div>
 
             {avgRating > 0 && (
@@ -108,25 +103,7 @@ export default async function HomePage() {
               </div>
             )}
 
-            {featured && (
-              <div className="hero-feat">
-                <div className="hero-feat-ava">{initials(featured.name)}</div>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span className="serif" style={{ fontSize: 17, fontWeight: 600 }}>{featured.name}</span>
-                    {isActivePremium(featured) && <span className="mcard-vip" style={{ position: 'static' }}>VIP</span>}
-                  </div>
-                  <div style={{ fontSize: 11, color: 'var(--text2)' }}>
-                    {professionLabel(featured.specialization_id, featured.profession_category)}{featured.work_days?.includes(today) ? ' · свободен сегодня' : ''}
-                  </div>
-                </div>
-                {featured.slug && (
-                  <Link href={`/m/${featured.slug}`} className="mcard-book" style={{ width: 'auto', padding: '0 14px', height: 38, display: 'inline-flex', alignItems: 'center', marginLeft: 4 }}>
-                    Записаться
-                  </Link>
-                )}
-              </div>
-            )}
+            <HeroFeatured masters={masters} today={today} />
           </div>
         </div>
       </section>
@@ -145,15 +122,14 @@ export default async function HomePage() {
             const n = catCount(c.key);
             return (
               <Link key={c.key} href={catalogHref({ spec: c.key })} className="cat-card">
-                <div className="cat-top">
-                  <span className="cat-ico"><CatIcon name={c.key} /></span>
+                <img className="cat-photo" src={`/stock/${c.key}.jpg`} alt="" loading="lazy" decoding="async" />
+                <div className="cat-body">
+                  <span className="cat-ico"><CatIcon name={c.key} size={20} /></span>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="cat-name">{c.name}</div>
+                    {n > 0 && <div className="cat-count"><b>{n}</b> {mastersWord(n)}</div>}
+                  </div>
                   <span className="cat-arrow">→</span>
-                </div>
-                <div>
-                  <div className="cat-name">{c.name}</div>
-                  {n > 0 && (
-                    <div className="cat-count"><b>{n}</b> {mastersWord(n)}</div>
-                  )}
                 </div>
               </Link>
             );
@@ -167,15 +143,22 @@ export default async function HomePage() {
           <h2 className="serif">Лучшие мастера</h2>
           <Link href="/catalog" className="linkish">Смотреть все →</Link>
         </div>
-        {masters.length > 0 ? (
-          <div className="mcards">
-            {masters.map((m, i) => (
-              <MasterCard key={m.id} m={m} price={priceByMaster[m.id]} freeToday={m.work_days?.includes(today)} toneIndex={i} />
-            ))}
+        <CityMasters masters={masters} prices={priceByMaster} today={today} />
+      </section>
+
+      {/* ===== ДЛЯ МАСТЕРОВ ===== */}
+      <section className="section">
+        <div className="pro-banner">
+          <div className="pro-banner-text">
+            <div className="hero-eyebrow">ДЛЯ МАСТЕРОВ</div>
+            <h2 className="serif">Своя страница с ценами и онлайн-записью — бесплатно</h2>
+            <p>Клиенты находят вас в каталоге города и записываются сами. Без комиссии с записей.</p>
           </div>
-        ) : (
-          <div className="empty">Скоро здесь появятся мастера ✦<br /><span style={{ fontSize: 14 }}>Мы набираем мастеров прямо сейчас.</span></div>
-        )}
+          <div className="pro-banner-cta">
+            <Link href="/cabinet" className="btn btn-gold btn-lg">Зарегистрироваться</Link>
+            <Link href="/dlya-masterov" className="btn btn-ghost-light btn-lg">Как это работает</Link>
+          </div>
+        </div>
       </section>
 
       {/* ===== ДОВЕРИЕ ===== */}
@@ -197,7 +180,7 @@ export default async function HomePage() {
       </section>
 
       {/* ===== СТАТИСТИКА (только если есть реальные данные) ===== */}
-      {publishedCount > 0 && (
+      {publishedCount >= STATS_MIN_MASTERS && (
         <section className="section" style={{ paddingTop: 0 }}>
           <div className="stats">
             <div className="stat"><div className="stat-n">{publishedCount}</div><div className="stat-l">МАСТЕРОВ</div></div>
