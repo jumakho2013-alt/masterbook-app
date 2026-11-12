@@ -19,10 +19,13 @@ export function AuthForm({ loginOnly = false, notice: initialNotice = '' }: { lo
   const [error, setError] = useState('');
   const [notice, setNotice] = useState(initialNotice);
 
-  // /cabinet?login — сразу на вход (ссылка «Войти» в шапке).
+  // /cabinet?login — сразу на вход (ссылка «Войти» в шапке);
+  // /cabinet?reset — сразу на восстановление (кнопка «Забыли пароль?» в приложении).
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).has('login')) setMode('login');
-  }, []);
+    const q = new URLSearchParams(window.location.search);
+    if (q.has('reset') && !loginOnly) setMode('reset');
+    else if (q.has('login')) setMode('login');
+  }, [loginOnly]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();

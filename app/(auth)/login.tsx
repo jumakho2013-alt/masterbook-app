@@ -21,6 +21,10 @@ import {
 
 // Каноническая Privacy Policy — должна совпадать с register.tsx.
 const PRIVACY_POLICY_URL = 'https://jumakho2013-alt.github.io/masterbook-privacy/';
+// Восстановление пароля — на сайте (тот же аккаунт Supabase). Раньше кнопка
+// отправляла писать на support@masterbook.app, а у этого домена нет почты:
+// человек, забывший пароль, оставался без доступа к своим клиентам.
+const RESET_PASSWORD_URL = 'https://masterbook-app.vercel.app/cabinet?reset';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -32,11 +36,17 @@ export default function LoginScreen() {
   const t = useT();
   const insets = useSafeAreaInsets();
 
-  const { alertConfig, error: showError, info } = useAlert();
+  const { alertConfig, error: showError } = useAlert();
 
   const openPrivacyPolicy = () => {
     WebBrowser.openBrowserAsync(PRIVACY_POLICY_URL).catch(() => {
       showError(t('common.openFailed'), t('common.copyLink', { url: PRIVACY_POLICY_URL }));
+    });
+  };
+
+  const openPasswordReset = () => {
+    WebBrowser.openBrowserAsync(RESET_PASSWORD_URL).catch(() => {
+      showError(t('common.openFailed'), t('common.copyLink', { url: RESET_PASSWORD_URL }));
     });
   };
 
@@ -127,7 +137,8 @@ export default function LoginScreen() {
           />
 
           <Pressable
-            onPress={() => info(t('auth.forgotPassword'), t('auth.forgotPasswordBody'))}
+            onPress={openPasswordReset}
+            accessibilityRole="link"
             style={{ alignSelf: 'flex-end' }}
           >
             <Text style={[typo.caption, { color: colors.primary }]}>{t('auth.forgotPassword')}</Text>

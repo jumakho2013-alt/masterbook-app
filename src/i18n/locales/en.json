@@ -220,7 +220,6 @@
     "registerSubtitle": "Create account",
     "namePlaceholder": "Maria",
     "passwordMinPlaceholder": "At least 6 characters",
-    "forgotPasswordBody": "Email us at support@masterbook.app and we'll help restore access",
     "loginConsentPrefix": "By tapping \"Sign in\", you agree to ",
     "consentProcessing": "personal data processing",
     "registerConsentPrefix": "I agree to the processing of personal data per the ",

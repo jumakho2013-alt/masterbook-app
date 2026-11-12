@@ -220,7 +220,6 @@
     "registerSubtitle": "Создайте аккаунт",
     "namePlaceholder": "Мария",
     "passwordMinPlaceholder": "Минимум 6 символов",
-    "forgotPasswordBody": "Напишите нам на support@masterbook.app и мы поможем восстановить доступ",
     "loginConsentPrefix": "Нажимая «Войти», вы соглашаетесь с ",
     "consentProcessing": "обработкой персональных данных",
     "registerConsentPrefix": "Я согласен(а) на обработку персональных данных в соответствии с ",
