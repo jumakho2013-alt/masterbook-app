@@ -81,7 +81,8 @@ export default function ManageServicesScreen() {
       return;
     }
     const priceNum = Number(price.replace(',', '.').replace(/\s/g, ''));
-    if (!Number.isFinite(priceNum) || priceNum <= 0) {
+    // 0 разрешён — бесплатная консультация/диагностика; пустое поле — нет.
+    if (price.trim() === '' || !Number.isFinite(priceNum) || priceNum < 0) {
       toast.error(tr('misc.svcPriceRequired'));
       return;
     }

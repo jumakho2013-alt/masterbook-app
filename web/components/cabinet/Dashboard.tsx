@@ -223,7 +223,8 @@ export function Dashboard({ session }: { session: Session }) {
     const price = Number(svcPrice.replace(',', '.').replace(/\s/g, ''));
     // Те же границы, что serviceSchema в приложении (src/lib/validation.ts).
     if (name.length < 2) return setError('Название услуги — минимум 2 символа');
-    if (!Number.isFinite(price) || price < 0) return setError('Укажите цену числом');
+    // Пустое поле превращалось в 0 и молча создавало «бесплатную» услугу.
+    if (svcPrice.trim() === '' || !Number.isFinite(price) || price < 0) return setError('Укажите цену числом (0 — бесплатно)');
     setSvcBusy(true);
     const now = new Date().toISOString();
     const { error: e } = await sb.from('services').insert({

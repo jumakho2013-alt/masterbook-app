@@ -17,6 +17,7 @@ import { useAuthStore } from '@/src/stores/useAuthStore';
 import { makeSlug } from '@/src/utils/slug';
 import { COUNTRIES, countryByName, countryOfCity, DEFAULT_COUNTRY } from '@/src/data/geo';
 import { pushPublicProfile } from '@/src/lib/sync/cloudSync';
+import { fetchPublicProfile } from '@/src/lib/sync/profileRestore';
 import { uploadPortfolioPhoto, deletePortfolioPhoto } from '@/src/lib/media/portfolioCloud';
 
 const MAX_PHOTOS = 12;
@@ -64,6 +65,37 @@ export default function PublishScreen() {
   // размонтирования (setPublicProfile уже записал фото в стор ДО await).
   const mountedRef = useRef(true);
   useEffect(() => () => { mountedRef.current = false; }, []);
+
+  // Подтягиваем актуальный профиль с сервера: его мог поменять веб-кабинет,
+  // а «Сохранить» отсюда отправляет всё целиком — и затирало бы те правки.
+  // Применяем, только если мастер ещё ничего не начал менять на экране.
+  const editsRef = useRef({ city, district, whatsapp, phone, bio, published, photos, masterName });
+  editsRef.current = { city, district, whatsapp, phone, bio, published, photos, masterName };
+  const initialRef = useRef(editsRef.current);
+  useEffect(() => {
+    if (needAccount || !userId) return;
+    let alive = true;
+    void fetchPublicProfile(userId).then((srv) => {
+      if (!alive || !srv) return;
+      if (JSON.stringify(editsRef.current) !== JSON.stringify(initialRef.current)) return;
+      setCity(srv.city);
+      setCountrySel(countryOfCity(srv.city) || DEFAULT_COUNTRY);
+      setDistrict(srv.district);
+      setWhatsapp(srv.whatsapp);
+      setPhone(srv.publicPhone);
+      setBio(srv.bio);
+      setPublished(srv.published);
+      setPhotos(srv.portfolioPhotos);
+      initialPhotos.current = srv.portfolioPhotos;
+      if (srv.name) setMasterName(srv.name);
+      setPublicProfile({
+        city: srv.city, district: srv.district, bio: srv.bio, whatsapp: srv.whatsapp,
+        publicPhone: srv.publicPhone, portfolioPhotos: srv.portfolioPhotos,
+        published: srv.published, slug: srv.slug ?? slug0,
+      });
+    });
+    return () => { alive = false; };
+  }, [userId, needAccount]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const addPhotos = async () => {
     if (photos.length >= MAX_PHOTOS) {
@@ -136,11 +168,19 @@ export default function PublishScreen() {
     }
     setSaving(true);
     const nextSlug = published ? (slug0 ?? makeSlug(masterName)) : slug0;
+    // Что сервер считает сейчас — чтобы при ошибке не врать «опубликовано».
+    const publishedBefore = useSettingsStore.getState().published;
     setPublicProfile({ city: city.trim(), district: district.trim(), bio: bio.trim(), whatsapp: whatsapp.trim(), publicPhone: phone.trim(), portfolioPhotos: photos, published, slug: nextSlug });
     const res = await pushPublicProfile();
+    // Раньше телефон оставался «опубликован», хотя на сайт ничего не ушло.
+    // Тексты и фото держим локально (уйдут следующим сохранением), а статус
+    // публикации возвращаем к тому, что реально на сервере — даже если экран
+    // уже закрыт. slug не трогаем: повтор опубликует под тем же адресом.
+    if (!res.ok) setPublicProfile({ published: publishedBefore });
     if (!mountedRef.current) return; // ушли с экрана — стор уже сохранён
     setSaving(false);
     if (!res.ok) {
+      // Переключатель на экране не трогаем — мастер нажмёт «Сохранить» ещё раз.
       showError(tr('settings.publishSaveError'));
       return;
     }

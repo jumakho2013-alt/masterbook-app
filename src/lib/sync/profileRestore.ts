@@ -108,3 +108,47 @@ export async function restoreProfileFromServer(userId: string): Promise<Restored
     return null;
   }
 }
+
+export type PublicProfileFields = {
+  name: string;
+  city: string;
+  district: string;
+  bio: string;
+  whatsapp: string;
+  publicPhone: string;
+  portfolioPhotos: string[];
+  published: boolean;
+  slug: string | null;
+};
+
+/**
+ * Публичный профиль с сервера — для экрана «Опубликовать». Его правят и
+ * приложение, и веб-кабинет; раньше приложение показывало свою локальную
+ * копию и при сохранении затирало то, что мастер поменял на сайте.
+ * null — нет сети/аккаунта: экран работает с локальной копией, как раньше.
+ */
+export async function fetchPublicProfile(userId: string): Promise<PublicProfileFields | null> {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('name, city, district, bio, whatsapp, public_phone, portfolio_photos, published, slug')
+      .eq('id', userId)
+      .maybeSingle();
+    if (error || !data) return null;
+    const p = data as unknown as ServerProfile;
+    return {
+      name: p.name?.trim() ?? '',
+      city: p.city ?? '',
+      district: p.district ?? '',
+      bio: p.bio ?? '',
+      whatsapp: p.whatsapp ?? '',
+      publicPhone: p.public_phone ?? '',
+      portfolioPhotos: Array.isArray(p.portfolio_photos) ? p.portfolio_photos : [],
+      published: Boolean(p.published),
+      slug: p.slug ?? null,
+    };
+  } catch (e) {
+    captureException(e, { tag: 'profile-fetch-public' });
+    return null;
+  }
+}

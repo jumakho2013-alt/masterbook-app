@@ -74,6 +74,37 @@ function fromMin(n: number): string {
 // время» — 409 (сайт покажет причину и предложит другое время).
 const BAD_INPUT = new Set(['date_invalid', 'time_invalid', 'date_past', 'date_far']);
 
+// --- push мастеру о новой записи (Expo push, бесплатно) ---
+// Раньше запись с сайта приходила молча: мастер видел её, только открыв
+// приложение. Токены регистрирует приложение (register_push_token).
+// deno-lint-ignore no-explicit-any
+type Admin = any;
+
+async function notifyMaster(admin: Admin, masterId: string, title: string, body: string, apptId: string) {
+  try {
+    const { data: rows } = await admin.from('push_tokens').select('token').eq('user_id', masterId);
+    const tokens: string[] = (rows ?? []).map((r: { token: unknown }) => String(r.token ?? '')).filter(Boolean);
+    if (tokens.length === 0) return;
+    const messages = tokens.map((to: string) => ({
+      to, title, body, sound: 'default', priority: 'high', channelId: 'reminders',
+      data: { type: 'web_booking', appointmentId: apptId },
+    }));
+    const res = await fetch('https://exp.host/--/api/v2/push/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(messages),
+    });
+    const out = await res.json().catch(() => null) as { data?: Array<{ details?: { error?: string } }> } | null;
+    // Удалённое приложение / сменившийся токен — чистим, чтобы не слать в пустоту.
+    const dead = (out?.data ?? [])
+      .map((r, i) => (r?.details?.error === 'DeviceNotRegistered' ? tokens[i] : null))
+      .filter((t): t is string => Boolean(t));
+    if (dead.length) await admin.from('push_tokens').delete().in('token', dead);
+  } catch (e) {
+    console.error('push failed', e);
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsFor(req) });
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405, req);
@@ -86,6 +117,31 @@ Deno.serve(async (req: Request) => {
   }
 
   const str = (v: unknown): string => (typeof v === 'string' ? v.trim() : '');
+
+  // --- отмена записи самим клиентом (по секретному токену из ответа на запись) ---
+  if (body.action === 'cancel') {
+    const admin = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      { auth: { persistSession: false, autoRefreshToken: false } },
+    );
+    const { data: res, error: cxErr } = await admin.rpc('cancel_booking_by_client', {
+      p_id: str(body.id).slice(0, 100),
+      p_token: str(body.token).slice(0, 100),
+    });
+    if (cxErr) return json({ error: 'cancel_failed' }, 500, req);
+    const r = res as { status: string; user_id?: string; date?: string; start_time?: string };
+    if (r.status === 'ok' && r.user_id && r.date) {
+      const [, cmo, cdd] = r.date.split('-');
+      const push = notifyMaster(admin, r.user_id, 'Клиент отменил запись', `${cdd}.${cmo} в ${r.start_time} — время снова свободно`, str(body.id));
+      const rt = (globalThis as { EdgeRuntime?: { waitUntil(p: Promise<unknown>): void } }).EdgeRuntime;
+      if (rt?.waitUntil) rt.waitUntil(push); else await push;
+      return json({ ok: true }, 200, req);
+    }
+    if (r.status === 'already') return json({ ok: true, already: true }, 200, req);
+    return json({ error: r.status }, r.status === 'not_found' ? 404 : 409, req);
+  }
+
   const slug = str(body.slug);
   const masterId = str(body.master_id);
   const serviceId = str(body.service_id);
@@ -235,5 +291,20 @@ Deno.serve(async (req: Request) => {
     return json({ error: bookRes ?? 'booking_failed' }, BAD_INPUT.has(bookRes) ? 400 : 409, req);
   }
 
-  return json({ ok: true, date, start_time: startTime, end_time: endTime, service: serviceName }, 200, req);
+  // Секрет для отмены клиентом. Не удалось записать — запись остаётся,
+  // просто без кнопки «Отменить» у клиента.
+  const cancelToken = crypto.randomUUID();
+  const { error: tErr } = await admin.from('appointments').update({ cancel_token: cancelToken }).eq('id', apptId);
+
+  // Push не задерживает ответ клиенту и не может сорвать уже сделанную запись.
+  const [, mo, dd] = date.split('-');
+  const push = notifyMaster(admin, master.id, 'Новая запись с сайта', `${name} — ${serviceName}, ${dd}.${mo} в ${startTime}`, apptId);
+  const runtime = (globalThis as { EdgeRuntime?: { waitUntil(p: Promise<unknown>): void } }).EdgeRuntime;
+  if (runtime?.waitUntil) runtime.waitUntil(push);
+  else await push;
+
+  return json({
+    ok: true, date, start_time: startTime, end_time: endTime, service: serviceName,
+    id: apptId, cancel_token: tErr ? null : cancelToken,
+  }, 200, req);
 });

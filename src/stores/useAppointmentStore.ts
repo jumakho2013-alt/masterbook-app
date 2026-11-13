@@ -163,12 +163,27 @@ export const useAppointmentStore = create<AppointmentState>()(
         const merged = records.map((r) => {
           const prev = prevById.get(r.id);
           if (!prev) return r;
+          let reminderNotificationId = r.reminderNotificationId ?? prev.reminderNotificationId;
+          // Запись отменили/перенесли на другой стороне (клиент на сайте, мастер
+          // в веб-кабинете или на втором телефоне) — старое напоминание сработало
+          // бы впустую или в неверное время. Снимаем; для перенесённой новое
+          // поставит rescheduleMissingReminders.
+          const moved = r.date !== prev.date || r.startTime !== prev.startTime;
+          if (reminderNotificationId && (r.status !== 'scheduled' || moved)) {
+            cancelReminderSafely(reminderNotificationId);
+            reminderNotificationId = undefined;
+          }
           return {
             ...r,
-            reminderNotificationId: r.reminderNotificationId ?? prev.reminderNotificationId,
+            reminderNotificationId,
             calendarEventId: r.calendarEventId ?? prev.calendarEventId,
           };
         });
+        // Удалённые на сервере записи пропали из стора — их напоминания тоже.
+        const keep = new Set(merged.map((a) => a.id));
+        for (const prev of prevById.values()) {
+          if (!keep.has(prev.id)) cancelReminderSafely(prev.reminderNotificationId);
+        }
         set({ appointments: merged });
         return appliedDeletes;
       },

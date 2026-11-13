@@ -140,6 +140,14 @@ export const useAuthStore = create<AuthState>()(
         // — это включает отмену всех локальных push-напоминаний.
         // Делаем ДО signOut() чтобы listener supabase.auth не успел вызвать
         // checkSession и перерендерить экраны со старыми данными.
+        // Push-токен отзываем ДО выхода (нужна ещё живая сессия): иначе
+        // уведомления о записях этого мастера шли бы на телефон, где он вышел.
+        // Лениво: модуль тянет нативные expo-notifications. Ждёт не дольше 3 с.
+        if (!get().localOnlyMode) {
+          await import('@/src/lib/reminders/pushToken')
+            .then((m) => m.unregisterPushToken())
+            .catch(() => {});
+        }
         wipeBusinessStores();
         // Local-only mode: сервер не задействован, скипаем supabase.signOut().
         if (!get().localOnlyMode) {

@@ -28,6 +28,8 @@ export interface Master {
   work_days: number[] | null;
   work_hours_start: string | null;
   work_hours_end: string | null;
+  /** Минимальная цена услуги (триггер на services) — для «от N» и сортировки. */
+  min_price?: number | string | null;
   /** Мастер временно не принимает онлайн-запись (отпуск, болезнь). */
   booking_paused?: boolean | null;
   /** Закрытые даты 'YYYY-MM-DD' — в эти дни записи нет. */

@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { formatPrice } from '@/lib/format';
 import { phonePlaceholder } from '@/lib/geo';
 import { CHOOSE_SERVICE_EVENT } from './ChooseServiceButton';
+import { MyBookings } from './MyBookings';
+import { rememberBooking } from '@/lib/myBookings';
 
 type SvcOpt = { id: string; name: string; price: number; duration: number };
 type Contact = { href: string; label: string } | null;
@@ -184,6 +186,16 @@ export function BookingForm({
             {contact.label}
           </a>
         )}
+        <div style={{ textAlign: 'left', marginTop: 18 }}>
+          <MyBookings
+            slug={slug}
+            title="Передумали? Запись можно отменить"
+            onCancelled={() => { setDone(null); setTime(''); setReload((n) => n + 1); }}
+          />
+          <p className="faint" style={{ fontSize: 12.5, margin: '8px 0 0' }}>
+            Запись сохранена в этом браузере — откройте страницу мастера снова, чтобы отменить её.
+          </p>
+        </div>
       </div>
     );
   }
@@ -223,6 +235,9 @@ export function BookingForm({
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.ok) {
+        if (data.id && data.cancel_token) {
+          rememberBooking({ id: data.id, token: data.cancel_token, slug, date: data.date, time: data.start_time, service: data.service });
+        }
         setDone({ date: data.date, time: data.start_time, service: data.service });
       } else {
         setError(ERRORS[data?.error] ?? 'Что-то пошло не так. Попробуйте ещё раз');
@@ -242,6 +257,8 @@ export function BookingForm({
 
   return (
     <form className="bookform" onSubmit={submit}>
+      <MyBookings slug={slug} refreshKey={reload} onCancelled={() => setReload((n) => n + 1)} />
+
       {services.length > 0 && (
         <label className="bf-field">
           <span className="bf-label">Услуга</span>

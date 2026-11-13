@@ -43,12 +43,14 @@ export function generateMetadata({
 }
 
 const PAGE_SIZE = 24;
+// «По рейтингу» убрана: отзывов пока нет, и сортировка ничего не меняла.
+// Вернуть, когда появятся настоящие отзывы клиентов.
 const SORTS = [
-  { key: 'premium', label: 'Сначала премиум' },
-  { key: 'rating', label: 'По рейтингу' },
+  { key: 'premium', label: 'Рекомендуем' },
+  { key: 'price', label: 'Дешевле' },
 ] as const;
 
-type Filters = { q?: string; city?: string; spec?: string; sort?: string; page?: number };
+type Filters = { q?: string; city?: string; spec?: string; sort?: string; page?: number; today?: boolean };
 
 /** Собрать query-строку, сохраняя активные фильтры. */
 function hrefWith(base: Filters, patch: Filters): string {
@@ -58,6 +60,7 @@ function hrefWith(base: Filters, patch: Filters): string {
   if (next.spec) sp.set('spec', next.spec);
   if (next.city) sp.set('city', next.city);
   if (next.sort && next.sort !== 'premium') sp.set('sort', next.sort);
+  if (next.today) sp.set('today', '1');
   if (next.page && next.page > 1) sp.set('page', String(next.page));
   const s = sp.toString();
   return s ? `/catalog?${s}` : '/catalog';
@@ -70,7 +73,7 @@ function dushanbeDow(): number {
 export default async function CatalogPage({
   searchParams,
 }: {
-  searchParams: { q?: string; city?: string; spec?: string; page?: string; sort?: string };
+  searchParams: { q?: string; city?: string; spec?: string; page?: string; sort?: string; today?: string };
 }) {
   const rawQ = searchParams.q?.trim();
   const city = searchParams.city?.trim();
@@ -79,7 +82,8 @@ export default async function CatalogPage({
   const guessed = !searchParams.spec && rawQ ? specFromQuery(rawQ) : undefined;
   const spec = searchParams.spec?.trim() || guessed;
   const q = guessed ? undefined : rawQ;
-  const sort = searchParams.sort === 'rating' ? 'rating' : 'premium';
+  const sort = searchParams.sort === 'price' ? 'price' : 'premium';
+  const onlyToday = searchParams.today === '1';
   // Потолок глубины: без него ?page=5000 давал OFFSET 120000 — полная
   // сортировка таблицы на каждый запрос, и каждый номер страницы — отдельный
   // ключ кеша, то есть готовый вектор для краулера.
@@ -95,7 +99,7 @@ export default async function CatalogPage({
   // семикратный перебор трафика на каждой странице каталога.
   let query = supabase
     .from('profiles')
-    .select('id,name,slug,specialization_id,profession_category,city,district,premium,premium_until,rating,reviews_count,work_days,currency,photos_count,cover_photo', { count: 'estimated' })
+    .select('id,name,slug,specialization_id,profession_category,city,district,premium,premium_until,rating,reviews_count,work_days,currency,photos_count,cover_photo,min_price,booking_paused', { count: 'estimated' })
     .eq('published', true);
   // Точный фильтр по специализации (в БД лежат id вида 'nails', не русские слова).
   if (spec) query = query.eq('specialization_id', spec);
@@ -106,8 +110,10 @@ export default async function CatalogPage({
     if (safe) query = query.or(`name.ilike.*${safe}*,district.ilike.*${safe}*`);
   }
   if (city) query = query.eq('city', city);
-  if (sort === 'rating') {
-    query = query.order('rating', { ascending: false }).order('id', { ascending: true });
+  // «Работает сегодня» — по графику (день недели в UTC+5, как и подпись на карточке).
+  if (onlyToday) query = query.contains('work_days', [dushanbeDow()]).eq('booking_paused', false);
+  if (sort === 'price') {
+    query = query.order('min_price', { ascending: true, nullsFirst: false }).order('id', { ascending: true });
   } else {
     query = query.order('premium', { ascending: false }).order('rating', { ascending: false }).order('id', { ascending: true });
   }
@@ -118,18 +124,10 @@ export default async function CatalogPage({
   const masters = rows.slice(0, PAGE_SIZE);
   const total = count ?? masters.length;
 
-  // Минимальные цены для показанных мастеров (для «от N сом.» на карточке).
+  // Минимальная цена — из профиля (её пересчитывает триггер на услугах);
+  // раньше ради «от N сом.» на карточке шёл отдельный запрос ко всем услугам.
   const priceByMaster: Record<string, number> = {};
-  if (masters.length) {
-    const { data: svc } = await supabase
-      .from('services')
-      .select('user_id, price')
-      .in('user_id', masters.map((m) => m.id))
-      .is('deleted_at', null);
-    for (const s of (svc ?? []) as { user_id: string; price: number }[]) {
-      if (priceByMaster[s.user_id] == null || s.price < priceByMaster[s.user_id]) priceByMaster[s.user_id] = s.price;
-    }
-  }
+  for (const m of masters) if (m.min_price != null) priceByMaster[m.id] = Number(m.min_price);
 
   const { data: cityData } = await supabase.rpc('published_cities');
   const cities = ((cityData as string[] | null) ?? []).filter(Boolean);
@@ -143,14 +141,14 @@ export default async function CatalogPage({
         {city ? ` в городе ${city}` : ''}
       </h1>
       <div className="cat-count2">
-        {page > 1 ? `Страница ${page}` : <><b>{total}</b> {mastersWord(total)} · {SORTS.find((s) => s.key === sort)?.label.toLowerCase()}</>}
+        {page > 1 ? `Страница ${page}` : <><b>{total}</b> {mastersWord(total)}{sort === 'price' ? ' · сначала дешевле' : ''}{onlyToday ? ' · работают сегодня' : ''}</>}
       </div>
 
       {/* категории */}
       <div className="chips">
-        <Link href={hrefWith({ q, city, sort }, { spec: undefined })} className={`chip${!spec ? ' active' : ''}`}>Все</Link>
+        <Link href={hrefWith({ q, city, sort, today: onlyToday }, { spec: undefined })} className={`chip${!spec ? ' active' : ''}`}>Все</Link>
         {HOME_CATEGORIES.map((c) => (
-          <Link key={c.key} href={hrefWith({ q, city, sort }, { spec: c.key })} className={`chip${spec === c.key ? ' active' : ''}`}>{c.name}</Link>
+          <Link key={c.key} href={hrefWith({ q, city, sort, today: onlyToday }, { spec: c.key })} className={`chip${spec === c.key ? ' active' : ''}`}>{c.name}</Link>
         ))}
       </div>
 
@@ -158,13 +156,13 @@ export default async function CatalogPage({
       {cities.length > 1 && (
         <div style={{ marginBottom: 4 }}>
           <div className="chips">
-            <Link href={hrefWith({ q, spec, sort }, { city: undefined })} className={`chip${!city ? ' active' : ''}`}>📍 Все города</Link>
+            <Link href={hrefWith({ q, spec, sort, today: onlyToday }, { city: undefined })} className={`chip${!city ? ' active' : ''}`}>📍 Все города</Link>
           </div>
           {cityGroups.map((g) => (
             <div key={g.country} className="chips" style={{ marginTop: 8, alignItems: 'center' }}>
               <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.6, color: 'var(--text3)', marginRight: 2 }}>{g.country}</span>
               {g.cities.map((c) => (
-                <Link key={c} href={hrefWith({ q, spec, sort }, { city: c })} className={`chip${city === c ? ' active' : ''}`}>{c}</Link>
+                <Link key={c} href={hrefWith({ q, spec, sort, today: onlyToday }, { city: c })} className={`chip${city === c ? ' active' : ''}`}>{c}</Link>
               ))}
             </div>
           ))}
@@ -175,21 +173,27 @@ export default async function CatalogPage({
       <div className="chips" style={{ marginBottom: 22, alignItems: 'center' }}>
         <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.4, color: 'var(--text3)', marginRight: 2 }}>СОРТИРОВКА</span>
         {SORTS.map((s) => (
-          <Link key={s.key} href={hrefWith({ q, spec, city }, { sort: s.key })} className={`chip${sort === s.key ? ' active' : ''}`}>{s.label}</Link>
+          <Link key={s.key} href={hrefWith({ q, spec, city, today: onlyToday }, { sort: s.key })} className={`chip${sort === s.key ? ' active' : ''}`}>{s.label}</Link>
         ))}
+        <Link
+          href={hrefWith({ q, spec, city, sort }, { today: !onlyToday })}
+          className={`chip${onlyToday ? ' active' : ''}`}
+        >
+          {onlyToday ? '✓ ' : ''}Работает сегодня
+        </Link>
       </div>
 
       {masters.length > 0 ? (
         <>
           <div className="mcards">
             {masters.map((m, i) => (
-              <MasterCard key={m.id} m={m} price={priceByMaster[m.id]} freeToday={m.work_days?.includes(today)} toneIndex={i} />
+              <MasterCard key={m.id} m={m} price={priceByMaster[m.id]} freeToday={!m.booking_paused && m.work_days?.includes(today)} toneIndex={i} />
             ))}
           </div>
           {(page > 1 || hasNext) && (
             <div className="spread" style={{ marginTop: 28, alignItems: 'center' }}>
-              {page > 1 ? <Link href={hrefWith({ q, spec, city, sort }, { page: page - 1 })} className="btn">← Назад</Link> : <span />}
-              {hasNext && <Link href={hrefWith({ q, spec, city, sort }, { page: page + 1 })} className="btn btn-primary">Дальше →</Link>}
+              {page > 1 ? <Link href={hrefWith({ q, spec, city, sort, today: onlyToday }, { page: page - 1 })} className="btn">← Назад</Link> : <span />}
+              {hasNext && <Link href={hrefWith({ q, spec, city, sort, today: onlyToday }, { page: page + 1 })} className="btn btn-primary">Дальше →</Link>}
             </div>
           )}
         </>

@@ -52,6 +52,8 @@ export default function AppointmentDetailScreen() {
   const services = useServiceStore((s) => s.services);
   const workHours = useSettingsStore((s) => s.workHours);
   const bufferMinutes = useSettingsStore((s) => s.bufferMinutes);
+  const breakTime = useSettingsStore((s) => s.breakTime);
+  const workDays = useSettingsStore((s) => s.workDays);
 
   const { alertConfig, success, confirm, error: showError } = useAlert();
   const toast = useToast();
@@ -97,9 +99,27 @@ export default function AppointmentDetailScreen() {
   const apptsOnRescheduleDate = allAppointments.filter(
     (a) => a.date === rescheduleDateKey && a.status === 'scheduled' && a.id !== appointment.id,
   );
+  // Длительность визита — у самой записи (как и в handleReschedule).
+  const ownDurationMin = appointment
+    ? timeToMinutes(appointment.endTime) - timeToMinutes(appointment.startTime)
+    : 0;
+  const rescheduleDuration = ownDurationMin > 0 ? ownDurationMin : service?.duration ?? 60;
+  // Как при создании записи: нельзя перенести в перерыв или так, что визит
+  // не успевает до конца рабочего дня. Раньше перенос это позволял.
+  const isRescheduleOutOfHours = (t: string): boolean => {
+    const start = timeToMinutes(t);
+    const end = start + rescheduleDuration;
+    if (end > timeToMinutes(workHours.end)) return true;
+    if (breakTime.enabled) {
+      const bs = timeToMinutes(breakTime.start);
+      const be = timeToMinutes(breakTime.end);
+      if (be > bs && start < be && bs < end) return true;
+    }
+    return false;
+  };
   const isRescheduleSlotTaken = (t: string): boolean => {
-    const dur = service?.duration ?? 60;
-    const end = addMinutes(t, dur);
+    if (isRescheduleOutOfHours(t)) return true;
+    const end = addMinutes(t, rescheduleDuration);
     return apptsOnRescheduleDate.some((a) =>
       timeRangesOverlap(
         t,
@@ -519,9 +539,11 @@ export default function AppointmentDetailScreen() {
                   {reschedDays.map((d) => {
                     const key = toDateKey(d);
                     const selected = toDateKey(rescheduleDate) === key;
+                    const dayOff = workDays.length > 0 && !workDays.includes(d.getDay());
                     return (
-                      <Pressable key={key} onPress={() => { setRescheduleDate(d); setRescheduleTime(null); }}
-                        style={[styles.dateChip, { backgroundColor: selected ? colors.primary : colors.surfaceElevated, borderRadius: br.sm, marginRight: 6 }]}>
+                      <Pressable key={key} disabled={dayOff} onPress={() => { setRescheduleDate(d); setRescheduleTime(null); }}
+                        accessibilityState={{ selected, disabled: dayOff }}
+                        style={[styles.dateChip, { backgroundColor: selected ? colors.primary : colors.surfaceElevated, borderRadius: br.sm, marginRight: 6, opacity: dayOff ? 0.35 : 1 }]}>
                         <Text style={[typo.small, { color: selected ? colors.white : colors.textSecondary }]}>
                           {formatDate(key)}
                         </Text>

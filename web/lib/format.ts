@@ -20,6 +20,8 @@ const CURRENCIES: Record<string, { symbol: string; prefix?: boolean }> = {
 export const CURRENCY_CODES = Object.keys(CURRENCIES);
 
 export function formatPrice(n: number, currency?: string | null): string {
+  // Бесплатная консультация — честнее «Бесплатно», чем «0 сом.».
+  if (Number(n) === 0) return 'Бесплатно';
   const s = Math.round(n).toLocaleString('ru-RU').replace(/\s/g, NBSP);
   const cur = CURRENCIES[(currency ?? 'TJS').toUpperCase()] ?? CURRENCIES.TJS;
   return cur.prefix ? `${cur.symbol}${s}` : `${s}${NBSP}${cur.symbol}`;

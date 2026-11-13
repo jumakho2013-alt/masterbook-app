@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Tabs, Redirect } from 'expo-router';
 import { GlassTabBar } from '@/src/components/GlassTabBar';
+import { registerPushToken } from '@/src/lib/reminders/pushToken';
 import { registerForPushNotifications } from '@/src/lib/reminders/notifications';
 import { useAuthStore } from '@/src/stores/useAuthStore';
 
@@ -18,9 +19,14 @@ export default function TabLayout() {
   // Ask for notification permission once, when the user first reaches the
   // main app. Errors are swallowed — the feature is optional and must not
   // block the UI.
+  // Затем — push-токен за аккаунтом: по нему сервер шлёт «новая запись с
+  // сайта» сразу. Повторяем при смене аккаунта (токен переходит к новому).
+  const userId = session?.user?.id;
   useEffect(() => {
-    registerForPushNotifications().catch(() => {});
-  }, []);
+    registerForPushNotifications()
+      .then((granted) => (granted && userId ? registerPushToken() : false))
+      .catch(() => {});
+  }, [userId]);
 
   if (!loading && !session && !localOnly) {
     return <Redirect href="/(auth)/login" />;

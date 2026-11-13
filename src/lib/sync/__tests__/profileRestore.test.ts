@@ -23,7 +23,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   },
 }));
 
-import { restoreProfileFromServer, settingsFromServer } from '../profileRestore';
+import { fetchPublicProfile, restoreProfileFromServer, settingsFromServer } from '../profileRestore';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
 
 const SERVER = {
@@ -96,5 +96,21 @@ describe('restoreProfileFromServer', () => {
   it('профиля нет / сеть — null, без падения', async () => {
     serverRow = null;
     expect(await restoreProfileFromServer('u1')).toBeNull();
+  });
+});
+
+describe('fetchPublicProfile', () => {
+  it('отдаёт публичные поля с сервера (правки из веб-кабинета)', async () => {
+    serverRow = { ...SERVER, bio: 'Правка с сайта', public_phone: '+992 11' };
+    expect(await fetchPublicProfile('u1')).toEqual({
+      name: 'Мадина', city: 'Душанбе', district: 'Сино', bio: 'Правка с сайта',
+      whatsapp: '+992900000000', publicPhone: '+992 11', portfolioPhotos: ['https://x/1.jpg'],
+      published: true, slug: 'madina-ab12',
+    });
+  });
+
+  it('нет профиля — null, экран работает с локальной копией', async () => {
+    serverRow = null;
+    expect(await fetchPublicProfile('u1')).toBeNull();
   });
 });

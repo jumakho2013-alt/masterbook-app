@@ -28,6 +28,7 @@ jest.mock('@/src/lib/reminders/notifications', () => ({
 import { useClientStore } from '../useClientStore';
 import { useAppointmentStore } from '../useAppointmentStore';
 import type { RemoteChange } from '@/src/lib/sync/syncMerge';
+import { cancelNotification } from '@/src/lib/reminders/notifications';
 import type { Client, Appointment } from '@/src/types';
 
 beforeEach(() => {
@@ -111,9 +112,9 @@ describe('appointment store sync — device-local fields preserved on merge', ()
         id: a.id,
         clientId: 'c1',
         serviceId: 's1',
-        date: '2026-04-21', // изменилось на сервере
-        startTime: '12:00',
-        endTime: '13:00',
+        date: '2026-04-20', // время то же — поменялась цена
+        startTime: '10:00',
+        endTime: '11:00',
         status: 'scheduled',
         price: 1500,
         updatedAt: '2099-01-01T00:00:00.000Z',
@@ -121,8 +122,43 @@ describe('appointment store sync — device-local fields preserved on merge', ()
     };
     useAppointmentStore.getState().mergeRemote([change]);
     const merged = useAppointmentStore.getState().appointments.find((x) => x.id === a.id);
-    expect(merged?.date).toBe('2026-04-21'); // remote data применилась
+    expect(merged?.price).toBe(1500); // remote data применилась
     expect(merged?.reminderNotificationId).toBe('notif-1'); // device-local сохранён
     expect(merged?.calendarEventId).toBe('cal-1');
+  });
+
+  const base = (over: Partial<Appointment> = {}) => useAppointmentStore.getState().addAppointment({
+    clientId: 'c1', serviceId: 's1', date: '2026-04-20', startTime: '10:00', endTime: '11:00',
+    status: 'scheduled', price: 1000, reminderNotificationId: 'notif-x', ...over,
+  });
+  const remote = (a: Appointment, over: Partial<Appointment>): RemoteChange<Appointment> => ({
+    id: a.id, updatedAt: '2099-01-01T00:00:00.000Z', deletedAt: null,
+    record: { ...a, reminderNotificationId: undefined, calendarEventId: undefined, updatedAt: '2099-01-01T00:00:00.000Z', ...over },
+  });
+
+  it('запись перенесли на другой стороне — старое напоминание снято', () => {
+    (cancelNotification as jest.Mock).mockClear();
+    const a = base();
+    useAppointmentStore.getState().mergeRemote([remote(a, { date: '2026-04-21', startTime: '12:00', endTime: '13:00' })]);
+    const m = useAppointmentStore.getState().appointments.find((x) => x.id === a.id);
+    expect(m?.date).toBe('2026-04-21');
+    expect(m?.reminderNotificationId).toBeUndefined();
+    expect(cancelNotification).toHaveBeenCalledWith('notif-x');
+  });
+
+  it('клиент отменил запись на сайте — напоминание снято', () => {
+    (cancelNotification as jest.Mock).mockClear();
+    const a = base();
+    useAppointmentStore.getState().mergeRemote([remote(a, { status: 'cancelled' })]);
+    expect(useAppointmentStore.getState().appointments.find((x) => x.id === a.id)?.reminderNotificationId).toBeUndefined();
+    expect(cancelNotification).toHaveBeenCalledWith('notif-x');
+  });
+
+  it('запись удалили на сервере — напоминание снято', () => {
+    (cancelNotification as jest.Mock).mockClear();
+    const a = base();
+    useAppointmentStore.getState().mergeRemote([{ id: a.id, updatedAt: '2099-01-01T00:00:00.000Z', deletedAt: '2099-01-01T00:00:00.000Z', record: null }]);
+    expect(useAppointmentStore.getState().appointments.find((x) => x.id === a.id)).toBeUndefined();
+    expect(cancelNotification).toHaveBeenCalledWith('notif-x');
   });
 });

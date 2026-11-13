@@ -1,6 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import { getNotificationPermissionStatus } from './notifications';
 import { rescheduleMissingReminders } from './reminderSync';
+import { hasRegisteredPushToken } from './pushToken';
 import { captureException } from '@/src/lib/crashReporter';
 import { t } from '@/src/i18n';
 import type { WebBooking } from './webBookingDetect';
@@ -27,6 +28,8 @@ export async function notifyNewWebBookings(list: WebBooking[]): Promise<void> {
     // Напоминание за час — сразу, а не на следующем холодном старте.
     await rescheduleMissingReminders();
     if ((await getNotificationPermissionStatus()) !== 'granted') return;
+    // Сервер уже прислал push об этой записи — второй баннер был бы дублем.
+    if (await hasRegisteredPushToken()) return;
     const one = list.length === 1 ? list[0] : null;
     await Notifications.scheduleNotificationAsync({
       content: one

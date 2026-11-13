@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
+import { syncNow } from '@/src/lib/sync/cloudSync';
+import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useRouter } from 'expo-router';
 
 /**
@@ -30,16 +32,23 @@ export function useNotificationDeepLink() {
         | null;
       if (!data) return;
 
-      if ((data.type === 'appointment_reminder' || data.type === 'web_booking') && data.appointmentId) {
+      if (data.type === 'web_booking') {
+        // Серверный push приходит раньше синка: записи на телефоне может ещё
+        // не быть. Сначала тянем, потом открываем — иначе «запись не найдена».
+        const id = data.appointmentId;
+        void syncNow().finally(() => {
+          if (!mounted) return;
+          const known = id && useAppointmentStore.getState().appointments.some((a) => a.id === id);
+          if (known) router.push({ pathname: '/appointment/[id]', params: { id: id! } });
+          else router.push('/(tabs)/calendar');
+        });
+      } else if (data.type === 'appointment_reminder' && data.appointmentId) {
         // expo-router типизирует динамические сегменты строго — приводим к
         // правильному формату пути с as const.
         router.push({
           pathname: '/appointment/[id]',
           params: { id: data.appointmentId },
         });
-      } else if (data.type === 'web_booking') {
-        // Несколько новых записей с сайта — в календарь.
-        router.push('/(tabs)/calendar');
       } else if (data.type === 'client_reminders') {
         // Ежедневное «разошли напоминания клиентам» → экран завтрашних клиентов.
         router.push('/reminders-tomorrow');

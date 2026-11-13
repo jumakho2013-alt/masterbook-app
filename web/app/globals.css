@@ -376,6 +376,8 @@ textarea.bf-input { resize: vertical; min-height: 48px; }
 .cab-appt.cancelled { opacity: .55; }
 .cab-appt.cancelled strong { text-decoration: line-through; }
 .muted-badge { background: var(--neutral-soft) !important; color: var(--text2) !important; }
+.my-bookings { display: flex; flex-direction: column; gap: 8px; }
+.my-booking { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; background: var(--plum-soft); color: var(--text); font-size: 14.5px; }
 .bf-notice { font-size: 14px; color: var(--success); background: color-mix(in srgb, var(--success) 10%, var(--card)); border: 1px solid color-mix(in srgb, var(--success) 35%, var(--card)); border-radius: 12px; padding: 10px 14px; }
 [data-theme='noir'] .bf-error { color: #f0b3bd; background: #3a1f26; border-color: #6b3540; }
 .book-done { text-align: center; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 32px 20px; margin-top: 18px; box-shadow: var(--shadow); }
