@@ -13,6 +13,12 @@ PRIVACY_POLICY_PLAIN.txt
 .DS_Store
 Thumbs.db
 
+# Нативные папки — локальный результат `expo run:ios` / отладочных сборок.
+# .easignore полностью заменяет .gitignore, поэтому их нужно исключить явно:
+# иначе EAS видит ios/, пропускает prebuild и падает на Install pods.
+/ios
+/android
+
 # Claude worktree / agent metadata (never ship)
 .claude/
 
