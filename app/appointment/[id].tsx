@@ -22,7 +22,8 @@ import { useFinanceStore } from '@/src/stores/useFinanceStore';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { formatDate, formatTimeRange, toDateKey } from '@/src/utils/date';
 import { formatCurrency } from '@/src/utils/currency';
-import { addMinutes, generateTimeSlots, timeRangesOverlap } from '@/src/utils/time';
+import { addMinutes, generateTimeSlots, timeRangesOverlap, timeToMinutes } from '@/src/utils/time';
+import { cancelNotification, scheduleAppointmentReminder } from '@/src/lib/reminders/notifications';
 import { openOutreach, type OutreachChannel } from '@/src/lib/reports/sleepingClients';
 import { useProfessionPack } from '@/src/hooks/useProfessionPack';
 import { syncUpdateEvent, syncDeleteEvent } from '@/src/lib/integrations/calendarSync';
@@ -45,6 +46,7 @@ export default function AppointmentDetailScreen() {
   const setStatus = useAppointmentStore((s) => s.setStatus);
   const addAppointment = useAppointmentStore((s) => s.addAppointment);
   const updateAppointment = useAppointmentStore((s) => s.updateAppointment);
+  const setReminderId = useAppointmentStore((s) => s.setReminderId);
   const addEntry = useFinanceStore((s) => s.addEntry);
   const clients = useClientStore((s) => s.clients);
   const services = useServiceStore((s) => s.services);
@@ -189,7 +191,10 @@ export default function AppointmentDetailScreen() {
       showError(tr('appt.time.takenError'));
       return;
     }
-    const duration = service?.duration ?? 60;
+    // Длительность — у самой записи, а не текущая у услуги: мастер мог с тех
+    // пор поменять длительность услуги, и перенос молча удлинял/укорачивал визит.
+    const ownDuration = timeToMinutes(appointment.endTime) - timeToMinutes(appointment.startTime);
+    const duration = ownDuration > 0 ? ownDuration : service?.duration ?? 60;
     const newEnd = addMinutes(rescheduleTime, duration);
     const updated = {
       date: toDateKey(rescheduleDate),
@@ -197,6 +202,24 @@ export default function AppointmentDetailScreen() {
       endTime: newEnd,
     };
     updateAppointment(appointment.id, updated);
+
+    // Напоминание переносим вместе с записью. Раньше старое оставалось и
+    // срабатывало в прежнее время, а новое не ставилось вовсе (проверка на
+    // холодном старте видела «напоминание для этой записи уже есть»).
+    if (appointment.reminderNotificationId) {
+      void cancelNotification(appointment.reminderNotificationId).catch(() => {});
+      setReminderId(appointment.id, undefined);
+    }
+    if (appointment.status === 'scheduled') scheduleAppointmentReminder(
+      appointment.id,
+      client?.name ?? '',
+      service?.name ?? '',
+      updated.date,
+      updated.startTime,
+      60,
+    )
+      .then((notifId) => { if (notifId) setReminderId(appointment.id, notifId); })
+      .catch(() => { /* уведомления запрещены — перенос всё равно сохранён */ });
 
     // Sync обновлённое событие в системный календарь.
     if (appointment.calendarEventId && client && service) {

@@ -35,6 +35,7 @@ import { useServiceStore } from '@/src/stores/useServiceStore';
 import { useAppointmentStore } from '@/src/stores/useAppointmentStore';
 import { useFinanceStore } from '@/src/stores/useFinanceStore';
 import type { RemoteChange } from './syncMerge';
+import { findNewWebBookings } from '@/src/lib/reminders/webBookingDetect';
 import type { Client, Service, Appointment, FinanceEntry } from '@/src/types';
 
 const PUSH_DEBOUNCE_MS = 2500;
@@ -298,17 +299,21 @@ export async function pushAll(userId: string, mode: 'incremental' | 'full' = 'fu
   //    создаёт его при регистрации, но upsert тут страхует (идемпотентно).
   const settings = useSettingsStore.getState();
   const auth = useAuthStore.getState();
-  const { error: profileErr } = await supabase.from('profiles').upsert(
-    {
-      id: userId,
-      name: settings.masterName ?? '',
-      profession_category: auth.professionCategory,
-      specialization_id: auth.specializationId,
-      currency: settings.currency, // валюта мастера → корректные цены на сайте
-    },
-    { onConflict: 'id' },
-  );
+  // Пустые значения НЕ отправляем: на новом телефоне до онбординга имя и
+  // профессия ещё не заданы, и раньше первый же синк затирал ими профиль на
+  // сервере — опубликованный мастер оставался в каталоге без имени.
+  const profileRow: Record<string, unknown> = {
+    id: userId,
+    currency: settings.currency, // валюта мастера → корректные цены на сайте
+  };
+  if (settings.masterName?.trim()) profileRow.name = settings.masterName.trim();
+  if (auth.professionCategory) profileRow.profession_category = auth.professionCategory;
+  if (auth.specializationId) profileRow.specialization_id = auth.specializationId;
+  const schedulePending = settings.scheduleSyncPending;
+  if (schedulePending) Object.assign(profileRow, scheduleColumns(settings));
+  const { error: profileErr } = await supabase.from('profiles').upsert(profileRow, { onConflict: 'id' });
   if (profileErr) throw new Error(`profiles upsert: ${profileErr.message}`);
+  if (schedulePending) useSettingsStore.setState({ scheduleSyncPending: false });
 
   const clients = useClientStore.getState();
   const services = useServiceStore.getState();
@@ -452,6 +457,12 @@ async function pullAll(userId: string, mode: 'incremental' | 'full' = 'increment
     pullTable('finance_entries', userId, метка('finance_entries')),
   ]);
 
+  // Какие записи телефон знал ДО слияния — чтобы отличить новые записи с сайта.
+  // Пустой календарь = первая выгрузка на новом телефоне: тогда не уведомляем.
+  const knownAppts = useAppointmentStore.getState().appointments ?? [];
+  const knownIds = new Set(knownAppts.map((a) => a.id));
+  const newWeb = knownAppts.length > 0 ? findNewWebBookings(appts.rows, knownIds, Date.now()) : [];
+
   useClientStore.getState().mergeRemote(clients.rows.map(rowToClientChange));
   useServiceStore.getState().mergeRemote(services.rows.map(rowToServiceChange));
   useAppointmentStore.getState().mergeRemote(appts.rows.map(rowToAppointmentChange));
@@ -468,6 +479,15 @@ async function pullAll(userId: string, mode: 'incremental' | 'full' = 'increment
   продвинуть('services', services.newest);
   продвинуть('appointments', appts.newest);
   продвинуть('finance_entries', finance.newest);
+
+  // Не ждём и не роняем синк: notifyNewWebBookings сам ловит свои ошибки.
+  // Модуль грузим лениво — он тянет expo-notifications, которые не нужны
+  // самому синку (и не грузятся в jest).
+  if (newWeb.length > 0) {
+    void import('@/src/lib/reminders/webBookingAlert')
+      .then((m) => m.notifyNewWebBookings(newWeb))
+      .catch((e) => captureException(e, { tag: 'notifications.webBooking.load' }));
+  }
 }
 
 // ── Orchestration ────────────────────────────────────────────────────────────
@@ -587,6 +607,48 @@ export async function flushPush(): Promise<{ ok: boolean; error?: string }> {
   }
 }
 
+type ScheduleSource = Pick<
+  ReturnType<typeof useSettingsStore.getState>,
+  'workDays' | 'workHours' | 'breakTime' | 'bufferMinutes'
+>;
+
+/** Колонки расписания в profiles — по ним сайт считает свободное время. */
+function scheduleColumns(s: ScheduleSource) {
+  return {
+    work_days: s.workDays,
+    work_hours_start: s.workHours.start,
+    work_hours_end: s.workHours.end,
+    break_enabled: s.breakTime.enabled,
+    break_start: s.breakTime.start,
+    break_end: s.breakTime.end,
+    buffer_minutes: s.bufferMinutes,
+  };
+}
+
+/**
+ * Отправить график на сервер сразу после сохранения на экране «Рабочие часы».
+ * Раньше график уходил только с «Опубликовать», и сайт неделями принимал
+ * записи по старым часам. При ошибке оставляем флаг scheduleSyncPending —
+ * pushAll дошлёт при следующем синке.
+ */
+export async function pushSchedule(): Promise<{ ok: boolean; error?: string }> {
+  const userId = currentUserId();
+  if (!userId) return { ok: true }; // local-only: облака нет, отправлять некуда
+  useSettingsStore.setState({ scheduleSyncPending: true });
+  try {
+    const { error } = await supabase
+      .from('profiles')
+      .update(scheduleColumns(useSettingsStore.getState()))
+      .eq('id', userId);
+    if (error) throw new Error(error.message);
+    useSettingsStore.setState({ scheduleSyncPending: false });
+    return { ok: true };
+  } catch (e) {
+    captureException(e, { tag: 'cloud-sync-schedule' });
+    return { ok: false, error: classifyError(e) };
+  }
+}
+
 /**
  * Запись публичного профиля (город/район/о себе/slug/published) в Supabase
  * ОТДЕЛЬНЫМ targeted-запросом — НЕ через pushAll. Иначе второе устройство со
@@ -614,21 +676,15 @@ export async function pushPublicProfile(): Promise<{ ok: boolean; error?: string
         // Реальное расписание мастера → на сайт. Без этого профиль на сайте
         // всегда показывал дефолт 09:00–20:00 Пн–Сб, и онлайн-запись принимала
         // заявки вне его часов (см. supabase/functions/book проверяет эти поля).
-        work_days: s.workDays,
-        work_hours_start: s.workHours.start,
-        work_hours_end: s.workHours.end,
-        // Перерыв не синкался вообще → edge-функция book знала только рабочие
-        // часы и разрешала запись в обед мастера.
-        break_enabled: s.breakTime.enabled,
-        break_start: s.breakTime.start,
-        break_end: s.breakTime.end,
-        buffer_minutes: s.bufferMinutes,
+        // Перерыв и буфер тоже: по ним book/available_slots считают свободное время.
+        ...scheduleColumns(s),
         currency: s.currency,
         portfolio_photos: s.portfolioPhotos,
         published: s.published,
       })
       .eq('id', userId);
     if (error) throw new Error(error.message);
+    useSettingsStore.setState({ scheduleSyncPending: false });
     return { ok: true };
   } catch (e) {
     const msg = classifyError(e);

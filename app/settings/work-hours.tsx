@@ -8,6 +8,7 @@ import { useTheme } from '@/src/theme';
 import { IconButton, GlassCard, Button, useToast } from '@/src/components/ui';
 import { useT } from '@/src/hooks/useT';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
+import { pushSchedule } from '@/src/lib/sync/cloudSync';
 
 const HOURS = Array.from({ length: 24 }, (_, i) => `${i.toString().padStart(2, '0')}:00`);
 const HALF_HOURS = Array.from({ length: 48 }, (_, i) => {
@@ -77,6 +78,9 @@ export default function WorkHoursScreen() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     toast.success(tr('settings.workHoursSaved'));
     router.back();
+    // График → сайт сразу (иначе онлайн-запись принимала по старым часам).
+    // Не ждём: экран уже закрыт; при ошибке дошлёт следующий синк.
+    void pushSchedule();
   };
 
   return (

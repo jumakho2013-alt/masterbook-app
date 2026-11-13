@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Platform, View, StyleSheet, type ViewStyle } from 'react-native';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { supabase } from '@/src/lib/supabase';
+import { restoreProfileFromServer } from '@/src/lib/sync/profileRestore';
+import { useAuthStore } from '@/src/stores/useAuthStore';
 import { useTheme } from '@/src/theme';
 import { useT } from '@/src/hooks/useT';
 
@@ -52,13 +54,25 @@ export function AppleSignInButton({ style, onSuccess, onError }: AppleSignInButt
         onError?.(tr('components.appleNoToken'));
         return;
       }
-      const { error } = await supabase.auth.signInWithIdToken({
+      const { data, error } = await supabase.auth.signInWithIdToken({
         provider: 'apple',
         token: credential.identityToken,
       });
       if (error) {
         onError?.(error.message);
         return;
+      }
+      // Как и при входе по паролю: профиль с сервера ДО перехода, чтобы
+      // вернувшийся мастер не проходил онбординг заново (см. profileRestore).
+      if (data.user) {
+        const restored = await restoreProfileFromServer(data.user.id);
+        if (restored && !useAuthStore.getState().professionCategory) {
+          useAuthStore.setState({
+            professionCategory: restored.professionCategory,
+            specializationId: restored.specializationId,
+            onboarded: true,
+          });
+        }
       }
       onSuccess?.();
     } catch (err) {

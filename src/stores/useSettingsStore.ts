@@ -12,6 +12,10 @@ interface SettingsState {
   workDays: number[]; // 0=Sun, 1=Mon ... 6=Sat
   breakTime: { enabled: boolean; start: string; end: string };
   bufferMinutes: number; // 0, 15, 30
+  /** График изменён, но ещё не дошёл до сервера (сеть упала при сохранении).
+   *  pushAll дошлёт его при следующем синке. По умолчанию false: на новом
+   *  телефоне дефолтный график НЕ должен перетирать настоящий на сервере. */
+  scheduleSyncPending: boolean;
   fieldConfig: FieldConfig;
   masterName: string;
   /** Локальный URI фото мастера в профиле (постоянная папка приложения,
@@ -120,6 +124,7 @@ const defaultSettingsForAccount = {
   workDays: [1, 2, 3, 4, 5, 6], // Mon-Sat
   breakTime: { enabled: true, start: '13:00', end: '14:00' },
   bufferMinutes: 15,
+  scheduleSyncPending: false,
   fieldConfig: defaultFieldConfig,
   masterName: '',
   masterPhotoUri: null as string | null,

@@ -11,6 +11,7 @@ import { useServiceStore } from '@/src/stores/useServiceStore';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { useSyncStore } from '@/src/stores/useSyncStore';
 import { setUserContext, clearUserContext } from '@/src/lib/crashReporter';
+import { restoreProfileFromServer } from '@/src/lib/sync/profileRestore';
 
 /**
  * Очистка ВСЕХ in-memory сторов кроме auth — нужна при signOut и deleteAccount
@@ -120,7 +121,17 @@ export const useAuthStore = create<AuthState>()(
           password,
         });
         if (error) return { error: error.message };
-        set({ user: data.user, session: data.session, localOnlyMode: false });
+        // До перехода на главный экран: решаем, нужен ли онбординг, по профилю
+        // на сервере (см. profileRestore — новый телефон / переустановка).
+        const restored = await restoreProfileFromServer(data.user.id);
+        set({
+          user: data.user,
+          session: data.session,
+          localOnlyMode: false,
+          ...(restored && !get().professionCategory
+            ? { professionCategory: restored.professionCategory, specializationId: restored.specializationId, onboarded: true }
+            : {}),
+        });
         return {};
       },
 

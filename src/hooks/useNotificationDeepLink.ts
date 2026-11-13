@@ -30,13 +30,16 @@ export function useNotificationDeepLink() {
         | null;
       if (!data) return;
 
-      if (data.type === 'appointment_reminder' && data.appointmentId) {
+      if ((data.type === 'appointment_reminder' || data.type === 'web_booking') && data.appointmentId) {
         // expo-router типизирует динамические сегменты строго — приводим к
         // правильному формату пути с as const.
         router.push({
           pathname: '/appointment/[id]',
           params: { id: data.appointmentId },
         });
+      } else if (data.type === 'web_booking') {
+        // Несколько новых записей с сайта — в календарь.
+        router.push('/(tabs)/calendar');
       } else if (data.type === 'client_reminders') {
         // Ежедневное «разошли напоминания клиентам» → экран завтрашних клиентов.
         router.push('/reminders-tomorrow');

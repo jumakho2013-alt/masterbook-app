@@ -255,3 +255,45 @@ describe('инкрементальный пуш — сам инкремент', 
     expect(метки[`${МАСТЕР}:services`]).toBeUndefined();                 // упала
   });
 });
+
+describe('профиль в pushAll', () => {
+  const профиль = () => upsertCalls.filter((u) => u.table === 'profiles').pop()?.rows as any;
+
+  it('новый телефон до онбординга: пустое имя и профессия НЕ затирают сервер', async () => {
+    useSettingsStore.setState({ masterName: '', scheduleSyncPending: false } as any);
+    useAuthStore.setState({ professionCategory: null, specializationId: null } as any);
+    await pushAll(МАСТЕР, 'full');
+    expect(профиль()).toBeDefined();
+    expect(профиль()).not.toHaveProperty('name');
+    expect(профиль()).not.toHaveProperty('profession_category');
+    expect(профиль()).not.toHaveProperty('specialization_id');
+  });
+
+  it('заданное имя уходит', async () => {
+    useSettingsStore.setState({ masterName: '  Мадина ' } as any);
+    await pushAll(МАСТЕР, 'full');
+    expect(профиль().name).toBe('Мадина');
+  });
+
+  it('график НЕ уходит обычным синком (дефолт нового телефона не перетирает сервер)', async () => {
+    useSettingsStore.setState({ scheduleSyncPending: false } as any);
+    await pushAll(МАСТЕР, 'full');
+    expect(профиль()).not.toHaveProperty('work_hours_start');
+  });
+
+  it('недошедший график досылается и флаг снимается', async () => {
+    useSettingsStore.setState({
+      scheduleSyncPending: true,
+      workDays: [1, 2, 3],
+      workHours: { start: '10:00', end: '18:00' },
+      breakTime: { enabled: false, start: '13:00', end: '14:00' },
+      bufferMinutes: 30,
+    } as any);
+    await pushAll(МАСТЕР, 'full');
+    expect(профиль()).toMatchObject({
+      work_days: [1, 2, 3], work_hours_start: '10:00', work_hours_end: '18:00',
+      break_enabled: false, buffer_minutes: 30,
+    });
+    expect(useSettingsStore.getState().scheduleSyncPending).toBe(false);
+  });
+});
