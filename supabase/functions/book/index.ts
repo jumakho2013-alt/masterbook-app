@@ -64,13 +64,7 @@ function toMin(t: string | null | undefined): number | null {
   return h * 60 + mi;
 }
 
-function fromMin(n: number): string {
-  const h = Math.floor(n / 60);
-  const mi = n % 60;
-  return `${String(h).padStart(2, '0')}:${String(mi).padStart(2, '0')}`;
-}
-
-// Коды booking_slot_error → HTTP-статус. Неверный ввод — 400, «нельзя в это
+// Коды booking_slot_error/book_web → HTTP-статус. Неверный ввод — 400, «нельзя в это
 // время» — 409 (сайт покажет причину и предложит другое время).
 const BAD_INPUT = new Set(['date_invalid', 'time_invalid', 'date_past', 'date_far']);
 
@@ -143,7 +137,6 @@ Deno.serve(async (req: Request) => {
   }
 
   const slug = str(body.slug);
-  const masterId = str(body.master_id);
   const serviceId = str(body.service_id);
   const date = str(body.date);
   const startTime = str(body.start_time);
@@ -151,16 +144,12 @@ Deno.serve(async (req: Request) => {
   const phoneRaw = oneLine(str(body.phone)).slice(0, 32);
   const comment = oneLine(str(body.comment)).slice(0, 500);
 
-  // --- базовая валидация входа ---
-  if (!slug && !masterId) return json({ error: 'master_required' }, 400, req);
+  // --- базовая валидация входа (быстрый отказ без похода в базу) ---
+  if (!slug) return json({ error: 'master_required' }, 400, req);
   if (name.length < 2) return json({ error: 'name_required' }, 400, req);
-  const phoneDigits = phoneRaw.replace(/\D/g, '');
-  if (phoneDigits.length < 7) return json({ error: 'phone_invalid' }, 400, req);
+  if (phoneRaw.replace(/\D/g, '').length < 7) return json({ error: 'phone_invalid' }, 400, req);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return json({ error: 'date_invalid' }, 400, req);
-  const startMin = toMin(startTime);
-  if (startMin == null) return json({ error: 'time_invalid' }, 400, req);
-
-  const now = new Date();
+  if (toMin(startTime) == null) return json({ error: 'time_invalid' }, 400, req);
 
   const admin = createClient(
     Deno.env.get('SUPABASE_URL')!,
@@ -168,143 +157,40 @@ Deno.serve(async (req: Request) => {
     { auth: { persistSession: false, autoRefreshToken: false } },
   );
 
-  // --- мастер должен быть опубликован ---
-  let mq = admin
-    .from('profiles')
-    .select('id')
-    .eq('published', true);
-  mq = slug ? mq.eq('slug', slug) : mq.eq('id', masterId);
-  const { data: master, error: mErr } = await mq.maybeSingle();
-  if (mErr) return json({ error: 'lookup_failed' }, 500, req);
-  if (!master) return json({ error: 'master_not_found' }, 404, req);
-
-  // --- услуга (опционально): берём длительность и цену ---
-  let duration = 60;
-  let price = 0;
-  let serviceName = 'Запись с сайта';
-  let svcId: string | null = null;
-  if (serviceId) {
-    const { data: svc } = await admin
-      .from('services')
-      .select('id, name, price, duration')
-      .eq('id', serviceId)
-      .eq('user_id', master.id)
-      .is('deleted_at', null)
-      .maybeSingle();
-    if (!svc) return json({ error: 'service_not_found' }, 400, req);
-    svcId = svc.id;
-    duration = svc.duration && svc.duration > 0 ? svc.duration : 60;
-    price = svc.price ?? 0;
-    serviceName = svc.name;
-  }
-
-  const endMin = startMin + duration;
-  const endTime = fromMin(endMin);
-
-  // --- предпроверка слота (до создания клиента, чтобы не плодить «пустых»
-  //     клиентов на заведомо отклонённых заявках). Окончательно — под локом
-  //     в book_appointment_v2.
-  const { data: slotErr, error: sErr } = await admin.rpc('booking_slot_error', {
-    p_master_id: master.id,
-    p_date: date,
-    p_start: startMin,
-    p_duration: duration,
-  });
-  if (sErr) return json({ error: 'lookup_failed' }, 500, req);
-  if (slotErr) return json({ error: slotErr }, BAD_INPUT.has(slotErr) ? 400 : 409, req);
-
-  // --- анти-абуз: не даём боту флудить календарь мастера за один день ---
-  const { count: dayCount, error: dErr } = await admin
-    .from('appointments')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', master.id)
-    .eq('date', date)
-    .is('deleted_at', null)
-    .neq('status', 'cancelled');
-  if (dErr) return json({ error: 'lookup_failed' }, 500, req);
-  if ((dayCount ?? 0) >= 40) return json({ error: 'day_full' }, 429, req);
-  // Пересечение слотов проверяется атомарно в book_appointment_v2 (под advisory-
-  // локом), чтобы не было гонки между проверкой и вставкой.
-
-  const nowIso = now.toISOString();
-
-  // --- клиент: findOrCreate по user_id + цифрам телефона (индекс
-  //     idx_clients_user_phone; раньше грузили всю базу клиентов мастера).
-  let clientId: string | null = null;
-  const { data: existing } = await admin
-    .from('clients')
-    .select('id')
-    .eq('user_id', master.id)
-    .eq('phone_digits', phoneDigits)
-    .is('deleted_at', null)
-    .limit(1)
-    .maybeSingle();
-  if (existing) {
-    clientId = existing.id;
-    // Один номер не может завалить календарь мастера: не больше 3 заявок
-    // с сайта за сутки.
-    const { count: recent, error: rErr } = await admin
-      .from('appointments')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', master.id)
-      .eq('client_id', existing.id)
-      .like('id', 'web-%')
-      .neq('status', 'cancelled')
-      .gte('created_at', new Date(now.getTime() - 86_400_000).toISOString());
-    if (rErr) return json({ error: 'lookup_failed' }, 500, req);
-    if ((recent ?? 0) >= 3) return json({ error: 'too_many' }, 429, req);
-  } else {
-    const newClientId = `web-${crypto.randomUUID()}`;
-    const { error: cErr } = await admin.from('clients').insert({
-      id: newClientId,
-      user_id: master.id,
-      name,
-      phone: phoneRaw,
-      notes: 'Добавлен через онлайн-запись с сайта',
-      created_at: nowIso,
-      updated_at: nowIso,
-    });
-    if (cErr) return json({ error: 'client_create_failed' }, 500, req);
-    clientId = newClientId;
-  }
-
-  // --- запись ---
-  const apptId = `web-${crypto.randomUUID()}`;
-  const notes =
-    `🌐 Онлайн-запись с сайта\nКлиент: ${name}\nТелефон: ${phoneRaw}\nУслуга: ${serviceName}` +
-    (comment ? `\nКомментарий: ${comment}` : '');
-  // Атомарно: те же правила + пересечение с буфером + вставка под advisory-локом.
-  const { data: bookRes, error: aErr } = await admin.rpc('book_appointment_v2', {
-    p_id: apptId,
-    p_user_id: master.id,
-    p_client_id: clientId,
-    p_service_id: svcId,
+  // Всё остальное — одним вызовом в базе (book_web): мастер, услуга, правила
+  // слота, лимиты, клиент, вставка под локом, токен отмены. Раньше это было ~8
+  // последовательных запросов и 4–6 секунд ожидания у клиента.
+  const { data, error: bErr } = await admin.rpc('book_web', {
+    p_slug: slug,
+    p_service_id: serviceId || null,
     p_date: date,
     p_start_time: startTime,
-    p_duration: duration,
-    p_price: price,
-    p_notes: notes,
-    p_now: nowIso,
+    p_name: name,
+    p_phone: phoneRaw,
+    p_comment: comment || null,
   });
-  if (aErr) return json({ error: 'booking_failed' }, 500, req);
-  if (bookRes !== 'ok') {
-    return json({ error: bookRes ?? 'booking_failed' }, BAD_INPUT.has(bookRes) ? 400 : 409, req);
+  if (bErr) return json({ error: 'booking_failed' }, 500, req);
+  const r = data as {
+    status: string; master_id?: string; id?: string; cancel_token?: string;
+    date?: string; start_time?: string; end_time?: string; service?: string;
+  };
+  if (r.status !== 'ok') {
+    const code = r.status === 'master_not_found' ? 404
+      : r.status === 'service_not_found' || BAD_INPUT.has(r.status) ? 400
+      : r.status === 'day_full' || r.status === 'too_many' ? 429
+      : 409;
+    return json({ error: r.status }, code, req);
   }
-
-  // Секрет для отмены клиентом. Не удалось записать — запись остаётся,
-  // просто без кнопки «Отменить» у клиента.
-  const cancelToken = crypto.randomUUID();
-  const { error: tErr } = await admin.from('appointments').update({ cancel_token: cancelToken }).eq('id', apptId);
 
   // Push не задерживает ответ клиенту и не может сорвать уже сделанную запись.
   const [, mo, dd] = date.split('-');
-  const push = notifyMaster(admin, master.id, 'Новая запись с сайта', `${name} — ${serviceName}, ${dd}.${mo} в ${startTime}`, apptId);
+  const push = notifyMaster(admin, r.master_id!, 'Новая запись с сайта', `${name} — ${r.service}, ${dd}.${mo} в ${startTime}`, r.id!);
   const runtime = (globalThis as { EdgeRuntime?: { waitUntil(p: Promise<unknown>): void } }).EdgeRuntime;
   if (runtime?.waitUntil) runtime.waitUntil(push);
   else await push;
 
   return json({
-    ok: true, date, start_time: startTime, end_time: endTime, service: serviceName,
-    id: apptId, cancel_token: tErr ? null : cancelToken,
+    ok: true, date, start_time: startTime, end_time: r.end_time, service: r.service,
+    id: r.id, cancel_token: r.cancel_token ?? null,
   }, 200, req);
 });
