@@ -1,4 +1,5 @@
 import React, { useRef } from 'react';
+import { SERIF_NUMS } from '@/src/theme/typography';
 import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { useRouter } from 'expo-router';
@@ -47,7 +48,7 @@ export function AtelierScheduleRow({ appointment, client, service, onPress, onQu
   const row = (
     <Pressable onPress={onPress} style={[styles.row, { backgroundColor: colors.background, opacity: isCancelled ? 0.5 : 1 }]}>
       <View style={styles.timeCol}>
-        <Text style={{ fontFamily: SERIF, fontSize: 21, letterSpacing: -0.2, color: colors.text }}>{appointment.startTime}</Text>
+        <Text style={{ fontFamily: SERIF, fontVariant: SERIF_NUMS, fontSize: 21, letterSpacing: -0.2, color: colors.text }}>{appointment.startTime}</Text>
         <Text style={[typo.label, { color: colors.textTertiary, marginTop: 1 }]}>{tr('today.minShort', { n: dur })}</Text>
       </View>
       <View style={[styles.vDivider, { backgroundColor: colors.border }]} />
@@ -62,7 +63,7 @@ export function AtelierScheduleRow({ appointment, client, service, onPress, onQu
           {client?.name ?? tr('components.clientFallback')}
         </Text>
       </View>
-      <Text style={{ fontFamily: SERIF, fontSize: 18, color: isCompleted ? colors.success : colors.text }}>
+      <Text style={{ fontFamily: SERIF, fontVariant: SERIF_NUMS, fontSize: 18, color: isCompleted ? colors.success : colors.text }}>
         {formatCurrency(appointment.price)}
       </Text>
     </Pressable>

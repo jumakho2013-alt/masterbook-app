@@ -79,6 +79,10 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--sans);
+  /* Cormorant по умолчанию рисует «старостильные» цифры: «100 сом.» читалось
+     как «IOO СОМ.», «13:00» — как «I3:00». На сайте, где главное — цены и
+     время, цифры должны читаться с первого взгляда. Наследуется везде. */
+  font-variant-numeric: lining-nums;
   -webkit-font-smoothing: antialiased;
   line-height: 1.5;
 }
@@ -383,6 +387,7 @@ textarea.bf-input { resize: vertical; min-height: 48px; }
 .rv-star.on { color: var(--gold-bright); opacity: 1; }
 .rv-star:hover { transform: scale(1.08); }
 .rv-star-label { margin-left: 10px; font-weight: 600; color: var(--text2); font-size: 14px; }
+.svc-price, .mcard-price, .bf-slot, .bf-day-num { font-variant-numeric: lining-nums tabular-nums; }
 .bf-notice { font-size: 14px; color: var(--success); background: color-mix(in srgb, var(--success) 10%, var(--card)); border: 1px solid color-mix(in srgb, var(--success) 35%, var(--card)); border-radius: 12px; padding: 10px 14px; }
 [data-theme='noir'] .bf-error { color: #f0b3bd; background: #3a1f26; border-color: #6b3540; }
 .book-done { text-align: center; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 32px 20px; margin-top: 18px; box-shadow: var(--shadow); }

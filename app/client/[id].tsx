@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { SERIF_NUMS } from '@/src/theme/typography';
 import { View, Text, StyleSheet, FlatList, Pressable, Linking, TextInput } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -254,7 +255,7 @@ export default function ClientDetailScreen() {
                       <Camera size={12} color={onPrimary} />
                     </View>
                   </Pressable>
-                  <Text style={{ fontFamily: serif, fontSize: 29, letterSpacing: -0.4, color: colors.text, marginTop: 14 }}>{client.name}</Text>
+                  <Text style={{ fontFamily: serif, fontVariant: SERIF_NUMS, fontSize: 29, letterSpacing: -0.4, color: colors.text, marginTop: 14 }}>{client.name}</Text>
                   <View style={styles.identityMeta}>
                     {client.tags.includes('vip') && (
                       <View style={[styles.vipPill, { backgroundColor: colors.goldSoft }]}>
@@ -304,7 +305,7 @@ export default function ClientDetailScreen() {
                     <React.Fragment key={lb}>
                       {i > 0 && <View style={{ width: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginVertical: 2 }} />}
                       <View style={styles.statCol}>
-                        <Text style={{ fontFamily: serif, fontSize: 26, letterSpacing: -0.3, color: colors.text }} numberOfLines={1} adjustsFontSizeToFit>{v}</Text>
+                        <Text style={{ fontFamily: serif, fontVariant: SERIF_NUMS, fontSize: 26, letterSpacing: -0.3, color: colors.text }} numberOfLines={1} adjustsFontSizeToFit>{v}</Text>
                         <Text style={[typo.label, { color: colors.textTertiary, marginTop: 4 }]}>{lb}</Text>
                       </View>
                     </React.Fragment>
@@ -339,7 +340,7 @@ export default function ClientDetailScreen() {
 
                 {/* HISTORY header */}
                 <View style={styles.historyHeader}>
-                  <Text style={{ fontFamily: serif, fontSize: 20, color: colors.text }}>{tr('clientDetail.historyPlain')}</Text>
+                  <Text style={{ fontFamily: serif, fontVariant: SERIF_NUMS, fontSize: 20, color: colors.text }}>{tr('clientDetail.historyPlain')}</Text>
                   <Text style={[typo.label, { color: colors.primary }]}>{tr('clientDetail.historyAll', { count: appointments.length })}</Text>
                 </View>
               </>
@@ -359,7 +360,7 @@ export default function ClientDetailScreen() {
                   {formatDate(item.date)} · {formatTimeRange(item.startTime, item.endTime)}
                 </Text>
               </View>
-              <Text style={{ fontFamily: serif, fontSize: 18, color: colors.text }}>{formatCurrency(item.price)}</Text>
+              <Text style={{ fontFamily: serif, fontVariant: SERIF_NUMS, fontSize: 18, color: colors.text }}>{formatCurrency(item.price)}</Text>
             </Pressable>
           );
         }}

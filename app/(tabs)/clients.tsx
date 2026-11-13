@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import { SERIF_NUMS } from '@/src/theme/typography';
 import { View, Text, StyleSheet, SectionList, TouchableOpacity, RefreshControl, Pressable , Platform} from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -182,7 +183,7 @@ function ClientsScreen() {
           ) : null
         }
         renderSectionHeader={({ section }) => (
-          <Text style={{ fontFamily: SERIF, fontSize: 15, color: colors.textTertiary, paddingHorizontal: 16, marginTop: 14, marginBottom: 2 }}>
+          <Text style={{ fontFamily: SERIF, fontVariant: SERIF_NUMS, fontSize: 15, color: colors.textTertiary, paddingHorizontal: 16, marginTop: 14, marginBottom: 2 }}>
             {section.title}
           </Text>
         )}

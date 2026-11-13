@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import { SERIF_NUMS } from '@/src/theme/typography';
 import { View, Text, StyleSheet, SectionList, TouchableOpacity, Pressable, RefreshControl , Platform} from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -213,7 +214,7 @@ function FinancesScreen() {
             <Text style={[typo.small, { color: colors.textTertiary, marginTop: 1 }]}>{tr('finances.incomeMinusExpense')}</Text>
             <CountUp
               value={summary.net}
-              style={{ fontFamily: SERIF, fontSize: 56, letterSpacing: -1.5, lineHeight: 58, color: colors.text }}
+              style={{ fontFamily: SERIF, fontVariant: SERIF_NUMS, fontSize: 56, letterSpacing: -1.5, lineHeight: 58, color: colors.text }}
               formatter={(n) => formatCurrency(Math.round(n))}
             />
             {summary.incomeDiff !== 0 && (
@@ -232,12 +233,12 @@ function FinancesScreen() {
             <View style={[styles.heroDivider, { borderTopColor: colors.border }]}>
               <View style={{ flex: 1 }}>
                 <Text style={[typo.label, { color: colors.textTertiary }]}>{tr('finances.income')}</Text>
-                <Text style={{ fontFamily: SERIF, fontSize: 26, color: colors.text, marginTop: 4 }}>{formatCurrency(summary.income)}</Text>
+                <Text style={{ fontFamily: SERIF, fontVariant: SERIF_NUMS, fontSize: 26, color: colors.text, marginTop: 4 }}>{formatCurrency(summary.income)}</Text>
               </View>
               <View style={{ width: StyleSheet.hairlineWidth, backgroundColor: colors.border }} />
               <View style={{ flex: 1, paddingLeft: 18 }}>
                 <Text style={[typo.label, { color: colors.textTertiary }]}>{tr('finances.expense')}</Text>
-                <Text style={{ fontFamily: SERIF, fontSize: 26, color: colors.textSecondary, marginTop: 4 }}>{formatCurrency(summary.expense)}</Text>
+                <Text style={{ fontFamily: SERIF, fontVariant: SERIF_NUMS, fontSize: 26, color: colors.textSecondary, marginTop: 4 }}>{formatCurrency(summary.expense)}</Text>
               </View>
             </View>
           </Pressable>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { SERIF_NUMS } from '@/src/theme/typography';
 import { View, Text, StyleSheet, Image } from 'react-native';
 import { useTheme } from '@/src/theme';
 import { getInitials } from '@/src/utils/helpers';
@@ -36,7 +37,7 @@ export function Avatar({ name, size = 48, photoUri }: AvatarProps) {
     >
       <Text
         style={{
-          fontFamily: 'CormorantGaramond_600SemiBold',
+          fontFamily: 'CormorantGaramond_600SemiBold', fontVariant: SERIF_NUMS,
           color: colors.primary,
           fontSize,
           lineHeight: fontSize * 1.05,

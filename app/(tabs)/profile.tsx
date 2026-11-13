@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { SERIF_NUMS } from '@/src/theme/typography';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Pressable, Switch } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import Constants from 'expo-constants';
@@ -308,7 +309,7 @@ function ProfileScreen() {
             </View>
           </Pressable>
           <View style={{ marginLeft: 16, flex: 1 }}>
-            <Text style={{ fontFamily: 'CormorantGaramond_600SemiBold', fontSize: 26, letterSpacing: -0.3, color: colors.text }} numberOfLines={1}>
+            <Text style={{ fontFamily: 'CormorantGaramond_600SemiBold', fontVariant: SERIF_NUMS, fontSize: 26, letterSpacing: -0.3, color: colors.text }} numberOfLines={1}>
               {masterName || tr('profile.masterFallback')}
             </Text>
             <Text style={[typo.caption, { color: colors.textSecondary, marginTop: 2 }]}>

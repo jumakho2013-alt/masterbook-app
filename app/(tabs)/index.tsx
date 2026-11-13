@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
+import { SERIF_NUMS } from '@/src/theme/typography';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Pressable, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -261,14 +262,14 @@ function TodayScreen() {
                     </View>
                     <View style={{ flex: 1, marginLeft: 14, minWidth: 0 }}>
                       <Text style={[typo.label, { color: 'rgba(255,255,255,0.6)' }]}>{tr('today.nowOngoing')}</Text>
-                      <Text numberOfLines={1} style={{ fontFamily: 'CormorantGaramond_600SemiBold', fontSize: 23, letterSpacing: -0.3, color: '#FFFFFF', marginTop: 3 }}>
+                      <Text numberOfLines={1} style={{ fontFamily: 'CormorantGaramond_600SemiBold', fontVariant: SERIF_NUMS, fontSize: 23, letterSpacing: -0.3, color: '#FFFFFF', marginTop: 3 }}>
                         {currentClient.name}
                       </Text>
                       <Text numberOfLines={1} style={[typo.caption, { color: 'rgba(255,255,255,0.6)', marginTop: 1 }]}>
                         {currentService.name} · {currentAppointment.endTime}
                       </Text>
                     </View>
-                    <Text style={{ fontFamily: 'CormorantGaramond_600SemiBold', fontSize: 22, color: colors.gold, marginLeft: 10 }}>
+                    <Text style={{ fontFamily: 'CormorantGaramond_600SemiBold', fontVariant: SERIF_NUMS, fontSize: 22, color: colors.gold, marginLeft: 10 }}>
                       {formatCurrency(currentAppointment.price)}
                     </Text>
                   </View>
@@ -331,7 +332,7 @@ function TodayScreen() {
               return (
                 <>
                   <View style={styles.dayListHeader}>
-                    <Text style={{ fontFamily: 'CormorantGaramond_600SemiBold', fontSize: 22, color: colors.text }}>
+                    <Text style={{ fontFamily: 'CormorantGaramond_600SemiBold', fontVariant: SERIF_NUMS, fontSize: 22, color: colors.text }}>
                       {tr('today.scheduleTitle')}
                     </Text>
                     <Text style={[typo.caption, { color: colors.textSecondary }]}>

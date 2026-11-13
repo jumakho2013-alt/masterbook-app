@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { SERIF_NUMS } from '@/src/theme/typography';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -54,7 +55,7 @@ export default function ProfessionScreen() {
         </View>
 
         <Text style={[typo.label, { color: colors.primary, marginTop: 24 }]}>{t('onboarding.step', { n: 1, total: 3 })}</Text>
-        <Text style={{ fontFamily: SERIF, fontSize: 34, letterSpacing: -0.5, lineHeight: 38, color: colors.text, marginTop: 8 }}>
+        <Text style={{ fontFamily: SERIF, fontVariant: SERIF_NUMS, fontSize: 34, letterSpacing: -0.5, lineHeight: 38, color: colors.text, marginTop: 8 }}>
           {t('onboarding.professionTitle')}
         </Text>
         <Text style={[typo.body, { color: colors.textSecondary, marginTop: 10, lineHeight: 20 }]}>

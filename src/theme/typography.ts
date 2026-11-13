@@ -4,29 +4,42 @@
 //
 // Ключи h1/h2/h3/body/bodyBold/caption/small сохранены (используются по всему
 // коду, 100+ мест); добавлены серифные display / numberHero/Lg/Md и микро-label.
+// Cormorant по умолчанию рисует «старостильные» цифры: «100» выглядит как
+// «IOO», «13:00» — как «I3:00». Для цен и времени это нечитаемо, поэтому всем
+// серифным стилям включаем обычные (выровненные) цифры, а числовым — ещё и
+// одинаковой ширины, чтобы суммы в столбик не «прыгали».
+const LINING: Array<'lining-nums'> = ['lining-nums'];
+/** Для мест, где Cormorant задан напрямую (fontFamily: SERIF): те же цифры. */
+export const SERIF_NUMS: Array<'lining-nums' | 'tabular-nums'> = ['lining-nums', 'tabular-nums'];
+const NUMERIC: Array<'lining-nums' | 'tabular-nums'> = ['lining-nums', 'tabular-nums'];
+
 export const typography = {
   // ── Серифный дисплей (Cormorant) — заголовки экранов ──
   display: {
     fontSize: 40,
     fontFamily: 'CormorantGaramond_600SemiBold',
+    fontVariant: LINING,
     lineHeight: 46,
     letterSpacing: -0.5,
   },
   h1: {
     fontSize: 29,
     fontFamily: 'CormorantGaramond_600SemiBold',
+    fontVariant: LINING,
     lineHeight: 34,
     letterSpacing: -0.4,
   },
   h2: {
     fontSize: 22,
     fontFamily: 'CormorantGaramond_600SemiBold',
+    fontVariant: LINING,
     lineHeight: 28,
     letterSpacing: -0.2,
   },
   h3: {
     fontSize: 19,
     fontFamily: 'CormorantGaramond_600SemiBold',
+    fontVariant: LINING,
     lineHeight: 24,
     letterSpacing: -0.2,
   },
@@ -35,18 +48,21 @@ export const typography = {
   numberHero: {
     fontSize: 56,
     fontFamily: 'CormorantGaramond_600SemiBold',
+    fontVariant: NUMERIC,
     lineHeight: 56,
     letterSpacing: -1.5,
   },
   numberLg: {
     fontSize: 34,
     fontFamily: 'CormorantGaramond_600SemiBold',
+    fontVariant: NUMERIC,
     lineHeight: 40,
     letterSpacing: -0.5,
   },
   numberMd: {
     fontSize: 19,
     fontFamily: 'CormorantGaramond_600SemiBold',
+    fontVariant: NUMERIC,
     lineHeight: 24,
     letterSpacing: -0.2,
   },

@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import { SERIF_NUMS } from '@/src/theme/typography';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Pressable, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -269,7 +270,7 @@ function CalendarScreen() {
                     style={styles.monthCell}
                   >
                     <View style={[styles.dayCircle, selected && { backgroundColor: colors.primary }]}>
-                      <Text style={{ fontFamily: SERIF, fontSize: 17, color: selected ? onPrimary : today ? colors.primary : colors.text }}>
+                      <Text style={{ fontFamily: SERIF, fontVariant: SERIF_NUMS, fontSize: 17, color: selected ? onPrimary : today ? colors.primary : colors.text }}>
                         {day.getDate()}
                       </Text>
                     </View>
@@ -296,7 +297,7 @@ function CalendarScreen() {
         }
         ListHeaderComponent={
           appointments.length > 0 ? (
-            <Text style={{ fontFamily: SERIF, fontSize: 20, color: colors.text, textTransform: 'capitalize', marginBottom: 6 }}>
+            <Text style={{ fontFamily: SERIF, fontVariant: SERIF_NUMS, fontSize: 20, color: colors.text, textTransform: 'capitalize', marginBottom: 6 }}>
               {formatDateFull(selectedDate)}
             </Text>
           ) : null
@@ -315,7 +316,7 @@ function CalendarScreen() {
           return (
             <Pressable onPress={() => router.push(`/appointment/${item.id}`)} style={styles.agendaRow}>
               <View style={[styles.agendaBar, { backgroundColor: ac }]} />
-              <Text style={{ fontFamily: SERIF, fontSize: 19, color: colors.text, width: 52 }}>{item.startTime}</Text>
+              <Text style={{ fontFamily: SERIF, fontVariant: SERIF_NUMS, fontSize: 19, color: colors.text, width: 52 }}>{item.startTime}</Text>
               <View style={{ flex: 1 }}>
                 <Text style={[typo.bodyBold, { color: colors.text }]} numberOfLines={1}>{service?.name ?? tr('components.serviceFallback')}</Text>
                 <Text style={[typo.caption, { color: colors.textSecondary, marginTop: 1 }]} numberOfLines={1}>{client?.name ?? tr('components.clientFallback')}</Text>
