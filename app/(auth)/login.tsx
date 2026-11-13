@@ -5,6 +5,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { MasterBookLogo } from '@/src/components/MasterBookLogo';
 import * as WebBrowser from 'expo-web-browser';
+import { SITE_ORIGIN } from '@/src/lib/siteUrl';
 import { useTheme } from '@/src/theme';
 import { Button, Input, CustomAlert } from '@/src/components/ui';
 import { AppleSignInButton } from '@/src/components/AppleSignInButton';
@@ -24,7 +25,7 @@ const PRIVACY_POLICY_URL = 'https://jumakho2013-alt.github.io/masterbook-privacy
 // Восстановление пароля — на сайте (тот же аккаунт Supabase). Раньше кнопка
 // отправляла писать на support@masterbook.app, а у этого домена нет почты:
 // человек, забывший пароль, оставался без доступа к своим клиентам.
-const RESET_PASSWORD_URL = 'https://masterbook-app.vercel.app/cabinet?reset';
+const RESET_PASSWORD_URL = `${SITE_ORIGIN}/cabinet?reset`;
 
 export default function LoginScreen() {
   const router = useRouter();

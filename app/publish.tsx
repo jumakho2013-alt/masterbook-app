@@ -18,13 +18,10 @@ import { makeSlug } from '@/src/utils/slug';
 import { COUNTRIES, countryByName, countryOfCity, DEFAULT_COUNTRY } from '@/src/data/geo';
 import { pushPublicProfile } from '@/src/lib/sync/cloudSync';
 import { fetchPublicProfile } from '@/src/lib/sync/profileRestore';
+import { SITE_HOST as SITE_DOMAIN } from '@/src/lib/siteUrl';
 import { uploadPortfolioPhoto, deletePortfolioPhoto } from '@/src/lib/media/portfolioCloud';
 
 const MAX_PHOTOS = 12;
-
-// Рабочий домен сайта-каталога. Имя поменяем перед публичным запуском —
-// это единственное место, где оно зашито для предпросмотра ссылки.
-const SITE_DOMAIN = 'masterbook.tj';
 
 export default function PublishScreen() {
   const router = useRouter();

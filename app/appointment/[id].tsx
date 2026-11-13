@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import {
   ArrowLeft, Clock, User, Scissors, CalendarPlus,
-  MoveRight, StickyNote, Check, X, CameraIcon, MessageCircle, Wallet,
+  MoveRight, StickyNote, Check, X, CameraIcon, MessageCircle, Wallet, Star,
 } from 'lucide-react-native';
 import * as Haptics from '@/src/lib/haptics';
 import * as ImagePicker from 'expo-image-picker';
@@ -24,6 +24,10 @@ import { formatDate, formatTimeRange, toDateKey } from '@/src/utils/date';
 import { formatCurrency } from '@/src/utils/currency';
 import { addMinutes, generateTimeSlots, timeRangesOverlap, timeToMinutes } from '@/src/utils/time';
 import { cancelNotification, scheduleAppointmentReminder } from '@/src/lib/reminders/notifications';
+import { supabase } from '@/src/lib/supabase';
+import { flushPush } from '@/src/lib/sync/cloudSync';
+import { SITE_ORIGIN } from '@/src/lib/siteUrl';
+import { useAuthStore } from '@/src/stores/useAuthStore';
 import { openOutreach, type OutreachChannel } from '@/src/lib/reports/sleepingClients';
 import { useProfessionPack } from '@/src/hooks/useProfessionPack';
 import { syncUpdateEvent, syncDeleteEvent } from '@/src/lib/integrations/calendarSync';
@@ -47,6 +51,8 @@ export default function AppointmentDetailScreen() {
   const addAppointment = useAppointmentStore((s) => s.addAppointment);
   const updateAppointment = useAppointmentStore((s) => s.updateAppointment);
   const setReminderId = useAppointmentStore((s) => s.setReminderId);
+  const userId = useAuthStore((s) => s.user?.id ?? null);
+  const localOnly = useAuthStore((s) => s.localOnlyMode);
   const addEntry = useFinanceStore((s) => s.addEntry);
   const clients = useClientStore((s) => s.clients);
   const services = useServiceStore((s) => s.services);
@@ -78,6 +84,13 @@ export default function AppointmentDetailScreen() {
   const [notes, setNotes] = useState(appointment?.notes ?? '');
   const [editingDeposit, setEditingDeposit] = useState(false);
   const [depositInput, setDepositInput] = useState(appointment?.deposit ? String(appointment.deposit) : '');
+
+  // Все хуки — ДО раннего return: иначе при удалении записи с открытым
+  // экраном React падал на «Rendered fewer hooks than expected».
+  const [reminderSheetOpen, setReminderSheetOpen] = useState(false);
+  const [reviewBusy, setReviewBusy] = useState(false);
+  const masterName = useSettingsStore((s) => s.masterName);
+  const { pack } = useProfessionPack();
 
   if (!appointment) return null;
 
@@ -327,9 +340,6 @@ export default function AppointmentDetailScreen() {
   };
 
   // Sheet с выбором канала. Показывается тапом «Напомнить клиенту».
-  const [reminderSheetOpen, setReminderSheetOpen] = useState(false);
-  const masterName = useSettingsStore((s) => s.masterName);
-  const { pack } = useProfessionPack();
 
   const buildReminderMessage = (): string => {
     if (!client || !service) return '';
@@ -366,6 +376,36 @@ export default function AppointmentDetailScreen() {
     }
     await openOutreach(channel, client.phone, msg);
     setReminderSheetOpen(false);
+  };
+
+  // Отзыв клиента: одноразовая ссылка на сайт (request_review_link). Запись
+  // должна быть «завершена» и на сервере — поэтому сначала досылаем изменения
+  // (мастер мог только что нажать «Завершить», а пуш идёт с задержкой).
+  const askForReview = async () => {
+    if (reviewBusy) return;
+    if (localOnly || !userId) {
+      toast.error(tr('appt.review.needAccount'));
+      return;
+    }
+    setReviewBusy(true);
+    try {
+      await flushPush();
+      const { data, error } = await supabase.rpc('request_review_link', { p_appointment_id: appointment.id });
+      if (error || typeof data !== 'string') throw new Error(error?.message ?? 'no token');
+      const link = `${SITE_ORIGIN}/otzyv/${data}`;
+      const msg = tr('appt.review.message', { name: client?.name?.split(' ')[0] ?? '', link });
+      Haptics.selectionAsync();
+      if (client?.phone) {
+        const opened = await openOutreach('whatsapp', client.phone, msg);
+        if (opened) return;
+      }
+      await Clipboard.setStringAsync(msg);
+      toast.success(tr('appt.review.copied'));
+    } catch {
+      toast.error(tr('appt.review.failed'));
+    } finally {
+      setReviewBusy(false);
+    }
   };
 
   // Date picker days
@@ -591,6 +631,18 @@ export default function AppointmentDetailScreen() {
                 </Pressable>
               ))}
             </View>
+          </Animated.View>
+        )}
+
+        {/* === COMPLETED: ASK FOR REVIEW === */}
+        {appointment.status === 'completed' && (
+          <Animated.View entering={FadeInDown.delay(250)} style={{ marginTop: sp.lg }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <Star size={18} color={colors.primary} />
+              <Text style={[typo.bodyBold, { color: colors.text }]}>{tr('appt.review.title')}</Text>
+            </View>
+            <Text style={[typo.caption, { color: colors.textSecondary, marginBottom: 10 }]}>{tr('appt.review.hint')}</Text>
+            <Button title={tr('appt.review.ask')} onPress={askForReview} loading={reviewBusy} variant="secondary" size="md" fullWidth />
           </Animated.View>
         )}
 

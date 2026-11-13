@@ -6,7 +6,7 @@ export default function robots(): MetadataRoute.Robots {
   return {
     // Каталог и страницы мастеров — открыты для индексации (это наш трафик).
     // Кабинет/админка — приватные, закрываем от краулеров.
-    rules: { userAgent: '*', allow: '/', disallow: ['/cabinet', '/admin'] },
+    rules: { userAgent: '*', allow: '/', disallow: ['/cabinet', '/admin', '/otzyv'] },
     sitemap: `${SITE}/sitemap.xml`,
   };
 }

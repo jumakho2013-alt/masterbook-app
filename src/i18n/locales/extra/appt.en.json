@@ -141,6 +141,15 @@
       "durationIncrease": "Increase duration by 15 minutes",
       "minutes": "%{n} min",
       "book": "Book"
+    },
+    "review": {
+      "title": "Client review",
+      "ask": "Ask for a review",
+      "hint": "The client gets a link to rate the visit — the review appears on your page.",
+      "message": "Hi %{name}! Thanks for visiting. If you have a minute, please rate your visit: %{link}",
+      "copied": "Review link copied",
+      "needAccount": "Reviews need an account — sign in to send the link",
+      "failed": "Couldn't get the link. Check your connection and try again"
     }
   }
 }
