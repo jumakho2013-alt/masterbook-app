@@ -19,8 +19,9 @@ export const metadata: Metadata = {
     url: SITE_URL,
     title: TITLE,
     description: DESC,
+    images: ['/stock/hero-nails.jpg'],
   },
-  twitter: { card: 'summary', title: TITLE, description: DESC },
+  twitter: { card: 'summary_large_image', title: TITLE, description: DESC, images: ['/stock/hero-nails.jpg'] },
 };
 
 // Применяем сохранённую тему до первой отрисовки, чтобы не было вспышки

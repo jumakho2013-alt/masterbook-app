@@ -72,7 +72,7 @@ export default async function HomePage() {
           <div className="hero-main">
             <div className="hero-eyebrow">МАСТЕРА РЯДОМ С ТОБОЙ</div>
             <h1>Найди своего мастера в городе <HeroCity /></h1>
-            <p className="hero-sub">Маникюр, барбер, брови, косметология, массаж и не только. Заявка за минуту — мастер подтвердит запись.</p>
+            <p className="hero-sub">Маникюр, барбер, брови, косметология, массаж и не только. Видно свободное время — запись за минуту, без звонков.</p>
             <div className="hero-cta">
               <Link href="/catalog" className="btn btn-primary btn-lg">Смотреть мастеров</Link>
               <Link href="/catalog" className="btn btn-lg">
@@ -166,7 +166,7 @@ export default async function HomePage() {
         <div className="trust-grid">
           <div className="trust-card">
             <span className="trust-ico"><TrustIcon d={<><circle cx="10" cy="8" r="3.4" /><path d="M4 20c0-3.3 2.7-5.5 6-5.5" /><path d="M15 18l2 2 4-4" /></>} /></span>
-            <div><div className="trust-t">Мастер подтверждает заявку</div><div className="trust-d">Вы записаны только после подтверждения</div></div>
+            <div><div className="trust-t">Только свободное время</div><div className="trust-d">Занятые часы мастера скрыты — накладок не будет</div></div>
           </div>
           <div className="trust-card">
             <span className="trust-ico"><TrustIcon d={<><path d="M5 9a3 3 0 0 1 3-3h11v12H8a3 3 0 0 1-3-3z" /><path d="M5 9v6" /><circle cx="16" cy="12" r="1.4" fill="currentColor" /></>} /></span>

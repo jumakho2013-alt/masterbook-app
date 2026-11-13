@@ -20,6 +20,8 @@ type Profile = {
   whatsapp: string | null;
   public_phone: string | null;
   published: boolean;
+  booking_paused: boolean;
+  closed_dates: string[] | null;
   premium: boolean;
   premium_until: string | null;
   currency: string | null;
@@ -125,7 +127,7 @@ export function Dashboard({ session }: { session: Session }) {
     );
     const [{ data: p }, { data: a }, { data: b }, { data: pay }, { data: pk }, { data: sv }] = await Promise.all([
       sb.from('profiles')
-        .select('id,name,profession_category,specialization_id,city,district,bio,slug,whatsapp,public_phone,published,premium,premium_until,currency')
+        .select('id,name,profession_category,specialization_id,city,district,bio,slug,whatsapp,public_phone,published,booking_paused,closed_dates,premium,premium_until,currency')
         .eq('id', uid).maybeSingle(),
       sb.from('appointments')
         .select('id,date,start_time,end_time,status,price,notes')
@@ -293,6 +295,55 @@ export function Dashboard({ session }: { session: Session }) {
     } finally {
       setPublishing(false);
     }
+  }
+
+  // --- Онлайн-запись: пауза и закрытые даты (отпуск, болезнь, личные дни).
+  // Раньше единственным способом не получать записи было снять страницу с
+  // публикации — и клиенты теряли её совсем.
+  const [newClosed, setNewClosed] = useState('');
+  const today = todayLocal();
+  const [bookingBusy, setBookingBusy] = useState(false);
+
+  async function patchBooking(patch: { booking_paused?: boolean; closed_dates?: string[] }, okMsg: string) {
+    if (bookingBusy) return;
+    setError(''); setMsg('');
+    setBookingBusy(true);
+    try {
+      const { error: e } = await sb.from('profiles').update(patch).eq('id', uid);
+      if (e) return setError('Не удалось сохранить настройки записи, попробуйте ещё раз');
+      setProfile((p) => (p ? { ...p, ...patch } : p));
+      setMsg(okMsg);
+    } finally {
+      setBookingBusy(false);
+    }
+  }
+
+  function addClosedDate() {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(newClosed)) return setError('Выберите дату');
+    if (newClosed < today) return setError('Эта дата уже прошла');
+    const cur = (profile?.closed_dates ?? []).filter((d) => d >= today);
+    if (cur.includes(newClosed)) return setError('Эта дата уже закрыта');
+    const next = [...cur, newClosed].sort();
+    setNewClosed('');
+    patchBooking({ closed_dates: next }, 'Дата закрыта ✓ В этот день клиенты не смогут записаться.');
+  }
+
+  function removeClosedDate(d: string) {
+    patchBooking(
+      { closed_dates: (profile?.closed_dates ?? []).filter((x) => x !== d && x >= today) },
+      'Дата снова открыта для записи.',
+    );
+  }
+
+  async function cancelAppt(a: Appt) {
+    if (!window.confirm(`Отменить запись ${a.date.split('-').reverse().slice(0, 2).join('.')} в ${a.start_time}? Время снова станет свободным.`)) return;
+    setError(''); setMsg('');
+    const { error: e } = await sb.from('appointments')
+      .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+      .eq('id', a.id).eq('user_id', uid);
+    if (e) return setError('Не удалось отменить запись, попробуйте ещё раз');
+    setAppts((list) => list.map((x) => (x.id === a.id ? { ...x, status: 'cancelled' } : x)));
+    setMsg('Запись отменена. Позвоните клиенту, чтобы предупредить его.');
   }
 
   async function copyLink(url: string) {
@@ -534,6 +585,51 @@ export function Dashboard({ session }: { session: Session }) {
         )}
       </section>
 
+      {/* Настройки онлайн-записи */}
+      {profile.published && (
+        <section className="cab-section">
+          <h2 className="serif cab-h2">Онлайн-запись</h2>
+          <label className="cab-toggle">
+            <input
+              type="checkbox" checked={!profile.booking_paused} disabled={bookingBusy}
+              onChange={(e) => patchBooking(
+                { booking_paused: !e.target.checked },
+                e.target.checked ? 'Онлайн-запись включена ✓' : 'Запись на паузе. Страница видна, но записаться нельзя — клиенты увидят кнопку «Написать».',
+              )}
+            />
+            <span>
+              <strong>{profile.booking_paused ? 'Запись на паузе' : 'Принимаю записи'}</strong>
+              <span className="faint" style={{ display: 'block', fontSize: 13 }}>
+                Отпуск или болезнь — поставьте на паузу, страница останется в каталоге.
+              </span>
+            </span>
+          </label>
+
+          <div className="bf-label" style={{ marginTop: 16 }}>Закрытые дни</div>
+          {(profile.closed_dates ?? []).filter((d) => d >= today).length === 0 ? (
+            <p className="faint" style={{ fontSize: 13, margin: '6px 0 0' }}>Нет. Закройте день, если в него не работаете.</p>
+          ) : (
+            <div className="cab-chips">
+              {(profile.closed_dates ?? []).filter((d) => d >= today).map((d) => (
+                <span key={d} className="cab-chip">
+                  {d.split('-').reverse().join('.')}
+                  <button type="button" aria-label={`Открыть ${d}`} onClick={() => removeClosedDate(d)} disabled={bookingBusy}>×</button>
+                </span>
+              ))}
+            </div>
+          )}
+          <div className="bf-row" style={{ marginTop: 10, alignItems: 'flex-end' }}>
+            <label className="bf-field">
+              <span className="bf-label">Дата</span>
+              <input className="bf-input" type="date" min={today} value={newClosed} onChange={(e) => setNewClosed(e.target.value)} />
+            </label>
+            <button className="btn" type="button" onClick={addClosedDate} disabled={bookingBusy || !newClosed} style={{ flex: 'none', height: 48 }}>
+              Закрыть день
+            </button>
+          </div>
+        </section>
+      )}
+
       {/* Онлайн-записи */}
       <section className="cab-section">
         <h2 className="serif cab-h2">Записи ({appts.length})</h2>
@@ -544,13 +640,19 @@ export function Dashboard({ session }: { session: Session }) {
             const online = (a.notes ?? '').startsWith('🌐');
             const [y, m, d] = a.date.split('-');
             return (
-              <div key={a.id} className="cab-appt">
+              <div key={a.id} className={`cab-appt${a.status === 'cancelled' ? ' cancelled' : ''}`}>
                 <div>
                   <strong>{d}.{m} · {a.start_time}–{a.end_time}</strong>
                   {online && <span className="cab-badge">🌐 сайт</span>}
+                  {a.status === 'cancelled' && <span className="cab-badge muted-badge">отменена</span>}
                   {a.notes && <div className="faint" style={{ fontSize: 13, whiteSpace: 'pre-wrap', marginTop: 2 }}>{a.notes}</div>}
                 </div>
-                {a.price > 0 && <span className="svc-price" style={{ fontSize: 18 }}>{formatPrice(a.price, profile.currency)}</span>}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flex: 'none' }}>
+                  {a.price > 0 && <span className="svc-price" style={{ fontSize: 18 }}>{formatPrice(a.price, profile.currency)}</span>}
+                  {a.status === 'scheduled' && (
+                    <button type="button" className="linkbtn" style={{ fontSize: 13 }} onClick={() => cancelAppt(a)}>Отменить</button>
+                  )}
+                </div>
               </div>
             );
           })

@@ -2,9 +2,11 @@
 //
 // Анонимный клиент НЕ может писать в appointments/clients напрямую — RLS пускает
 // только владельца (auth.uid() = user_id). Поэтому запись идёт через эту функцию
-// на service-role, СО СТРОГОЙ валидацией: проверяем published-мастера, его услугу,
-// рабочие день/часы, пересечение слотов. Запись попадает к мастеру в приложение
-// обычным синком (выставляем updated_at = now()).
+// на service-role, СО СТРОГОЙ валидацией. Сами правила слота (рабочие дни и
+// часы, перерыв, буфер, пауза, закрытые даты, часовой пояс города, пересечения)
+// живут в базе — booking_slot_error(): те же, по которым сайт показывает
+// свободное время (available_slots). Так форма и запись не могут разойтись.
+// Запись попадает к мастеру в приложение обычным синком (updated_at = now()).
 //
 // Деплой: verify_jwt оставлен включённым — фронт шлёт публичный anon-ключ как
 // Bearer + apikey (он уже есть в браузере). Это отсекает совсем «голые» хиты без
@@ -20,19 +22,21 @@ const ALLOWED_ORIGINS = new Set([
   'https://www.masterbook.tj',
 ]);
 const DEFAULT_ORIGIN = 'https://masterbook-app.vercel.app';
+// Превью-сборки Vercel нашей команды (master-book): masterbook-<hash>-master-book
+// и masterbook-app-git-<ветка>-master-book. Без них запись на превью падала с
+// «нет связи», и проверить изменения до выкладки было нельзя.
+const PREVIEW_ORIGIN = /^https:\/\/masterbook-(?:[a-z0-9]{9}|app-git-[a-z0-9-]+)-master-book\.vercel\.app$/;
 
 function corsFor(req: Request): Record<string, string> {
   const origin = req.headers.get('Origin') ?? '';
+  const allowed = ALLOWED_ORIGINS.has(origin) || PREVIEW_ORIGIN.test(origin);
   return {
-    'Access-Control-Allow-Origin': ALLOWED_ORIGINS.has(origin) ? origin : DEFAULT_ORIGIN,
+    'Access-Control-Allow-Origin': allowed ? origin : DEFAULT_ORIGIN,
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     Vary: 'Origin',
   };
 }
-
-// Рынок — UTC+5 (Душанбе); сайт уже считает день недели по этому же смещению.
-const TZ_OFFSET_MIN = 5 * 60;
 
 /** Однострочное поле: переводы строк позволяли подделать «Услуга/Цена» в notes. */
 function oneLine(v: string): string {
@@ -66,7 +70,9 @@ function fromMin(n: number): string {
   return `${String(h).padStart(2, '0')}:${String(mi).padStart(2, '0')}`;
 }
 
-const DAY_MS = 86_400_000;
+// Коды booking_slot_error → HTTP-статус. Неверный ввод — 400, «нельзя в это
+// время» — 409 (сайт покажет причину и предложит другое время).
+const BAD_INPUT = new Set(['date_invalid', 'time_invalid', 'date_past', 'date_far']);
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsFor(req) });
@@ -98,23 +104,7 @@ Deno.serve(async (req: Request) => {
   const startMin = toMin(startTime);
   if (startMin == null) return json({ error: 'time_invalid' }, 400, req);
 
-  const [yy, mm, dd] = date.split('-').map(Number);
-  const bookDateUTC = Date.UTC(yy, mm - 1, dd);
-  if (Number.isNaN(bookDateUTC)) return json({ error: 'date_invalid' }, 400, req);
-  // сверяем календарные даты в UTC, чтобы не словить сдвиг на ±1 день
   const now = new Date();
-  // Сравниваем по локальному времени рынка, а не по UTC: иначе в вечерние часы
-  // «сегодня» у клиента и у сервера — разные календарные дни.
-  const nowLocal = new Date(now.getTime() + TZ_OFFSET_MIN * 60_000);
-  const todayLocalMs = Date.UTC(nowLocal.getUTCFullYear(), nowLocal.getUTCMonth(), nowLocal.getUTCDate());
-  if (bookDateUTC < todayLocalMs) return json({ error: 'date_past' }, 400, req);
-  if (bookDateUTC > todayLocalMs + 366 * DAY_MS) return json({ error: 'date_far' }, 400, req);
-  // Раньше проверялась только дата: в 18:00 можно было записаться на «сегодня 09:00».
-  if (bookDateUTC === todayLocalMs) {
-    const nowMin = nowLocal.getUTCHours() * 60 + nowLocal.getUTCMinutes();
-    if (startMin < nowMin) return json({ error: 'time_past' }, 409, req);
-  }
-  const dow = new Date(bookDateUTC).getUTCDay(); // 0=Вс..6=Сб — как work_days в приложении
 
   const admin = createClient(
     Deno.env.get('SUPABASE_URL')!,
@@ -125,17 +115,12 @@ Deno.serve(async (req: Request) => {
   // --- мастер должен быть опубликован ---
   let mq = admin
     .from('profiles')
-    .select('id, work_days, work_hours_start, work_hours_end, break_enabled, break_start, break_end')
+    .select('id')
     .eq('published', true);
   mq = slug ? mq.eq('slug', slug) : mq.eq('id', masterId);
   const { data: master, error: mErr } = await mq.maybeSingle();
   if (mErr) return json({ error: 'lookup_failed' }, 500, req);
   if (!master) return json({ error: 'master_not_found' }, 404, req);
-
-  // --- рабочий день (если задан) ---
-  if (Array.isArray(master.work_days) && master.work_days.length > 0 && !master.work_days.includes(dow)) {
-    return json({ error: 'day_off' }, 409, req);
-  }
 
   // --- услуга (опционально): берём длительность и цену ---
   let duration = 60;
@@ -158,23 +143,19 @@ Deno.serve(async (req: Request) => {
   }
 
   const endMin = startMin + duration;
-  if (endMin > 24 * 60) return json({ error: 'time_invalid' }, 400, req);
-  const whStart = toMin(master.work_hours_start);
-  const whEnd = toMin(master.work_hours_end);
-  if (whStart != null && startMin < whStart) return json({ error: 'before_hours' }, 409, req);
-  if (whEnd != null && endMin > whEnd) return json({ error: 'after_hours' }, 409, req);
-
-  // Перерыв мастера: раньше не проверялся вообще (поля даже не синкались),
-  // и клиент с сайта спокойно записывался прямо в обед.
-  if (master.break_enabled) {
-    const bStart = toMin(master.break_start);
-    const bEnd = toMin(master.break_end);
-    if (bStart != null && bEnd != null && bEnd > bStart && startMin < bEnd && bStart < endMin) {
-      return json({ error: 'break_time' }, 409, req);
-    }
-  }
-
   const endTime = fromMin(endMin);
+
+  // --- предпроверка слота (до создания клиента, чтобы не плодить «пустых»
+  //     клиентов на заведомо отклонённых заявках). Окончательно — под локом
+  //     в book_appointment_v2.
+  const { data: slotErr, error: sErr } = await admin.rpc('booking_slot_error', {
+    p_master_id: master.id,
+    p_date: date,
+    p_start: startMin,
+    p_duration: duration,
+  });
+  if (sErr) return json({ error: 'lookup_failed' }, 500, req);
+  if (slotErr) return json({ error: slotErr }, BAD_INPUT.has(slotErr) ? 400 : 409, req);
 
   // --- анти-абуз: не даём боту флудить календарь мастера за один день ---
   const { count: dayCount, error: dErr } = await admin
@@ -186,23 +167,36 @@ Deno.serve(async (req: Request) => {
     .neq('status', 'cancelled');
   if (dErr) return json({ error: 'lookup_failed' }, 500, req);
   if ((dayCount ?? 0) >= 40) return json({ error: 'day_full' }, 429, req);
-  // Пересечение слотов проверяется атомарно в book_appointment (под advisory-
+  // Пересечение слотов проверяется атомарно в book_appointment_v2 (под advisory-
   // локом), чтобы не было гонки между проверкой и вставкой.
 
   const nowIso = now.toISOString();
 
-  // --- клиент: findOrCreate по user_id + цифрам телефона ---
+  // --- клиент: findOrCreate по user_id + цифрам телефона (индекс
+  //     idx_clients_user_phone; раньше грузили всю базу клиентов мастера).
   let clientId: string | null = null;
-  const { data: clients } = await admin
+  const { data: existing } = await admin
     .from('clients')
-    .select('id, phone')
+    .select('id')
     .eq('user_id', master.id)
-    .is('deleted_at', null);
-  const existing = (clients ?? []).find(
-    (c: { phone: string | null }) => (c.phone ?? '').replace(/\D/g, '') === phoneDigits,
-  );
+    .eq('phone_digits', phoneDigits)
+    .is('deleted_at', null)
+    .limit(1)
+    .maybeSingle();
   if (existing) {
     clientId = existing.id;
+    // Один номер не может завалить календарь мастера: не больше 3 заявок
+    // с сайта за сутки.
+    const { count: recent, error: rErr } = await admin
+      .from('appointments')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', master.id)
+      .eq('client_id', existing.id)
+      .like('id', 'web-%')
+      .neq('status', 'cancelled')
+      .gte('created_at', new Date(now.getTime() - 86_400_000).toISOString());
+    if (rErr) return json({ error: 'lookup_failed' }, 500, req);
+    if ((recent ?? 0) >= 3) return json({ error: 'too_many' }, 429, req);
   } else {
     const newClientId = `web-${crypto.randomUUID()}`;
     const { error: cErr } = await admin.from('clients').insert({
@@ -223,21 +217,23 @@ Deno.serve(async (req: Request) => {
   const notes =
     `🌐 Онлайн-запись с сайта\nКлиент: ${name}\nТелефон: ${phoneRaw}\nУслуга: ${serviceName}` +
     (comment ? `\nКомментарий: ${comment}` : '');
-  // Атомарно: повторная проверка пересечения + вставка под advisory-локом.
-  const { data: bookRes, error: aErr } = await admin.rpc('book_appointment', {
+  // Атомарно: те же правила + пересечение с буфером + вставка под advisory-локом.
+  const { data: bookRes, error: aErr } = await admin.rpc('book_appointment_v2', {
     p_id: apptId,
     p_user_id: master.id,
     p_client_id: clientId,
     p_service_id: svcId,
     p_date: date,
     p_start_time: startTime,
-    p_end_time: endTime,
+    p_duration: duration,
     p_price: price,
     p_notes: notes,
     p_now: nowIso,
   });
   if (aErr) return json({ error: 'booking_failed' }, 500, req);
-  if (bookRes === 'slot_taken') return json({ error: 'slot_taken' }, 409, req);
+  if (bookRes !== 'ok') {
+    return json({ error: bookRes ?? 'booking_failed' }, BAD_INPUT.has(bookRes) ? 400 : 409, req);
+  }
 
   return json({ ok: true, date, start_time: startTime, end_time: endTime, service: serviceName }, 200, req);
 });

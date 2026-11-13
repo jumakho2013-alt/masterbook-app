@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { formatPrice } from '@/lib/format';
 import { phonePlaceholder } from '@/lib/geo';
+import { CHOOSE_SERVICE_EVENT } from './ChooseServiceButton';
 
 type SvcOpt = { id: string; name: string; price: number; duration: number };
 type Contact = { href: string; label: string } | null;
@@ -23,6 +24,9 @@ const ERRORS: Record<string, string> = {
   after_hours: 'Услуга не успевает до конца рабочего дня — выберите время раньше',
   slot_taken: 'Это время уже занято — выберите другое',
   day_full: 'В этот день всё занято — выберите другую дату',
+  paused: 'Мастер временно не принимает онлайн-запись',
+  closed: 'В этот день мастер не принимает — выберите другую дату',
+  too_many: 'С этого номера уже отправлено несколько заявок — дождитесь ответа мастера',
   service_not_found: 'Эта услуга сейчас недоступна',
   booking_failed: 'Не удалось записаться. Попробуйте ещё раз',
   client_create_failed: 'Не удалось записаться. Попробуйте ещё раз',
@@ -30,72 +34,75 @@ const ERRORS: Record<string, string> = {
   bad_json: 'Не удалось отправить форму',
 };
 
-/** Локальная сегодняшняя дата (YYYY-MM-DD) без UTC-сдвига. */
-function todayLocal(): string {
-  const d = new Date();
-  const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
-  return local.toISOString().slice(0, 10);
+const WD = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+const DAYS_AHEAD = 14;
+
+function ymd(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-/** Слоты начала с шагом 30 мин в пределах рабочих часов. */
-function buildSlots(start: string | null, end: string | null, durationMin = 30): string[] {
-  const toMin = (t: string | null, def: number) => {
-    const m = t && /^(\d{2}):(\d{2})$/.exec(t);
-    return m ? Number(m[1]) * 60 + Number(m[2]) : def;
-  };
-  const s = toMin(start, 9 * 60);
-  const e = toMin(end, 20 * 60);
-  const out: string[] = [];
-  // Слот валиден, только если услуга успевает до конца дня (start + duration <= end).
-  for (let t = s; t + durationMin <= e; t += 30) {
-    out.push(`${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`);
+type Day = { date: string; wd: string; num: number; off: boolean };
+
+/** Ближайшие 14 дней; выходные и закрытые даты — неактивны. */
+function buildDays(workDays: number[] | null, closed: string[]): Day[] {
+  const out: Day[] = [];
+  const base = new Date();
+  for (let i = 0; i < DAYS_AHEAD; i++) {
+    const d = new Date(base.getFullYear(), base.getMonth(), base.getDate() + i);
+    const date = ymd(d);
+    const off = (workDays != null && workDays.length > 0 && !workDays.includes(d.getDay())) || closed.includes(date);
+    out.push({ date, wd: i === 0 ? 'Сегодня' : i === 1 ? 'Завтра' : WD[d.getDay()], num: d.getDate(), off });
   }
   return out;
 }
+
+type SlotsState =
+  | { kind: 'idle' }
+  | { kind: 'loading' }
+  | { kind: 'ok'; slots: string[] }
+  | { kind: 'error' };
+
+const DAY_STATUS: Record<string, string> = {
+  day_off: 'В этот день мастер не работает — выберите другой.',
+  closed: 'В этот день мастер не принимает — выберите другой.',
+  paused: 'Мастер временно не принимает онлайн-запись.',
+  date_past: 'Этот день уже прошёл.',
+};
 
 export function BookingForm({
   slug,
   services,
   currency,
-  workHoursStart,
-  workHoursEnd,
   workDays,
+  closedDates = null,
+  paused = false,
   contact,
   city = null,
 }: {
   slug: string;
   services: SvcOpt[];
   currency: string | null;
-  workHoursStart: string | null;
-  workHoursEnd: string | null;
   workDays: number[] | null;
+  closedDates?: string[] | null;
+  paused?: boolean | null;
   contact: Contact;
   /** Город мастера — для подсказки кода страны в поле телефона. */
   city?: string | null;
 }) {
-  const min = useMemo(() => todayLocal(), []);
-  // Верхняя граница даты — как в edge-функции book (today + 366 дн.), чтобы не
-  // ловить date_far уже после отправки.
-  const max = useMemo(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 365);
-    return d.toISOString().slice(0, 10);
-  }, []);
-
+  // Дни строим только в браузере: на сервере (UTC) «сегодня» в ночные часы —
+  // другой календарный день, и разметка не совпала бы при гидратации.
+  const [days, setDays] = useState<Day[] | null>(null);
   const [serviceId, setServiceId] = useState(services[0]?.id ?? '');
-  const selectedService = services.find((s) => s.id === serviceId);
-  // Слоты учитывают длительность выбранной услуги — не предлагаем время, на
-  // которое услуга не успевает до конца рабочего дня.
-  const slots = useMemo(
-    // 60 — тот же фолбэк, что и на сервере (book/index.ts). `||`, а не `??`:
-    // услуга с duration=0 иначе давала слоты до самого закрытия.
-    () => buildSlots(workHoursStart, workHoursEnd, selectedService?.duration || 60),
-    [workHoursStart, workHoursEnd, selectedService?.duration],
-  );
-  // Сегодня показываем только будущие слоты — сервер такие брони отклоняет
-  // (time_past), незачем давать выбрать заведомо мёртвое время.
   const [date, setDate] = useState('');
-  const [time, setTime] = useState(slots[0] ?? '');
+  useEffect(() => {
+    const list = buildDays(workDays, closedDates ?? []);
+    setDays(list);
+    setDate((cur) => (cur && list.some((d) => d.date === cur && !d.off) ? cur : list.find((d) => !d.off)?.date ?? ''));
+  }, [workDays, closedDates]);
+  const [time, setTime] = useState('');
+  const [slots, setSlots] = useState<SlotsState>({ kind: 'idle' });
+  const [dayMsg, setDayMsg] = useState('');
+  const [reload, setReload] = useState(0);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [comment, setComment] = useState('');
@@ -103,32 +110,63 @@ export function BookingForm({
   const [error, setError] = useState('');
   const [done, setDone] = useState<{ date: string; time: string; service: string } | null>(null);
 
-  const visibleSlots = useMemo(() => {
-    if (date !== min) return slots;
-    const d = new Date();
-    const nowMin = d.getHours() * 60 + d.getMinutes();
-    return slots.filter((t) => {
-      const [h, m] = t.split(':').map(Number);
-      return h * 60 + m >= nowMin;
-    });
-  }, [slots, date, min]);
-
-  // День-выходной: предупреждаем заранее (work_days: 0=Вс..6=Сб).
-  const dayOff = useMemo(() => {
-    if (!date || !workDays || workDays.length === 0) return false;
-    const [y, m, d] = date.split('-').map(Number);
-    if (!y || !m || !d) return false;
-    return !workDays.includes(new Date(y, m - 1, d).getDay());
-  }, [date, workDays]);
-
-  // Смена услуги/часов изменила набор слотов и текущее время выпало — подставляем
-  // первый доступный (или пусто, если услуга вообще не влезает в день).
+  // «Выбрать» у услуги в прайсе выбирает её здесь.
   useEffect(() => {
-    if (time && !visibleSlots.includes(time)) setTime(visibleSlots[0] ?? '');
-  }, [visibleSlots]); // eslint-disable-line react-hooks/exhaustive-deps
+    const onChoose = (e: Event) => {
+      const id = (e as CustomEvent<string>).detail;
+      if (services.some((s) => s.id === id)) setServiceId(id);
+    };
+    window.addEventListener(CHOOSE_SERVICE_EVENT, onChoose);
+    return () => window.removeEventListener(CHOOSE_SERVICE_EVENT, onChoose);
+  }, [services]);
+
+  // Свободное время — с сервера, по тем же правилам, что и запись
+  // (available_slots → booking_slot_error): занятое, перерыв, буфер, прошедшее
+  // время сегодня. Раньше форма показывала все слоты рабочего дня, и клиент
+  // узнавал «занято» только после отправки.
+  useEffect(() => {
+    if (!date || !slug || paused) return;
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!url || !anon) return;
+    const ctrl = new AbortController();
+    setSlots({ kind: 'loading' });
+    setDayMsg('');
+    fetch(`${url}/rest/v1/rpc/available_slots`, {
+      method: 'POST',
+      signal: ctrl.signal,
+      headers: { 'Content-Type': 'application/json', apikey: anon, Authorization: `Bearer ${anon}` },
+      body: JSON.stringify({ p_slug: slug, p_date: date, p_service_id: serviceId || null }),
+    })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((d: { status: string; slots: string[] }) => {
+        const list = d.status === 'ok' ? d.slots : [];
+        setSlots({ kind: 'ok', slots: list });
+        setDayMsg(d.status === 'ok' ? '' : (DAY_STATUS[d.status] ?? ''));
+        setTime((t) => (list.includes(t) ? t : ''));
+      })
+      .catch((e) => {
+        if ((e as Error).name !== 'AbortError') setSlots({ kind: 'error' });
+      });
+    return () => ctrl.abort();
+  }, [slug, date, serviceId, paused, reload]);
 
   if (slug === '') {
     return <div className="empty" style={{ padding: 20 }}>Онлайн-запись у этого мастера пока недоступна.</div>;
+  }
+
+  if (paused) {
+    return (
+      <div className="book-done">
+        <h3 className="serif" style={{ margin: '0 0 6px' }}>Запись временно закрыта</h3>
+        <p className="muted" style={{ margin: 0 }}>Мастер сейчас не принимает онлайн-заявки. Напишите ему напрямую.</p>
+        {contact && (
+          <a href={contact.href} target="_blank" rel="noreferrer" className="btn btn-primary" style={{ marginTop: 16 }}>
+            {contact.label}
+          </a>
+        )}
+      </div>
+    );
   }
 
   if (done) {
@@ -139,7 +177,7 @@ export function BookingForm({
         <h3 className="serif" style={{ margin: '8px 0' }}>Заявка отправлена!</h3>
         <p className="muted" style={{ margin: 0 }}>
           {done.service} · {d}.{m}.{y} в {done.time}.<br />
-          Мастер свяжется с вами для подтверждения.
+          Заявка уже в календаре мастера. Если время понадобится уточнить, мастер свяжется с вами по телефону.
         </p>
         {contact && (
           <a href={contact.href} target="_blank" rel="noreferrer" className="btn" style={{ marginTop: 16 }}>
@@ -157,9 +195,8 @@ export function BookingForm({
 
     if (name.trim().length < 2) return setError(ERRORS.name_required);
     if (phone.replace(/\D/g, '').length < 7) return setError(ERRORS.phone_invalid);
-    if (!date) return setError(ERRORS.date_invalid);
-    if (!time) return setError(ERRORS.time_invalid);
-    if (dayOff) return setError(ERRORS.day_off);
+    if (!date) return setError('Выберите день');
+    if (!time) return setError('Выберите свободное время');
 
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -189,6 +226,12 @@ export function BookingForm({
         setDone({ date: data.date, time: data.start_time, service: data.service });
       } else {
         setError(ERRORS[data?.error] ?? 'Что-то пошло не так. Попробуйте ещё раз');
+        // Время успел занять кто-то другой (или мастер поменял график) —
+        // перезагружаем свободные окна, чтобы клиент выбирал из актуальных.
+        if (res.status === 409) {
+          setTime('');
+          setReload((n) => n + 1);
+        }
       }
     } catch {
       setError('Нет связи с сервером. Проверьте интернет и попробуйте снова');
@@ -212,22 +255,54 @@ export function BookingForm({
         </label>
       )}
 
-      <div className="bf-row">
-        <label className="bf-field">
-          <span className="bf-label">Дата</span>
-          <input className="bf-input" type="date" min={min} max={max} value={date} onChange={(e) => setDate(e.target.value)} required />
-        </label>
-        <label className="bf-field">
-          <span className="bf-label">Время</span>
-          <select className="bf-input" value={time} onChange={(e) => setTime(e.target.value)}>
-            {visibleSlots.map((t) => (
-              <option key={t} value={t}>{t}</option>
-            ))}
-          </select>
-        </label>
+      <div className="bf-field">
+        <span className="bf-label">День</span>
+        <div className="bf-days" role="radiogroup" aria-label="День записи">
+          {days == null && Array.from({ length: 7 }).map((_, i) => <span key={i} className="bf-day skeleton" />)}
+          {days?.map((d) => (
+            <button
+              key={d.date} type="button" role="radio" aria-checked={d.date === date}
+              aria-label={`${d.wd}, ${d.num}${d.off ? ' — нет записи' : ''}`}
+              className={`bf-day${d.date === date ? ' active' : ''}`}
+              disabled={d.off}
+              onClick={() => { setDate(d.date); setError(''); }}
+            >
+              <span className="bf-day-wd">{d.wd}</span>
+              <span className="bf-day-num">{d.num}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
-      {dayOff && <div className="bf-warn">В этот день мастер не работает — выберите другую дату.</div>}
+      <div className="bf-field">
+        <span className="bf-label">Свободное время</span>
+        {days != null && !date ? (
+          <div className="bf-hint">В ближайшие две недели свободных дней нет — напишите мастеру.</div>
+        ) : !date || slots.kind === 'loading' || slots.kind === 'idle' ? (
+          <div className="bf-slots" aria-busy="true">
+            {Array.from({ length: 8 }).map((_, i) => <span key={i} className="bf-slot skeleton" />)}
+          </div>
+        ) : slots.kind === 'error' ? (
+          <div className="bf-hint">
+            Не удалось загрузить время.{' '}
+            <button type="button" className="linkbtn" onClick={() => setReload((n) => n + 1)}>Повторить</button>
+          </div>
+        ) : slots.slots.length === 0 ? (
+          <div className="bf-hint">{dayMsg || 'На этот день свободного времени нет — выберите другой.'}</div>
+        ) : (
+          <div className="bf-slots" role="radiogroup" aria-label="Время записи">
+            {slots.slots.map((t) => (
+              <button
+                key={t} type="button" role="radio" aria-checked={t === time}
+                className={`bf-slot${t === time ? ' active' : ''}`}
+                onClick={() => { setTime(t); setError(''); }}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
       <label className="bf-field">
         <span className="bf-label">Ваше имя</span>
@@ -246,8 +321,8 @@ export function BookingForm({
 
       {error && <div className="bf-error">{error}</div>}
 
-      <button className="btn btn-primary" type="submit" disabled={busy || dayOff} style={{ width: '100%', justifyContent: 'center', padding: 15 }}>
-        {busy ? 'Отправляем…' : 'Записаться'}
+      <button className="btn btn-primary" type="submit" disabled={busy} style={{ width: '100%', justifyContent: 'center', padding: 15 }}>
+        {busy ? 'Отправляем…' : time ? `Записаться на ${time}` : 'Записаться'}
       </button>
 
       {contact && (

@@ -349,6 +349,33 @@ button { font-family: inherit; }
 textarea.bf-input { resize: vertical; min-height: 48px; }
 .bf-warn { font-size: 14px; color: var(--gold); background: var(--gold-soft); border: 1px solid var(--gold); border-radius: 12px; padding: 10px 14px; }
 .bf-error { font-size: 14px; color: #a23a4a; background: #f7e7e9; border: 1px solid #e3b8bf; border-radius: 12px; padding: 10px 14px; }
+.bf-days { display: flex; gap: 8px; overflow-x: auto; width: 0; min-width: 100%; padding: 2px 2px 6px; scrollbar-width: none; scroll-snap-type: x proximity; }
+.bf-days::-webkit-scrollbar { display: none; }
+.bf-day { flex: none; scroll-snap-align: start; width: 64px; padding: 9px 0; border-radius: 14px; border: 1px solid var(--line); background: var(--bg); color: var(--text); cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; font-family: var(--sans); transition: border-color .15s, background .15s; }
+.bf-day:hover:not(:disabled) { border-color: var(--plum); }
+.bf-day:disabled { opacity: .38; cursor: not-allowed; text-decoration: line-through; }
+.bf-day.active { background: var(--btn); border-color: var(--btn); color: var(--on-btn); }
+.bf-day-wd { font-size: 11px; font-weight: 600; opacity: .8; }
+.bf-day-num { font-size: 18px; font-weight: 700; }
+.bf-slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; }
+.bf-slot { height: 44px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font: 600 15px var(--sans); cursor: pointer; transition: border-color .15s, background .15s; }
+.bf-slot:hover { border-color: var(--plum); }
+.bf-slot.active { background: var(--btn); border-color: var(--btn); color: var(--on-btn); }
+.bf-day.skeleton { height: 58px; cursor: default; border-color: transparent; background: linear-gradient(90deg, var(--elevated) 25%, var(--bg) 50%, var(--elevated) 75%); background-size: 200% 100%; animation: bf-shimmer 1.2s infinite linear; }
+.bf-slot.skeleton { cursor: default; border-color: transparent; background: linear-gradient(90deg, var(--elevated) 25%, var(--bg) 50%, var(--elevated) 75%); background-size: 200% 100%; animation: bf-shimmer 1.2s infinite linear; }
+@keyframes bf-shimmer { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .bf-day.skeleton { height: 58px; cursor: default; border-color: transparent; background: linear-gradient(90deg, var(--elevated) 25%, var(--bg) 50%, var(--elevated) 75%); background-size: 200% 100%; animation: bf-shimmer 1.2s infinite linear; }
+.bf-slot.skeleton { animation: none; } }
+.bf-hint { font-size: 14px; color: var(--text2); background: var(--bg); border: 1px dashed var(--line); border-radius: 12px; padding: 12px 14px; }
+.cab-toggle { display: flex; gap: 12px; align-items: flex-start; cursor: pointer; }
+.cab-toggle input { width: 20px; height: 20px; margin-top: 2px; accent-color: var(--btn); flex: none; }
+.cab-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.cab-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 6px 6px 12px; border-radius: 999px; background: var(--plum-soft); color: var(--plum); font-weight: 600; font-size: 14px; }
+.cab-chip button { width: 24px; height: 24px; border-radius: 50%; border: 0; background: transparent; color: inherit; font-size: 16px; line-height: 1; cursor: pointer; }
+.cab-chip button:hover { background: rgba(0,0,0,0.06); }
+.cab-appt.cancelled { opacity: .55; }
+.cab-appt.cancelled strong { text-decoration: line-through; }
+.muted-badge { background: var(--neutral-soft) !important; color: var(--text2) !important; }
 .bf-notice { font-size: 14px; color: var(--success); background: color-mix(in srgb, var(--success) 10%, var(--card)); border: 1px solid color-mix(in srgb, var(--success) 35%, var(--card)); border-radius: 12px; padding: 10px 14px; }
 [data-theme='noir'] .bf-error { color: #f0b3bd; background: #3a1f26; border-color: #6b3540; }
 .book-done { text-align: center; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 32px 20px; margin-top: 18px; box-shadow: var(--shadow); }

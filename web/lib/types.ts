@@ -28,6 +28,10 @@ export interface Master {
   work_days: number[] | null;
   work_hours_start: string | null;
   work_hours_end: string | null;
+  /** Мастер временно не принимает онлайн-запись (отпуск, болезнь). */
+  booking_paused?: boolean | null;
+  /** Закрытые даты 'YYYY-MM-DD' — в эти дни записи нет. */
+  closed_dates?: string[] | null;
   // Валюта мастера (TJS/RUB/KZT/…) — цены показываем в ней, а не всегда «сом.».
   currency: string | null;
 }

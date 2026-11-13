@@ -7,6 +7,7 @@ import { formatPrice, initials, whatsappLink, telLink, reviewsWord } from '@/lib
 import { isActivePremium } from '@/components/MasterCard';
 import { professionLabel } from '@/lib/taxonomy';
 import { BookingForm } from '@/components/BookingForm';
+import { ChooseServiceButton } from '@/components/ChooseServiceButton';
 
 export const revalidate = 60;
 
@@ -24,21 +25,26 @@ function reviewDate(iso: string): string {
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   const { data: m } = await supabase
     .from('profiles')
-    .select('name, bio, city, district')
+    .select('name, bio, city, district, cover_photo')
     .eq('slug', params.slug)
     .eq('published', true)
     .maybeSingle();
   if (!m) return { title: 'Мастер не найден — MasterBook' };
   const place = [m.district, m.city].filter(Boolean).join(', ');
   const title = `${m.name}${place ? ` · ${place}` : ''} — MasterBook`;
-  const description = (m.bio?.trim() || `Запишитесь к мастеру ${m.name} онлайн за минуту.`).slice(0, 160);
+  const description = (m.bio?.replace(/\s+/g, ' ').trim() || `Запишитесь к мастеру ${m.name} онлайн за минуту.`).slice(0, 160);
   const url = `/m/${params.slug}`;
   return {
     title,
     description,
     alternates: { canonical: url },
-    openGraph: { title, description, type: 'profile', siteName: 'MasterBook', locale: 'ru_RU', url },
-    twitter: { card: 'summary', title, description },
+    // Ссылку на мастера пересылают в WhatsApp/Telegram — без картинки превью
+    // было пустой серой плашкой. Берём первую работу из портфолио.
+    openGraph: {
+      title, description, type: 'profile', siteName: 'MasterBook', locale: 'ru_RU', url,
+      images: [m.cover_photo || '/stock/hero-nails.jpg'],
+    },
+    twitter: { card: 'summary_large_image', title, description, images: [m.cover_photo || '/stock/hero-nails.jpg'] },
   };
 }
 
@@ -166,7 +172,7 @@ export default async function MasterPage({ params }: { params: { slug: string } 
                 <b style={{ fontFamily: 'var(--serif)', fontSize: 16 }}>{master.work_hours_start}–{master.work_hours_end}</b> рабочие часы
               </span>
             )}
-            <span style={{ fontSize: 12.5, color: 'var(--text2)' }}>Запись онлайн · заявку подтверждает мастер</span>
+            <span style={{ fontSize: 12.5, color: 'var(--text2)' }}>Запись онлайн · видно только свободное время</span>
           </div>
         )}
 
@@ -202,7 +208,7 @@ export default async function MasterPage({ params }: { params: { slug: string } 
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 'none' }}>
                         <span className="svc-price">{formatPrice(s.price, master.currency)}</span>
-                        <a href="#book" className="svc-choose">Выбрать</a>
+                        <ChooseServiceButton serviceId={s.id} />
                       </div>
                     </div>
                   ))}
@@ -253,9 +259,9 @@ export default async function MasterPage({ params }: { params: { slug: string } 
                 slug={master.slug ?? ''}
                 services={services.map((s) => ({ id: s.id, name: s.name, price: s.price, duration: s.duration }))}
                 currency={master.currency}
-                workHoursStart={master.work_hours_start}
-                workHoursEnd={master.work_hours_end}
                 workDays={master.work_days}
+                closedDates={master.closed_dates ?? null}
+                paused={master.booking_paused ?? false}
                 contact={cta}
                 city={master.city}
               />
@@ -268,7 +274,7 @@ export default async function MasterPage({ params }: { params: { slug: string } 
             {minPrice != null && (
               <div className="aside-price">{formatPrice(minPrice, master.currency)}</div>
             )}
-            <div style={{ fontSize: 12.5, color: 'var(--text2)', margin: '6px 0 20px' }}>Оплата у мастера · заявку подтверждает мастер</div>
+            <div style={{ fontSize: 12.5, color: 'var(--text2)', margin: '6px 0 20px' }}>Оплата у мастера · без предоплаты</div>
             <a href="#book" className="btn btn-primary btn-block btn-lg" style={{ height: 54 }}>Записаться онлайн</a>
             {(master.whatsapp || master.public_phone) && (
               <div className="aside-contacts">
